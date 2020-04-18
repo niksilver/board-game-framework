@@ -25,12 +25,7 @@ func TestClient_CreatesNewID(t *testing.T) {
 	}
 
 	cookies := rr.Result().Cookies()
-	var clientID string
-	for _, cookie := range cookies {
-		if cookie.Name == "clientID" {
-			clientID = cookie.Value
-		}
-	}
+	clientID := clientID(cookies)
 	if clientID == "" {
 		t.Errorf("clientID cookie is empty or not defined")
 	}
@@ -59,12 +54,7 @@ func TestClient_ReusesOldID(t *testing.T) {
 	}
 
 	cookies := rr.Result().Cookies()
-	var clientID string
-	for _, cookie := range cookies {
-		if cookie.Name == "clientID" {
-			clientID = cookie.Value
-		}
-	}
+	clientID := clientID(cookies)
 	if clientID != "existing value" {
 		t.Errorf("clientID cookie: expected 'expected value', got '%s'",
 			clientID)
@@ -93,21 +83,20 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 		}
 
 		cookies := rr.Result().Cookies()
-		var clientID string
-		for _, cookie := range cookies {
-			if cookie.Name == "clientID" {
-				clientID = cookie.Value
-				if usedIDs[clientID] {
-					t.Errorf("Iteration i = %d, clientID '%s' already used",
-						i,
-						clientID)
-				}
-				usedIDs[clientID] = true
-			}
+		clientID := clientID(cookies)
+
+		if usedIDs[clientID] {
+			t.Errorf("Iteration i = %d, clientID '%s' already used",
+				i,
+				clientID)
+			return
 		}
 		if clientID == "" {
-			t.Errorf("clientID not set")
+			t.Errorf("Iteration i = %d, clientID not set", i)
+			return
 		}
+
+		usedIDs[clientID] = true
 	}
 
 }

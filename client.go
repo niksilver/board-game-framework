@@ -25,9 +25,11 @@ func NewClient(r *http.Request) Client {
 
 // newClientID generates a random clientID string
 func newClientID() string {
-	part1 := time.Now().UnixNano()
-	part2 := rand.Int63()
-	return fmt.Sprintf("%d.%d", part1, part2)
+	return fmt.Sprintf(
+		"%d.%d",
+		time.Now().Unix(),
+		rand.Int31(),
+	)
 }
 
 // clientID returns the contents of the clientID cookie, or empty string
