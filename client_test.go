@@ -1,13 +1,12 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-func TestCookie_CreateNew(t *testing.T) {
+func TestClient_CreatesNewID(t *testing.T) {
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -30,8 +29,6 @@ func TestCookie_CreateNew(t *testing.T) {
 	for _, cookie := range cookies {
 		if cookie.Name == "clientID" {
 			clientID = cookie.Value
-			log.Printf("clientID is %s", clientID)
-			log.Printf("clientID string is %s", cookie.String())
 		}
 	}
 	if clientID == "" {
@@ -39,7 +36,7 @@ func TestCookie_CreateNew(t *testing.T) {
 	}
 }
 
-func TestCookie_ReusesOld(t *testing.T) {
+func TestClient_ReusesOldID(t *testing.T) {
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -66,8 +63,6 @@ func TestCookie_ReusesOld(t *testing.T) {
 	for _, cookie := range cookies {
 		if cookie.Name == "clientID" {
 			clientID = cookie.Value
-			log.Printf("clientID is %s", clientID)
-			log.Printf("clientID string is %s", cookie.String())
 		}
 	}
 	if clientID != "existing value" {
@@ -76,7 +71,7 @@ func TestCookie_ReusesOld(t *testing.T) {
 	}
 }
 
-func TestCookie_NewCookiesAreDifferent(t *testing.T) {
+func TestClient_NewIDsAreDifferent(t *testing.T) {
 	usedIDs := make(map[string]bool)
 
 	for i := 0; i < 100; i++ {
