@@ -1,8 +1,9 @@
-- Refactor cookie client ID code into a Client type.
 - Client to tell the server which group it belongs to.
 - Prove websockets connectivity.
+- Ensure App Engine runs with only one instance
 
 DONE:
 
 - Give clients an identifier (probably via a cookie).
+- Refactor cookie client ID code into a Client type.
 
