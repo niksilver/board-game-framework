@@ -1,0 +1,3 @@
+- Give clients an identifier (probably via a cookie).
+- Client to tell the server which group it belongs to.
+- Prove websockets connectivity.
