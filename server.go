@@ -10,10 +10,21 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/gorilla/websocket"
 )
 
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		// If set, the Origin host is in r.Header["Origin"][0])
+		// The request host is in r.Host
+		// We won't worry about the origin, to help with testing locally
+		return true
+	},
+}
+
 func main() {
-	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/", echoHandler)
 
 	// [START setting_port]
 	port := os.Getenv("PORT")
@@ -42,4 +53,40 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		Value: c.id,
 	})
 	fmt.Fprint(w, "Hello, World!")
+}
+
+// echoHandler sets up a websocket to echo whatever it receives
+func echoHandler(w http.ResponseWriter, r *http.Request) {
+	log.Print("Got request")
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+
+	c := NewClient(r)
+	http.SetCookie(w, &http.Cookie{
+		Name:  "clientID",
+		Value: c.id,
+	})
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Print("Upgrade error: ", err)
+		return
+	}
+	defer conn.Close()
+
+	for {
+		mType, msg, err := conn.ReadMessage()
+		if err != nil {
+			log.Print("Read message error: ", err)
+			break
+		}
+		// Currently ignores message type
+		err = conn.WriteMessage(mType, msg)
+		if err != nil {
+			log.Print("Write message error: ", err)
+			break
+		}
+	}
 }
