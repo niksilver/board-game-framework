@@ -55,9 +55,18 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+
+	clientID := "some value"
+	cookies := r.Cookies()
+	for _, cookie := range cookies {
+		if cookie.Name == "clientID" {
+			clientID = cookie.Value
+		}
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:  "clientID",
-		Value: "some value",
+		Value: clientID,
 	})
 	fmt.Fprint(w, "Hello, World!")
 }
