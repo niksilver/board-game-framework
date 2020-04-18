@@ -15,6 +15,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -64,5 +65,37 @@ func TestIndexHandlerNotFound(t *testing.T) {
 			status,
 			http.StatusNotFound,
 		)
+	}
+}
+
+func TestCookie_CreateNew(t *testing.T) {
+	req, err := http.NewRequest("GET", "/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(indexHandler)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf(
+			"unexpected status: got (%v) want (%v)",
+			status,
+			http.StatusOK,
+		)
+	}
+
+	cookies := rr.Result().Cookies()
+	var clientID string
+	for _, cookie := range cookies {
+		if cookie.Name == "clientID" {
+			clientID = cookie.Value
+			log.Printf("clientID is %s", clientID)
+			log.Printf("clientID string is %s", cookie.String())
+		}
+	}
+	if clientID == "" {
+		t.Errorf("clientID cookie is empty or not defined")
 	}
 }

@@ -55,6 +55,10 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	http.SetCookie(w, &http.Cookie{
+		Name:  "clientID",
+		Value: "some value",
+	})
 	fmt.Fprint(w, "Hello, World!")
 }
 
