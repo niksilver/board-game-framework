@@ -6,7 +6,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -40,21 +39,6 @@ func main() {
 	// [END setting_port]
 }
 
-// indexHandler responds to requests with our greeting.
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-
-	c := NewClient(r)
-	http.SetCookie(w, &http.Cookie{
-		Name:  "clientID",
-		Value: c.id,
-	})
-	fmt.Fprint(w, "Hello, World!")
-}
-
 // echoHandler sets up a websocket to echo whatever it receives
 func echoHandler(w http.ResponseWriter, r *http.Request) {
 	log.Print("Got connection request")
@@ -64,7 +48,6 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c := NewClient(r)
-	log.Print("Received client ID ", c.id)
 	cookie := &http.Cookie{
 		Name:  "clientID",
 		Value: c.id,
@@ -72,7 +55,6 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	cookieStr := cookie.String()
 	header := http.Header(make(map[string][]string))
 	header.Add("Set-Cookie", cookieStr)
-	log.Print("    Sent client ID ", c.id)
 
 	conn, err := upgrader.Upgrade(w, r, header)
 	if err != nil {
