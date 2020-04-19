@@ -5,9 +5,13 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/gorilla/websocket"
 )
 
 func TestIndexHandler(t *testing.T) {
@@ -33,8 +37,37 @@ func TestIndexHandler(t *testing.T) {
 		t.Errorf(
 			"unexpected body: got (%v) want (%v)",
 			rr.Body.String(),
-			"Hello, World!",
+			expected,
 		)
+	}
+}
+
+func TestEchoHandler(t *testing.T) {
+	serv := httptest.NewServer(http.HandlerFunc(echoHandler))
+	defer serv.Close()
+
+	// Convert http://a.b.c.d to ws://a.b.c.d
+	url := "ws" + strings.TrimPrefix(serv.URL, "http")
+	log.Print("Converted URL is ", url)
+
+	// Connect to the server
+
+	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ws.Close()
+
+	msg := []byte("Testing, testing")
+	if err := ws.WriteMessage(websocket.BinaryMessage, msg); err != nil {
+		t.Fatal("Write error: ", err)
+	}
+	_, rcvMsg, rcvErr := ws.ReadMessage()
+	if rcvErr != nil {
+		t.Fatal("Read error: ", err)
+	}
+	if string(rcvMsg) != string(msg) {
+		t.Errorf("Received '%s' but expected '%s'", rcvMsg, msg)
 	}
 }
 
