@@ -3,8 +3,6 @@
 - Be more responsible about pinging and ponging.
 - Queue messages in a channel, to reduce blocking.
 - Close a client connection if ping doesn't get a response in time.
-- Bug: Client ID cookie is lost after browser closes (but not after tab
-  closes).
 
 DONE:
 
@@ -13,4 +11,6 @@ DONE:
 - Prove websockets connectivity.
 - Generate client ID for websocket connection.
 - Test that a real websocket client does send cookies as expected.
+- Fixed: Bug: Client ID cookie is lost after browser closes (but not after tab
+  closes). Likely due to Max-Age not being set (value in seconds).
 

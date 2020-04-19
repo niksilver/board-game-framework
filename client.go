@@ -47,3 +47,15 @@ func clientID(cookies []*http.Cookie) string {
 
 	return ""
 }
+
+// clientID returns the Max-Age value of the clientID cookie,
+// or 0 if there's none there
+func clientIDMaxAge(cookies []*http.Cookie) int {
+	for _, cookie := range cookies {
+		if cookie.Name == "clientID" {
+			return cookie.MaxAge
+		}
+	}
+
+	return 0
+}

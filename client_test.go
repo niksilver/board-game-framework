@@ -22,6 +22,23 @@ func TestWSClient_CreatesNewID(t *testing.T) {
 	}
 }
 
+func TestWSClient_ClientIDCookieIsPersistent(t *testing.T) {
+	_, resp, closeFunc, err := wsServerConn(echoHandler)
+	defer closeFunc()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cookies := resp.Cookies()
+	maxAge := clientIDMaxAge(cookies)
+	if maxAge < 100_000 {
+		t.Errorf(
+			"clientID cookie has max age %d, but expected 100,000 or more",
+			maxAge,
+		)
+	}
+}
+
 func TestWSClient_ReusesOldId(t *testing.T) {
 	cookieValue := "existing value"
 
