@@ -1,6 +1,9 @@
 - Client to tell the server which group it belongs to.
 - Ensure App Engine runs with only one instance.
 - Be more responsible about pinging and ponging.
+- Queue messages in a channel, to reduce blocking.
+- Close a client connection if ping doesn't get a response in time.
+- Generate client ID for websocket connection.
 
 DONE:
 
