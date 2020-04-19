@@ -5,7 +5,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,21 +41,33 @@ func TestIndexHandler(t *testing.T) {
 	}
 }
 
-func TestEchoHandler(t *testing.T) {
-	serv := httptest.NewServer(http.HandlerFunc(echoHandler))
-	defer serv.Close()
+// wsServer starts a websocket server with the given handler. It returns
+// a websocket Connection, the function to close the servers it started,
+// and any error encountered.
+func wsServer(hdlr http.HandlerFunc) (ws *websocket.Conn, closeFunc func(), err error) {
+	serv := httptest.NewServer(http.HandlerFunc(hdlr))
 
 	// Convert http://a.b.c.d to ws://a.b.c.d
 	url := "ws" + strings.TrimPrefix(serv.URL, "http")
-	log.Print("Converted URL is ", url)
 
 	// Connect to the server
 
-	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
+	ws, _, wsErr := websocket.DefaultDialer.Dial(url, nil)
+
+	clFunc := func() {
+		ws.Close()
+		serv.Close()
+	}
+
+	return ws, clFunc, wsErr
+}
+
+func TestEchoHandler(t *testing.T) {
+	ws, cf, err := wsServer(echoHandler)
+	defer cf()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ws.Close()
 
 	msg := []byte("Testing, testing")
 	if err := ws.WriteMessage(websocket.BinaryMessage, msg); err != nil {
