@@ -8,19 +8,15 @@
                 var input = document.getElementById("input");
                 var ws;
                 var print = function(message) {
-                    console.log("print, message = " + message);
                     var d = document.createElement("div");
                     d.textContent = message;
                     output.appendChild(d);
                 };
                 document.getElementById("open").onclick = function(evt) {
-                    console.log("Open, onclick, entering");
                     if (ws) {
-                        console.log("Open, onclick, returning false");
                         return false;
                     }
                     ws = new WebSocket("ws://localhost:8080/");
-                    console.log("Open, onclick, ws = " + ws);
                     ws.onopen = function(evt) {
                         print("OPEN");
                     }
@@ -40,10 +36,6 @@
                     if (!ws) {
                         return false;
                     }
-                    console.log("input: " + input);
-                    console.log("input.value: " + input.value);
-                    console.log("ws: " + ws);
-                    console.log("ws.send: " + ws.send);
                     print("SEND: " + input.value);
                     ws.send(input.value);
                     return false;

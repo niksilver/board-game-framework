@@ -57,7 +57,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 // echoHandler sets up a websocket to echo whatever it receives
 func echoHandler(w http.ResponseWriter, r *http.Request) {
-	log.Print("Got request")
+	log.Print("Got connection request")
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
