@@ -64,12 +64,17 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c := NewClient(r)
-	http.SetCookie(w, &http.Cookie{
+	log.Print("Received client ID ", c.id)
+	cookie := &http.Cookie{
 		Name:  "clientID",
 		Value: c.id,
-	})
+	}
+	cookieStr := cookie.String()
+	header := http.Header(make(map[string][]string))
+	header.Add("Set-Cookie", cookieStr)
+	log.Print("    Sent client ID ", c.id)
 
-	conn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := upgrader.Upgrade(w, r, header)
 	if err != nil {
 		log.Print("Upgrade error: ", err)
 		return

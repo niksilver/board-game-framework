@@ -35,6 +35,20 @@ func TestClient_CreatesNewID(t *testing.T) {
 	}
 }
 
+func TestWSClient_CreatesNewID(t *testing.T) {
+	_, resp, closeFunc, err := wsServerConn(echoHandler)
+	defer closeFunc()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cookies := resp.Cookies()
+	clientID := clientID(cookies)
+	if clientID == "" {
+		t.Errorf("clientID cookie is empty or not defined")
+	}
+}
+
 func TestClient_ReusesOldID(t *testing.T) {
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
@@ -62,6 +76,25 @@ func TestClient_ReusesOldID(t *testing.T) {
 	if clientID != "existing value" {
 		t.Errorf("clientID cookie: expected 'expected value', got '%s'",
 			clientID)
+	}
+}
+
+func TestWSClient_ReusesOldId(t *testing.T) {
+	cookieValue := "existing value"
+
+	_, resp, closeFunc, err := wsServerConnWithCookie(
+		echoHandler, "clientID", cookieValue)
+	defer closeFunc()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cookies := resp.Cookies()
+	clientID := clientID(cookies)
+	if clientID != cookieValue {
+		t.Errorf("clientID cookie: expected '%s', got '%s'",
+			clientID,
+			cookieValue)
 	}
 }
 
@@ -101,6 +134,37 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 		}
 
 		usedIDs[clientID] = true
+	}
+
+}
+
+func TestWSClient_NewIDsAreDifferent(t *testing.T) {
+	usedIDs := make(map[string]bool)
+
+	for i := 0; i < 100; i++ {
+		// Get a new client/server connection
+		_, resp, closeFunc, err := wsServerConn(echoHandler)
+		defer closeFunc()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		cookies := resp.Cookies()
+		clientID := clientID(cookies)
+
+		if usedIDs[clientID] {
+			t.Errorf("Iteration i = %d, clientID '%s' already used",
+				i,
+				clientID)
+			return
+		}
+		if clientID == "" {
+			t.Errorf("Iteration i = %d, clientID not set", i)
+			return
+		}
+
+		usedIDs[clientID] = true
+		closeFunc()
 	}
 
 }

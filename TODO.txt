@@ -3,11 +3,14 @@
 - Be more responsible about pinging and ponging.
 - Queue messages in a channel, to reduce blocking.
 - Close a client connection if ping doesn't get a response in time.
-- Generate client ID for websocket connection.
+- Bug: Client ID cookie is lost after browser closes (but not after tab
+  closes).
 
 DONE:
 
 - Give clients an identifier (probably via a cookie).
 - Refactor cookie client ID code into a Client type.
 - Prove websockets connectivity.
+- Generate client ID for websocket connection.
+- Test that a real websocket client does send cookies as expected.
 
