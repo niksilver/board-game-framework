@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestWSClient_CreatesNewID(t *testing.T) {
+func TestClient_CreatesNewID(t *testing.T) {
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
@@ -25,7 +25,7 @@ func TestWSClient_CreatesNewID(t *testing.T) {
 	}
 }
 
-func TestWSClient_ClientIDCookieIsPersistent(t *testing.T) {
+func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
@@ -45,7 +45,7 @@ func TestWSClient_ClientIDCookieIsPersistent(t *testing.T) {
 	}
 }
 
-func TestWSClient_ReusesOldId(t *testing.T) {
+func TestClient_ReusesOldId(t *testing.T) {
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
@@ -66,7 +66,7 @@ func TestWSClient_ReusesOldId(t *testing.T) {
 	}
 }
 
-func TestWSClient_NewIDsAreDifferent(t *testing.T) {
+func TestClient_NewIDsAreDifferent(t *testing.T) {
 	usedIDs := make(map[string]bool)
 
 	serv := newTestServer(echoHandler)
