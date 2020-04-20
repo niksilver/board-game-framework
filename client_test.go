@@ -69,11 +69,11 @@ func TestWSClient_ReusesOldId(t *testing.T) {
 func TestWSClient_NewIDsAreDifferent(t *testing.T) {
 	usedIDs := make(map[string]bool)
 
-	for i := 0; i < 100; i++ {
-		// Get a new client/server connection
-		serv := newTestServer(echoHandler)
-		defer serv.Close()
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
 
+	for i := 0; i < 100; i++ {
+		// Get a new client connection
 		ws, resp, err := dial(serv, "")
 		defer ws.Close()
 		if err != nil {
