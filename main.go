@@ -45,16 +45,9 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set the client ID, and give it a max age of 100 years from now
+	// Create a client, and set the ID in the response header
 	c := NewClient(r)
-	cookie := &http.Cookie{
-		Name:   "clientID",
-		Value:  c.ID,
-		MaxAge: 60 * 60 * 24 * 365 * 100,
-	}
-	cookieStr := cookie.String()
-	header := http.Header(make(map[string][]string))
-	header.Add("Set-Cookie", cookieStr)
+	header := c.Header()
 
 	conn, err := upgrader.Upgrade(w, r, header)
 	if err != nil {

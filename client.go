@@ -16,15 +16,29 @@ type Client struct {
 }
 
 // NewClient creates a new client proxy from an incoming request
-func NewClient(r *http.Request) Client {
+func NewClient(r *http.Request) *Client {
 	clientID := clientID(r.Cookies())
 	if clientID == "" {
 		clientID = newClientID()
 	}
 
-	return Client{
+	return &Client{
 		ID: clientID,
 	}
+}
+
+// Header returns an http.Header setting the client ID.
+func (c *Client) Header() http.Header {
+	cookie := &http.Cookie{
+		Name:   "clientID",
+		Value:  c.ID,
+		MaxAge: 60 * 60 * 24 * 365 * 100, // 100 years
+	}
+	cookieStr := cookie.String()
+	header := http.Header(make(map[string][]string))
+	header.Add("Set-Cookie", cookieStr)
+
+	return header
 }
 
 // newClientID generates a random clientID string
