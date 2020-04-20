@@ -8,55 +8,32 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// wsServerConnWithCookie starts a websocket server with the given handler,
-// plus a connection which send an initial cookie (with name and value).
-// It returns the websocket.Connection, the http response,
-// the function to close the servers it started,
-// and any error encountered.
-func wsServerConnWithCookie(hdlr http.HandlerFunc, name string, value string) (
+// newTestServer creates a new server to connect to, using the given handler.
+func newTestServer(hdlr http.HandlerFunc) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(hdlr))
+}
+
+// dial connects to a test server, sending a clientID (if non-empty).
+func dial(serv *httptest.Server, clientID string) (
 	ws *websocket.Conn,
 	resp *http.Response,
-	closeFunc func(),
 	err error,
 ) {
-	serv := httptest.NewServer(http.HandlerFunc(hdlr))
-
 	// Convert http://a.b.c.d to ws://a.b.c.d
 	url := "ws" + strings.TrimPrefix(serv.URL, "http")
 
 	// If necessary, creater a header with the given cookie
 	var header http.Header
-	if name != "" {
-		header = cookieRequestHeader(name, value)
+	if clientID != "" {
+		header = cookieRequestHeader("clientID", clientID)
 	}
 
 	// Connect to the server
 
-	ws, resp, wsErr := websocket.DefaultDialer.Dial(url, header)
-
-	closeFunc = func() {
-		ws.Close()
-		serv.Close()
-	}
-
-	return ws, resp, closeFunc, wsErr
+	return websocket.DefaultDialer.Dial(url, header)
 }
 
-// wsServerConn starts a websocket server with the given handler, plus a
-// connection.
-// It returns the websocket.Connection, the http response,
-// the function to close the servers it started,
-// and any error encountered.
-func wsServerConn(hdlr http.HandlerFunc) (
-	ws *websocket.Conn,
-	resp *http.Response,
-	closeFunc func(),
-	err error,
-) {
-	return wsServerConnWithCookie(hdlr, "", "")
-}
-
-// cookieHeader returns an http.Header for a client request,
+// cookieRequestHeader returns a new http.Header for a client request,
 // in which only a single cookie is sent, with some value.
 func cookieRequestHeader(name string, value string) http.Header {
 	cookie := &http.Cookie{

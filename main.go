@@ -25,7 +25,6 @@ var upgrader = websocket.Upgrader{
 func main() {
 	http.HandleFunc("/", echoHandler)
 
-	// [START setting_port]
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -36,12 +35,11 @@ func main() {
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal(err)
 	}
-	// [END setting_port]
 }
 
 // echoHandler sets up a websocket to echo whatever it receives
 func echoHandler(w http.ResponseWriter, r *http.Request) {
-	log.Print("Got connection request")
+	// log.Print("Got connection request")
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return

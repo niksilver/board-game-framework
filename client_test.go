@@ -9,8 +9,11 @@ import (
 )
 
 func TestWSClient_CreatesNewID(t *testing.T) {
-	_, resp, closeFunc, err := wsServerConn(echoHandler)
-	defer closeFunc()
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	ws, resp, err := dial(serv, "")
+	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,8 +26,11 @@ func TestWSClient_CreatesNewID(t *testing.T) {
 }
 
 func TestWSClient_ClientIDCookieIsPersistent(t *testing.T) {
-	_, resp, closeFunc, err := wsServerConn(echoHandler)
-	defer closeFunc()
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	ws, resp, err := dial(serv, "")
+	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,21 +46,23 @@ func TestWSClient_ClientIDCookieIsPersistent(t *testing.T) {
 }
 
 func TestWSClient_ReusesOldId(t *testing.T) {
-	cookieValue := "existing value"
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
 
-	_, resp, closeFunc, err := wsServerConnWithCookie(
-		echoHandler, "clientID", cookieValue)
-	defer closeFunc()
+	initialClientID := "existing_value"
+
+	ws, resp, err := dial(serv, initialClientID)
+	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	cookies := resp.Cookies()
 	clientID := clientID(cookies)
-	if clientID != cookieValue {
+	if clientID != initialClientID {
 		t.Errorf("clientID cookie: expected '%s', got '%s'",
 			clientID,
-			cookieValue)
+			initialClientID)
 	}
 }
 
@@ -63,8 +71,11 @@ func TestWSClient_NewIDsAreDifferent(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		// Get a new client/server connection
-		_, resp, closeFunc, err := wsServerConn(echoHandler)
-		defer closeFunc()
+		serv := newTestServer(echoHandler)
+		defer serv.Close()
+
+		ws, resp, err := dial(serv, "")
+		defer ws.Close()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -84,7 +95,5 @@ func TestWSClient_NewIDsAreDifferent(t *testing.T) {
 		}
 
 		usedIDs[clientID] = true
-		closeFunc()
 	}
-
 }

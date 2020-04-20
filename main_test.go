@@ -11,8 +11,11 @@ import (
 )
 
 func TestEchoHandler(t *testing.T) {
-	ws, _, cf, err := wsServerConn(echoHandler)
-	defer cf()
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	ws, _, err := dial(serv, "")
+	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
