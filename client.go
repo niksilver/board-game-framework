@@ -12,7 +12,7 @@ import (
 )
 
 type Client struct {
-	id string
+	ID string
 }
 
 // NewClient creates a new client proxy from an incoming request
@@ -23,7 +23,7 @@ func NewClient(r *http.Request) Client {
 	}
 
 	return Client{
-		id: clientID,
+		ID: clientID,
 	}
 }
 
@@ -36,7 +36,7 @@ func newClientID() string {
 	)
 }
 
-// clientID returns the contents of the clientID cookie, or empty string
+// clientID returns the value of the clientID cookie, or empty string
 // if there's none there
 func clientID(cookies []*http.Cookie) string {
 	for _, cookie := range cookies {

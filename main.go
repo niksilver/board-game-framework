@@ -49,7 +49,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	c := NewClient(r)
 	cookie := &http.Cookie{
 		Name:   "clientID",
-		Value:  c.id,
+		Value:  c.ID,
 		MaxAge: 60 * 60 * 24 * 365 * 100,
 	}
 	cookieStr := cookie.String()
