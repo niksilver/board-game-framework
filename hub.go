@@ -29,6 +29,14 @@ func (h *Hub) Add(c *Client) {
 	h.clients[c] = true
 }
 
+// Remove removed a client from the hub.
+func (h *Hub) Remove(c *Client) {
+	h.cMux.Lock()
+	defer h.cMux.Unlock()
+
+	delete(h.clients, c)
+}
+
 // Clients returns a slice with all the Hub's Clients.
 func (h *Hub) Clients() []*Client {
 	h.cMux.RLock()

@@ -66,17 +66,67 @@ func TestHub_CanAddAndGetClients(t *testing.T) {
 	}
 }
 
+func TestHub_CanRemoveClients(t *testing.T) {
+	hub := NewHub()
+	c2 := &Client{ID: "id2"}
+	hub.Add(&Client{ID: "id1"})
+	hub.Add(c2)
+	hub.Add(&Client{ID: "id3"})
+
+	// Hub should now have 3 clients
+	cs3 := hub.Clients()
+	act3 := len(cs3)
+	if act3 != 3 {
+		t.Fatalf("Hub had %d clients but expected 3", act3)
+	}
+
+	// After removing one, hub should have 2 clients
+	hub.Remove(c2)
+	cs2 := hub.Clients()
+	act2 := len(cs2)
+	if act2 != 2 {
+		t.Fatalf("Hub had %d clients but expected 2", act2)
+	}
+
+	// The two clients should be the ones we expect
+	sort.Slice(cs2, func(i int, j int) bool { return cs2[i].ID < cs2[j].ID })
+	if cs2[0].ID != "id1" {
+		t.Errorf(
+			"Hub's first client id was '%s' but expected 'id1'",
+			cs2[0].ID,
+		)
+	}
+	if cs2[1].ID != "id3" {
+		t.Errorf(
+			"Hub's second client id was '%s' but expected 'id3'",
+			cs2[1].ID,
+		)
+	}
+}
+
 func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 	hub := NewHub()
+	count := 10000
+
+	cs := make([]*Client, count)
+	for i := 0; i < count; i++ {
+		cs[i] = &Client{ID: strconv.Itoa(i)}
+	}
 
 	go func() {
-		for i := 0; i < 100; i++ {
-			hub.Add(&Client{ID: strconv.Itoa(i)})
+		for i := 0; i < count; i++ {
+			hub.Add(cs[i])
 		}
 	}()
 
 	go func() {
-		for i := 0; i < 100; i++ {
+		for i := 0; i < count; i++ {
+			hub.Remove(cs[i])
+		}
+	}()
+
+	go func() {
+		for i := 0; i < count; i++ {
 			hub.Clients()
 		}
 	}()
