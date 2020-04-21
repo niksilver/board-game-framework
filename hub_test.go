@@ -6,10 +6,11 @@ package main
 
 import (
 	"sort"
+	"strconv"
 	"testing"
 )
 
-func TestHubAdd_CanAddAndGetClients(t *testing.T) {
+func TestHub_CanAddAndGetClients(t *testing.T) {
 	hub := NewHub()
 
 	// A new Hub should have no clients
@@ -63,4 +64,20 @@ func TestHubAdd_CanAddAndGetClients(t *testing.T) {
 			id2,
 		)
 	}
+}
+
+func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
+	hub := NewHub()
+
+	go func() {
+		for i := 0; i < 100; i++ {
+			hub.Add(&Client{ID: strconv.Itoa(i)})
+		}
+	}()
+
+	go func() {
+		for i := 0; i < 100; i++ {
+			hub.Clients()
+		}
+	}()
 }
