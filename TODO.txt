@@ -1,4 +1,4 @@
-- Shift echoing into the client.
+- [In progress] Shift echoing into the client.
 - Add a client to a hub when it's created.
 - Have a client message bounce to other clients in a hub.
 - Client to tell the server which group/game it belongs to.

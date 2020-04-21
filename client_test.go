@@ -97,3 +97,25 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 		usedIDs[clientID] = true
 	}
 }
+
+func TestClient_CanEcho(t *testing.T) {
+	//	serv := newTestServer(echoHandler)
+	//	defer serv.Close()
+	//
+	//	c, err := NewClient2("test.id")
+	//	if err != nil {
+	//		t.Fatal("Cannot create client: ", err)
+	//	}
+	//
+	//	msg := []byte("Testing, testing")
+	//	if err := c.WriteMessage(msg); err != nil {
+	//		t.Fatal("Write error: ", err)
+	//	}
+	//	rcvMsg, err := ws.ReadMessage()
+	//	if err != nil {
+	//		t.Fatal("Read error: ", err)
+	//	}
+	//	if string(rcvMsg) != string(msg) {
+	//		t.Errorf("Received '%s' but expected '%s'", rcvMsg, msg)
+	//	}
+}

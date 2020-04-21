@@ -9,18 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/gorilla/websocket"
 )
-
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		// If set, the Origin host is in r.Header["Origin"][0])
-		// The request host is in r.Host
-		// We won't worry about the origin, to help with testing locally
-		return true
-	},
-}
 
 func main() {
 	http.HandleFunc("/", echoHandler)
@@ -45,26 +34,24 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a client, and set the ID in the response header
-	c := NewClient(r)
-	header := c.Header()
-
-	conn, err := upgrader.Upgrade(w, r, header)
+	// Create a websocket connection, and a client for it
+	clientID := ClientID(r.Cookies())
+	ws, err := Upgrade(w, r, clientID)
 	if err != nil {
 		log.Print("Upgrade error: ", err)
 		return
 	}
-	defer conn.Close()
+	defer ws.Close()
 
 	// Forever echo messages
 	for {
-		mType, msg, err := conn.ReadMessage()
+		mType, msg, err := ws.ReadMessage()
 		if err != nil {
 			log.Print("Read message error: ", err)
 			break
 		}
 		// Currently ignores message type
-		err = conn.WriteMessage(mType, msg)
+		err = ws.WriteMessage(mType, msg)
 		if err != nil {
 			log.Print("Write message error: ", err)
 			break

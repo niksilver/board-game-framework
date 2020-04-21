@@ -9,36 +9,45 @@ import (
 	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type Client struct {
 	ID string
 }
 
-// NewClient creates a new client proxy from an incoming request
-func NewClient(r *http.Request) *Client {
-	clientID := ClientID(r.Cookies())
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		// If set, the Origin host is in r.Header["Origin"][0])
+		// The request host is in r.Host
+		// We won't worry about the origin, to help with testing locally
+		return true
+	},
+}
+
+// Upgrade converts an http request to a websocket, ensuring the client ID
+// is sent. The ID will be newly-generated if the supplied one is empty.
+func Upgrade(
+	w http.ResponseWriter,
+	r *http.Request,
+	clientID string,
+) (*websocket.Conn, error) {
+
 	if clientID == "" {
 		clientID = NewClientID()
 	}
 
-	return &Client{
-		ID: clientID,
-	}
-}
-
-// Header returns an http.Header setting the client ID.
-func (c *Client) Header() http.Header {
 	cookie := &http.Cookie{
 		Name:   "clientID",
-		Value:  c.ID,
+		Value:  clientID,
 		MaxAge: 60 * 60 * 24 * 365 * 100, // 100 years
 	}
 	cookieStr := cookie.String()
 	header := http.Header(make(map[string][]string))
 	header.Add("Set-Cookie", cookieStr)
 
-	return header
+	return upgrader.Upgrade(w, r, header)
 }
 
 // NewClientID generates a random clientID string
