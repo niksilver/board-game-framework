@@ -56,6 +56,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
+	// Forever echo messages
 	for {
 		mType, msg, err := conn.ReadMessage()
 		if err != nil {

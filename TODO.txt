@@ -1,4 +1,5 @@
-- Client to tell the server which group it belongs to.
+- Have a client message bounce to other clients in a hub.
+- Client to tell the server which group/game it belongs to.
 - Ensure App Engine runs with only one instance.
 - Be more responsible about pinging and ponging.
 - Queue messages in a channel, to reduce blocking.

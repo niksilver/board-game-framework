@@ -17,9 +17,9 @@ type Client struct {
 
 // NewClient creates a new client proxy from an incoming request
 func NewClient(r *http.Request) *Client {
-	clientID := clientID(r.Cookies())
+	clientID := ClientID(r.Cookies())
 	if clientID == "" {
-		clientID = newClientID()
+		clientID = NewClientID()
 	}
 
 	return &Client{
@@ -41,8 +41,8 @@ func (c *Client) Header() http.Header {
 	return header
 }
 
-// newClientID generates a random clientID string
-func newClientID() string {
+// NewClientID generates a random clientID string
+func NewClientID() string {
 	return fmt.Sprintf(
 		"%d.%d",
 		time.Now().Unix(),
@@ -52,7 +52,7 @@ func newClientID() string {
 
 // clientID returns the value of the clientID cookie, or empty string
 // if there's none there
-func clientID(cookies []*http.Cookie) string {
+func ClientID(cookies []*http.Cookie) string {
 	for _, cookie := range cookies {
 		if cookie.Name == "clientID" {
 			return cookie.Value
@@ -64,7 +64,7 @@ func clientID(cookies []*http.Cookie) string {
 
 // clientID returns the Max-Age value of the clientID cookie,
 // or 0 if there's none there
-func clientIDMaxAge(cookies []*http.Cookie) int {
+func ClientIDMaxAge(cookies []*http.Cookie) int {
 	for _, cookie := range cookies {
 		if cookie.Name == "clientID" {
 			return cookie.MaxAge

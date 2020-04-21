@@ -19,7 +19,7 @@ func TestClient_CreatesNewID(t *testing.T) {
 	}
 
 	cookies := resp.Cookies()
-	clientID := clientID(cookies)
+	clientID := ClientID(cookies)
 	if clientID == "" {
 		t.Errorf("clientID cookie is empty or not defined")
 	}
@@ -36,7 +36,7 @@ func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
 	}
 
 	cookies := resp.Cookies()
-	maxAge := clientIDMaxAge(cookies)
+	maxAge := ClientIDMaxAge(cookies)
 	if maxAge < 100_000 {
 		t.Errorf(
 			"clientID cookie has max age %d, but expected 100,000 or more",
@@ -58,7 +58,7 @@ func TestClient_ReusesOldId(t *testing.T) {
 	}
 
 	cookies := resp.Cookies()
-	clientID := clientID(cookies)
+	clientID := ClientID(cookies)
 	if clientID != initialClientID {
 		t.Errorf("clientID cookie: expected '%s', got '%s'",
 			clientID,
@@ -81,7 +81,7 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 		}
 
 		cookies := resp.Cookies()
-		clientID := clientID(cookies)
+		clientID := ClientID(cookies)
 
 		if usedIDs[clientID] {
 			t.Errorf("Iteration i = %d, clientID '%s' already used",
