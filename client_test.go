@@ -98,24 +98,24 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 	}
 }
 
-func TestClient_CanEcho(t *testing.T) {
-	//	serv := newTestServer(echoHandler)
-	//	defer serv.Close()
-	//
-	//	c, err := NewClient2("test.id")
-	//	if err != nil {
-	//		t.Fatal("Cannot create client: ", err)
-	//	}
-	//
-	//	msg := []byte("Testing, testing")
-	//	if err := c.WriteMessage(msg); err != nil {
-	//		t.Fatal("Write error: ", err)
-	//	}
-	//	rcvMsg, err := ws.ReadMessage()
-	//	if err != nil {
-	//		t.Fatal("Read error: ", err)
-	//	}
-	//	if string(rcvMsg) != string(msg) {
-	//		t.Errorf("Received '%s' but expected '%s'", rcvMsg, msg)
-	//	}
-}
+//func TestClient_CanEcho(t *testing.T) {
+//	c := &Client{}
+//	c.Run()
+//	messages := []string{
+//		"m1", "m2", "m3", "m4", "m5",
+//		"m6", "m7", "m8", "m9", "m10",
+//		"m11", "m12", "m13", "m14", "m15",
+//		"m16", "m17", "m18", "m19", "m20",
+//	}
+//	go func() {
+//		for _, msg := range messages {
+//			c.Receive <- msg
+//		}
+//	}()
+//	for _, exp := range messages {
+//		act := <-c.Send
+//		if act != exp {
+//			t.Errorf("Expected to receive '%s' but got '%s'", exp, act)
+//		}
+//	}
+//}

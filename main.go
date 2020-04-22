@@ -41,20 +41,9 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		log.Print("Upgrade error: ", err)
 		return
 	}
-	defer ws.Close()
-
-	// Forever echo messages
-	for {
-		mType, msg, err := ws.ReadMessage()
-		if err != nil {
-			log.Print("Read message error: ", err)
-			break
-		}
-		// Currently ignores message type
-		err = ws.WriteMessage(mType, msg)
-		if err != nil {
-			log.Print("Write message error: ", err)
-			break
-		}
+	c := &Client{
+		ID:        clientID,
+		Websocket: *ws,
 	}
+	c.Run()
 }

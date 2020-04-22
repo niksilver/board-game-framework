@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"time"
@@ -14,7 +15,8 @@ import (
 )
 
 type Client struct {
-	ID string
+	ID        string
+	Websocket websocket.Conn
 }
 
 var upgrader = websocket.Upgrader{
@@ -81,4 +83,29 @@ func ClientIDMaxAge(cookies []*http.Cookie) int {
 	}
 
 	return 0
+}
+
+// Run starts goroutines that continually runs messages in and out of the
+// client, until its connection closes.
+func (c *Client) Run() {
+	go c.process()
+}
+
+// Process is a goroutine that acts on messages coming in.
+func (c *Client) process() {
+	defer c.Websocket.Close()
+
+	for {
+		mType, msg, err := c.Websocket.ReadMessage()
+		if err != nil {
+			log.Print("Read message error: ", err)
+			break
+		}
+		// Currently ignores message type
+		err = c.Websocket.WriteMessage(mType, msg)
+		if err != nil {
+			log.Print("Write message error: ", err)
+			break
+		}
+	}
 }
