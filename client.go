@@ -16,7 +16,7 @@ import (
 
 type Client struct {
 	ID        string
-	Websocket websocket.Conn
+	Websocket *websocket.Conn
 }
 
 var upgrader = websocket.Upgrader{

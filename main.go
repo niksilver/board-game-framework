@@ -43,7 +43,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	c := &Client{
 		ID:        clientID,
-		Websocket: *ws,
+		Websocket: ws,
 	}
 	c.Run()
 }
