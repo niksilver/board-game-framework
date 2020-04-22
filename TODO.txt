@@ -1,4 +1,3 @@
-- [In progress] Shift echoing into the client.
 - Add a client to a hub when it's created.
 - Have a client message bounce to other clients in a hub.
 - Client to tell the server which group/game it belongs to.
@@ -19,3 +18,4 @@ DONE:
   closes). Likely due to Max-Age not being set (value in seconds).
 - Make adding a client to a hub concurrency-safe.
 - Allow removing of clients from a hub (concurrency-safely).
+- Shift echoing into the client.
