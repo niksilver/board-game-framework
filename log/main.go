@@ -6,17 +6,12 @@
 package log
 
 import (
-	"os"
-
 	"github.com/inconshreveable/log15"
 )
 
+// Log is the logger, which discards everything by default
 var Log = log15.New()
 
 func init() {
-	handler := log15.LvlFilterHandler(
-		log15.LvlCrit,
-		log15.StreamHandler(os.Stdout, log15.LogfmtFormat()),
-	)
-	Log.SetHandler(handler)
+	Log.SetHandler(log15.DiscardHandler())
 }

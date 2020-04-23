@@ -9,10 +9,14 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/inconshreveable/log15"
 	"github.com/niksilver/board-game-framework/log"
 )
 
 func main() {
+	// Set the logger -only for when the application runs, as this is in main
+	log.Log.SetHandler(log15.StdoutHandler)
+
 	http.HandleFunc("/", echoHandler)
 
 	port := os.Getenv("PORT")
