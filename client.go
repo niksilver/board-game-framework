@@ -6,7 +6,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"time"
@@ -98,13 +97,13 @@ func (c *Client) process() {
 	for {
 		mType, msg, err := c.Websocket.ReadMessage()
 		if err != nil {
-			log.Print("Read message error: ", err)
+			logger.Warn("ReadMessage", "error", err)
 			break
 		}
 		// Currently ignores message type
 		err = c.Websocket.WriteMessage(mType, msg)
 		if err != nil {
-			log.Print("Write message error: ", err)
+			logger.Warn("WriteMessage", "error", err)
 			break
 		}
 	}
