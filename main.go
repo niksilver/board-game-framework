@@ -9,15 +9,8 @@ import (
 	"net/http"
 	"os"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/niksilver/board-game-framework/log"
 )
-
-var logger = log.New()
-
-func init() {
-	handler := log.LvlFilterHandler(log.LvlCrit, log.StreamHandler(os.Stdout, log.LogfmtFormat()))
-	logger.SetHandler(handler)
-}
 
 func main() {
 	http.HandleFunc("/", echoHandler)
@@ -25,19 +18,19 @@ func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
-		logger.Info("Using default port", "port", port)
+		log.Log.Info("Using default port", "port", port)
 	}
 
-	logger.Info("Listening", "port", port)
+	log.Log.Info("Listening", "port", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		logger.Crit("ListenAndServe", "error", err)
+		log.Log.Crit("ListenAndServe", "error", err)
 		os.Exit(1)
 	}
 }
 
 // echoHandler sets up a websocket to echo whatever it receives
 func echoHandler(w http.ResponseWriter, r *http.Request) {
-	logger.Debug("Got connection request")
+	log.Log.Debug("Got connection request")
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
@@ -47,7 +40,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	clientID := ClientID(r.Cookies())
 	ws, err := Upgrade(w, r, clientID)
 	if err != nil {
-		logger.Warn("Upgrade", "error", err)
+		log.Log.Warn("Upgrade", "error", err)
 		return
 	}
 	c := &Client{

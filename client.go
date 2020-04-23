@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/niksilver/board-game-framework/log"
 )
 
 type Client struct {
@@ -97,13 +98,13 @@ func (c *Client) process() {
 	for {
 		mType, msg, err := c.Websocket.ReadMessage()
 		if err != nil {
-			logger.Warn("ReadMessage", "error", err)
+			log.Log.Warn("ReadMessage", "error", err)
 			break
 		}
 		// Currently ignores message type
 		err = c.Websocket.WriteMessage(mType, msg)
 		if err != nil {
-			logger.Warn("WriteMessage", "error", err)
+			log.Log.Warn("WriteMessage", "error", err)
 			break
 		}
 	}
