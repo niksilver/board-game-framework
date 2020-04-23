@@ -17,6 +17,8 @@ import (
 type Client struct {
 	ID        string
 	Websocket *websocket.Conn
+	Hub       *Hub
+	Pending   chan *Message
 }
 
 var upgrader = websocket.Upgrader{
@@ -85,26 +87,71 @@ func ClientIDMaxAge(cookies []*http.Cookie) int {
 	return 0
 }
 
-// Run starts goroutines that continually runs messages in and out of the
-// client, until its connection closes.
-func (c *Client) Run() {
-	go c.process()
+// Start attaches the client to its hub and starts it running.
+func (c *Client) Start() {
+	c.Hub.Add(c)
+	go c.receiveExt()
+	go c.receiveInt()
 }
 
-// Process is a goroutine that acts on messages coming in.
-func (c *Client) process() {
+// receiveExt is a goroutine that acts on external messages coming in.
+func (c *Client) receiveExt() {
 	defer c.Websocket.Close()
 
 	for {
+		log.Log.Debug(
+			"c.receiveExt(), about to ReadMessage()",
+			"clientID", c.ID,
+		)
 		mType, msg, err := c.Websocket.ReadMessage()
+		log.Log.Debug(
+			"c.receiveExt(), got ReadMessage()",
+			"clientID", c.ID,
+		)
 		if err != nil {
-			log.Log.Warn("ReadMessage", "error", err)
+			log.Log.Warn(
+				"ReadMessage",
+				"clientID", c.ID,
+				"error", err,
+			)
 			break
 		}
 		// Currently ignores message type
-		err = c.Websocket.WriteMessage(mType, msg)
-		if err != nil {
-			log.Log.Warn("WriteMessage", "error", err)
+		c.Hub.Pending <- &Message{
+			From:  c,
+			MType: mType,
+			Msg:   msg,
+		}
+		log.Log.Debug(
+			"c.receiveExt(), sent message",
+			"clientID", c.ID,
+		)
+	}
+}
+
+// receiveInt is a goroutine that acts on messages that have come from
+// a hub (internally), and sends them out.
+func (c *Client) receiveInt() {
+	log.Log.Debug(
+		"c.receiveInt(), entering",
+		"clientID", c.ID,
+	)
+	for {
+		log.Log.Debug(
+			"c.receiveInt(), getting from Pending",
+			"clientID", c.ID,
+		)
+		m := <-c.Pending
+		log.Log.Debug(
+			"c.receiveInt(), got from Pending",
+			"clientID", c.ID,
+		)
+		if err := c.Websocket.WriteMessage(m.MType, m.Msg); err != nil {
+			log.Log.Warn(
+				"WriteMessage",
+				"clientID", c.ID,
+				"error", err,
+			)
 			break
 		}
 	}

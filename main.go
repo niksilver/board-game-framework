@@ -13,6 +13,15 @@ import (
 	"github.com/niksilver/board-game-framework/log"
 )
 
+var hub = NewHub()
+
+func init() {
+	// Output application logs
+	log.SetLvlDebugStdout()
+
+	hub.Start()
+}
+
 func main() {
 	// Set the logger -only for when the application runs, as this is in main
 	log.Log.SetHandler(log15.StdoutHandler)
@@ -34,7 +43,6 @@ func main() {
 
 // echoHandler sets up a websocket to echo whatever it receives
 func echoHandler(w http.ResponseWriter, r *http.Request) {
-	log.Log.Debug("Got connection request")
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
@@ -50,6 +58,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	c := &Client{
 		ID:        clientID,
 		Websocket: ws,
+		Hub:       hub,
 	}
-	c.Run()
+	c.Start()
 }

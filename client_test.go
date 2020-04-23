@@ -6,120 +6,174 @@ package main
 
 import (
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-func TestClient_CreatesNewID(t *testing.T) {
-	tLog.Info("Inside TestClient_CreatesNewID")
+//func TestClient_CreatesNewID(t *testing.T) {
+//	tLog.Info("Inside TestClient_CreatesNewID")
+//	serv := newTestServer(echoHandler)
+//	defer serv.Close()
+//
+//	ws, resp, err := dial(serv, "")
+//	defer ws.Close()
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	cookies := resp.Cookies()
+//	clientID := ClientID(cookies)
+//	if clientID == "" {
+//		t.Errorf("clientID cookie is empty or not defined")
+//	}
+//}
+//
+//func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
+//	serv := newTestServer(echoHandler)
+//	defer serv.Close()
+//
+//	ws, resp, err := dial(serv, "")
+//	defer ws.Close()
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	cookies := resp.Cookies()
+//	maxAge := ClientIDMaxAge(cookies)
+//	if maxAge < 100_000 {
+//		t.Errorf(
+//			"clientID cookie has max age %d, but expected 100,000 or more",
+//			maxAge,
+//		)
+//	}
+//}
+//
+//func TestClient_ReusesOldId(t *testing.T) {
+//	serv := newTestServer(echoHandler)
+//	defer serv.Close()
+//
+//	initialClientID := "existing_value"
+//
+//	ws, resp, err := dial(serv, initialClientID)
+//	defer ws.Close()
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	cookies := resp.Cookies()
+//	clientID := ClientID(cookies)
+//	if clientID != initialClientID {
+//		t.Errorf("clientID cookie: expected '%s', got '%s'",
+//			clientID,
+//			initialClientID)
+//	}
+//}
+//
+//func TestClient_NewIDsAreDifferent(t *testing.T) {
+//	usedIDs := make(map[string]bool)
+//
+//	serv := newTestServer(echoHandler)
+//	defer serv.Close()
+//
+//	for i := 0; i < 100; i++ {
+//		// Get a new client connection
+//		ws, resp, err := dial(serv, "")
+//		defer ws.Close()
+//		if err != nil {
+//			t.Fatal(err)
+//		}
+//
+//		cookies := resp.Cookies()
+//		clientID := ClientID(cookies)
+//
+//		if usedIDs[clientID] {
+//			t.Errorf("Iteration i = %d, clientID '%s' already used",
+//				i,
+//				clientID)
+//			return
+//		}
+//		if clientID == "" {
+//			t.Errorf("Iteration i = %d, clientID not set", i)
+//			return
+//		}
+//
+//		usedIDs[clientID] = true
+//	}
+//}
+
+func TestClient_BouncesToOtherClients(t *testing.T) {
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
-	ws, resp, err := dial(serv, "")
-	defer ws.Close()
+	// Connect 3 clients
+
+	ws1, _, err := dial(serv, "CL1")
+	defer ws1.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cookies := resp.Cookies()
-	clientID := ClientID(cookies)
-	if clientID == "" {
-		t.Errorf("clientID cookie is empty or not defined")
-	}
-}
-
-func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
-	serv := newTestServer(echoHandler)
-	defer serv.Close()
-
-	ws, resp, err := dial(serv, "")
-	defer ws.Close()
+	ws2, _, err := dial(serv, "CL2")
+	defer ws2.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cookies := resp.Cookies()
-	maxAge := ClientIDMaxAge(cookies)
-	if maxAge < 100_000 {
-		t.Errorf(
-			"clientID cookie has max age %d, but expected 100,000 or more",
-			maxAge,
-		)
-	}
-}
-
-func TestClient_ReusesOldId(t *testing.T) {
-	serv := newTestServer(echoHandler)
-	defer serv.Close()
-
-	initialClientID := "existing_value"
-
-	ws, resp, err := dial(serv, initialClientID)
-	defer ws.Close()
+	ws3, _, err := dial(serv, "CL3")
+	defer ws3.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cookies := resp.Cookies()
-	clientID := ClientID(cookies)
-	if clientID != initialClientID {
-		t.Errorf("clientID cookie: expected '%s', got '%s'",
-			clientID,
-			initialClientID)
+	// Create 10 messages to send
+	msgs := []string{
+		"m0", "m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9",
 	}
-}
 
-func TestClient_NewIDsAreDifferent(t *testing.T) {
-	usedIDs := make(map[string]bool)
+	// Send 10 messages from client 1
 
-	serv := newTestServer(echoHandler)
-	defer serv.Close()
+	for i := 0; i < 10; i++ {
+		msg := []byte(msgs[i])
+		if err := ws1.WriteMessage(websocket.BinaryMessage, msg); err != nil {
+			t.Fatalf("Write error for message %d: %s", i, err)
+		}
+	}
 
-	for i := 0; i < 100; i++ {
-		// Get a new client connection
-		ws, resp, err := dial(serv, "")
-		defer ws.Close()
-		if err != nil {
-			t.Fatal(err)
+	// We expect 10 messages to client 2 and client 3
+
+	for i := 0; i < 10; i++ {
+		// Get a message from client 2
+		ws2.SetReadDeadline(time.Now().Add(time.Second))
+		_, rcvMsg, rcvErr := ws2.ReadMessage()
+		if rcvErr != nil {
+			t.Fatalf("Read error, ws2, i=%d: %s", i, rcvErr.Error())
+		}
+		if string(rcvMsg) != string(msgs[i]) {
+			t.Errorf("ws2, i=%d, received '%s' but expected '%s'",
+				i, rcvMsg, msgs[i],
+			)
 		}
 
-		cookies := resp.Cookies()
-		clientID := ClientID(cookies)
-
-		if usedIDs[clientID] {
-			t.Errorf("Iteration i = %d, clientID '%s' already used",
-				i,
-				clientID)
-			return
+		// Get a message from client 3
+		ws3.SetReadDeadline(time.Now().Add(time.Second))
+		_, rcvMsg, rcvErr = ws3.ReadMessage()
+		if rcvErr != nil {
+			t.Fatalf("Read error, ws3, i=%d: %s", i, rcvErr.Error())
 		}
-		if clientID == "" {
-			t.Errorf("Iteration i = %d, clientID not set", i)
-			return
+		if string(rcvMsg) != string(msgs[i]) {
+			t.Errorf("ws3, i=%d, received '%s' but expected '%s'",
+				i, rcvMsg, msgs[i],
+			)
 		}
-
-		usedIDs[clientID] = true
-	}
-}
-
-func TestClient_DoesEcho(t *testing.T) {
-	serv := newTestServer(echoHandler)
-	defer serv.Close()
-
-	ws, _, err := dial(serv, "")
-	defer ws.Close()
-	if err != nil {
-		t.Fatal(err)
 	}
 
-	msg := []byte("Testing, testing")
-	if err := ws.WriteMessage(websocket.BinaryMessage, msg); err != nil {
-		t.Fatal("Write error: ", err)
-	}
-	_, rcvMsg, rcvErr := ws.ReadMessage()
+	// We expect no messages from client 1
+
+	ws1.SetReadDeadline(time.Now().Add(time.Second))
+	_, rcvMsg, rcvErr := ws1.ReadMessage()
 	if rcvErr != nil {
-		t.Fatal("Read error: ", err)
+		t.Fatal("ws1 read error: ", rcvErr)
 	}
-	if string(rcvMsg) != string(msg) {
-		t.Errorf("Received '%s' but expected '%s'", rcvMsg, msg)
-	}
+	t.Fatalf("Unexpected rcvMsg '%s'", rcvMsg)
 }

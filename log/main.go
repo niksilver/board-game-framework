@@ -6,6 +6,8 @@
 package log
 
 import (
+	"os"
+
 	"github.com/inconshreveable/log15"
 )
 
@@ -14,4 +16,12 @@ var Log = log15.New()
 
 func init() {
 	Log.SetHandler(log15.DiscardHandler())
+}
+
+func SetLvlDebugStdout() {
+	Log.SetHandler(
+		log15.LvlFilterHandler(
+			log15.LvlDebug,
+			log15.StreamHandler(os.Stdout, log15.LogfmtFormat()),
+		))
 }
