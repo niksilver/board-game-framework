@@ -5,34 +5,10 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/gorilla/websocket"
-	"github.com/inconshreveable/log15"
-	"github.com/niksilver/board-game-framework/log"
 )
-
-// tLog is a logger for our tests only.
-//
-// Use it like this:
-//     tLog.Info("This is my message", "key", value,...)
-var tLog = log.Log.New("test", true)
-
-func init() {
-	// Accept only log messages that are from test
-	filter := func(r *log15.Record) bool {
-		for i := 0; i < len(r.Ctx); i += 2 {
-			if r.Ctx[i] == "test" {
-				return r.Ctx[i+1] == true
-			}
-		}
-		return false
-	}
-	tLog.SetHandler(
-		log15.FilterHandler(filter, log15.StdoutHandler),
-	)
-}
 
 func TestClient_CreatesNewID(t *testing.T) {
 	tLog.Info("Inside TestClient_CreatesNewID")
