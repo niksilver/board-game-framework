@@ -104,13 +104,7 @@ func (c *Client) receiveExt() {
 	defer c.Websocket.Close()
 
 	for {
-		c.log.Debug(
-			"c.receiveExt(), about to ReadMessage()",
-		)
 		mType, msg, err := c.Websocket.ReadMessage()
-		c.log.Debug(
-			"c.receiveExt(), got ReadMessage()",
-		)
 		if err != nil {
 			c.log.Warn(
 				"ReadMessage",
@@ -119,35 +113,19 @@ func (c *Client) receiveExt() {
 			break
 		}
 		// Currently ignores message type
-		c.log.Debug(
-			"c.receiveExt(), sending message to hub channel Pending",
-			"c.Hub.Pending", c.Hub.Pending,
-		)
 		c.Hub.Pending <- &Message{
 			From:  c,
 			MType: mType,
 			Msg:   msg,
 		}
-		c.log.Debug(
-			"c.receiveExt(), sent message to hub channel Pending",
-		)
 	}
 }
 
 // receiveInt is a goroutine that acts on messages that have come from
 // a hub (internally), and sends them out.
 func (c *Client) receiveInt() {
-	c.log.Debug(
-		"c.receiveInt(), entering",
-	)
 	for {
-		c.log.Debug(
-			"c.receiveInt(), waiting on own channel Pending",
-		)
 		m := <-c.Pending
-		c.log.Debug(
-			"c.receiveInt(), received from own channel Pending",
-		)
 		if err := c.Websocket.WriteMessage(m.MType, m.Msg); err != nil {
 			c.log.Warn(
 				"WriteMessage",

@@ -6,8 +6,6 @@ package main
 
 import (
 	"sync"
-
-	"github.com/niksilver/board-game-framework/log"
 )
 
 // Hub collects all related clients
@@ -72,16 +70,7 @@ func (h *Hub) Start() {
 // them out to the relevant clients.
 func (h *Hub) receiveInt() {
 	for {
-		log.Log.Debug(
-			"hub.receiveInt(): waiting on own channel Pending",
-			"Pending", h.Pending,
-		)
 		msg := <-h.Pending
-		log.Log.Debug(
-			"hub.receiveInt(): received from own channel Pending",
-			"from ID", msg.From.ID,
-			"msg", msg.Msg,
-		)
 		for _, c := range h.Clients() {
 			if c.ID != msg.From.ID {
 				c.Pending <- msg
