@@ -30,6 +30,7 @@ type Message struct {
 func NewHub() *Hub {
 	return &Hub{
 		clients: make(map[*Client]bool),
+		Pending: make(chan *Message),
 	}
 }
 
@@ -64,18 +65,20 @@ func (h *Hub) Clients() []*Client {
 
 // Start starts goroutines running that process the messages.
 func (h *Hub) Start() {
-	log.Log.Debug("In Hub.Start()")
 	go h.receiveInt()
 }
 
 // receiveInt is a goroutine that listens for pending messages, and sends
 // them out to the relevant clients.
 func (h *Hub) receiveInt() {
-	log.Log.Debug("Hub.receiveInt()")
 	for {
+		log.Log.Debug(
+			"hub.receiveInt(): waiting on own channel Pending",
+			"Pending", h.Pending,
+		)
 		msg := <-h.Pending
 		log.Log.Debug(
-			"Hub.receiveInt() got message",
+			"hub.receiveInt(): received from own channel Pending",
 			"from ID", msg.From.ID,
 			"msg", msg.Msg,
 		)

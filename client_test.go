@@ -5,102 +5,103 @@
 package main
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-//func TestClient_CreatesNewID(t *testing.T) {
-//	tLog.Info("Inside TestClient_CreatesNewID")
-//	serv := newTestServer(echoHandler)
-//	defer serv.Close()
-//
-//	ws, resp, err := dial(serv, "")
-//	defer ws.Close()
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	cookies := resp.Cookies()
-//	clientID := ClientID(cookies)
-//	if clientID == "" {
-//		t.Errorf("clientID cookie is empty or not defined")
-//	}
-//}
-//
-//func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
-//	serv := newTestServer(echoHandler)
-//	defer serv.Close()
-//
-//	ws, resp, err := dial(serv, "")
-//	defer ws.Close()
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	cookies := resp.Cookies()
-//	maxAge := ClientIDMaxAge(cookies)
-//	if maxAge < 100_000 {
-//		t.Errorf(
-//			"clientID cookie has max age %d, but expected 100,000 or more",
-//			maxAge,
-//		)
-//	}
-//}
-//
-//func TestClient_ReusesOldId(t *testing.T) {
-//	serv := newTestServer(echoHandler)
-//	defer serv.Close()
-//
-//	initialClientID := "existing_value"
-//
-//	ws, resp, err := dial(serv, initialClientID)
-//	defer ws.Close()
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	cookies := resp.Cookies()
-//	clientID := ClientID(cookies)
-//	if clientID != initialClientID {
-//		t.Errorf("clientID cookie: expected '%s', got '%s'",
-//			clientID,
-//			initialClientID)
-//	}
-//}
-//
-//func TestClient_NewIDsAreDifferent(t *testing.T) {
-//	usedIDs := make(map[string]bool)
-//
-//	serv := newTestServer(echoHandler)
-//	defer serv.Close()
-//
-//	for i := 0; i < 100; i++ {
-//		// Get a new client connection
-//		ws, resp, err := dial(serv, "")
-//		defer ws.Close()
-//		if err != nil {
-//			t.Fatal(err)
-//		}
-//
-//		cookies := resp.Cookies()
-//		clientID := ClientID(cookies)
-//
-//		if usedIDs[clientID] {
-//			t.Errorf("Iteration i = %d, clientID '%s' already used",
-//				i,
-//				clientID)
-//			return
-//		}
-//		if clientID == "" {
-//			t.Errorf("Iteration i = %d, clientID not set", i)
-//			return
-//		}
-//
-//		usedIDs[clientID] = true
-//	}
-//}
+func TestClient_CreatesNewID(t *testing.T) {
+	tLog.Info("Inside TestClient_CreatesNewID")
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	ws, resp, err := dial(serv, "")
+	defer ws.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cookies := resp.Cookies()
+	clientID := ClientID(cookies)
+	if clientID == "" {
+		t.Errorf("clientID cookie is empty or not defined")
+	}
+}
+
+func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	ws, resp, err := dial(serv, "")
+	defer ws.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cookies := resp.Cookies()
+	maxAge := ClientIDMaxAge(cookies)
+	if maxAge < 100_000 {
+		t.Errorf(
+			"clientID cookie has max age %d, but expected 100,000 or more",
+			maxAge,
+		)
+	}
+}
+
+func TestClient_ReusesOldId(t *testing.T) {
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	initialClientID := "existing_value"
+
+	ws, resp, err := dial(serv, initialClientID)
+	defer ws.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cookies := resp.Cookies()
+	clientID := ClientID(cookies)
+	if clientID != initialClientID {
+		t.Errorf("clientID cookie: expected '%s', got '%s'",
+			clientID,
+			initialClientID)
+	}
+}
+
+func TestClient_NewIDsAreDifferent(t *testing.T) {
+	usedIDs := make(map[string]bool)
+
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	for i := 0; i < 100; i++ {
+		// Get a new client connection
+		ws, resp, err := dial(serv, "")
+		defer ws.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		cookies := resp.Cookies()
+		clientID := ClientID(cookies)
+
+		if usedIDs[clientID] {
+			t.Errorf("Iteration i = %d, clientID '%s' already used",
+				i,
+				clientID)
+			return
+		}
+		if clientID == "" {
+			t.Errorf("Iteration i = %d, clientID not set", i)
+			return
+		}
+
+		usedIDs[clientID] = true
+	}
+}
 
 func TestClient_BouncesToOtherClients(t *testing.T) {
 	serv := newTestServer(echoHandler)
@@ -168,12 +169,16 @@ func TestClient_BouncesToOtherClients(t *testing.T) {
 		}
 	}
 
-	// We expect no messages from client 1
+	// We expect no messages from client 1. It should timeout while waiting
 
 	ws1.SetReadDeadline(time.Now().Add(time.Second))
 	_, rcvMsg, rcvErr := ws1.ReadMessage()
-	if rcvErr != nil {
-		t.Fatal("ws1 read error: ", rcvErr)
+	switch {
+	case rcvErr == nil:
+		t.Fatalf("Should not have received message, got '%s'", rcvMsg)
+	case strings.Contains(rcvErr.Error(), "timeout"):
+		// This is what we want
+	default:
+		t.Fatal("Got ws1 read error, but it wasn't a timeout: ", rcvErr)
 	}
-	t.Fatalf("Unexpected rcvMsg '%s'", rcvMsg)
 }

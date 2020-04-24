@@ -18,10 +18,16 @@ func init() {
 	Log.SetHandler(log15.DiscardHandler())
 }
 
+// SetLvlDebugStdout sets the level to be Debug and outputs to Stdout.
 func SetLvlDebugStdout() {
 	Log.SetHandler(
 		log15.LvlFilterHandler(
 			log15.LvlDebug,
 			log15.StreamHandler(os.Stdout, log15.LogfmtFormat()),
 		))
+}
+
+// New creates a derived logger from `Log` with the additional context.
+func New(ctx ...interface{}) log15.Logger {
+	return Log.New(ctx)
 }

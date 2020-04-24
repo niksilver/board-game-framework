@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/inconshreveable/log15"
 	"github.com/niksilver/board-game-framework/log"
 )
 
@@ -19,6 +20,7 @@ type Client struct {
 	Websocket *websocket.Conn
 	Hub       *Hub
 	Pending   chan *Message
+	log       log15.Logger
 }
 
 var upgrader = websocket.Upgrader{
@@ -89,6 +91,9 @@ func ClientIDMaxAge(cookies []*http.Cookie) int {
 
 // Start attaches the client to its hub and starts it running.
 func (c *Client) Start() {
+	if c.log == nil {
+		c.log = log.Log.New("ID", c.ID)
+	}
 	c.Hub.Add(c)
 	go c.receiveExt()
 	go c.receiveInt()
@@ -99,32 +104,32 @@ func (c *Client) receiveExt() {
 	defer c.Websocket.Close()
 
 	for {
-		log.Log.Debug(
+		c.log.Debug(
 			"c.receiveExt(), about to ReadMessage()",
-			"clientID", c.ID,
 		)
 		mType, msg, err := c.Websocket.ReadMessage()
-		log.Log.Debug(
+		c.log.Debug(
 			"c.receiveExt(), got ReadMessage()",
-			"clientID", c.ID,
 		)
 		if err != nil {
-			log.Log.Warn(
+			c.log.Warn(
 				"ReadMessage",
-				"clientID", c.ID,
 				"error", err,
 			)
 			break
 		}
 		// Currently ignores message type
+		c.log.Debug(
+			"c.receiveExt(), sending message to hub channel Pending",
+			"c.Hub.Pending", c.Hub.Pending,
+		)
 		c.Hub.Pending <- &Message{
 			From:  c,
 			MType: mType,
 			Msg:   msg,
 		}
-		log.Log.Debug(
-			"c.receiveExt(), sent message",
-			"clientID", c.ID,
+		c.log.Debug(
+			"c.receiveExt(), sent message to hub channel Pending",
 		)
 	}
 }
@@ -132,24 +137,20 @@ func (c *Client) receiveExt() {
 // receiveInt is a goroutine that acts on messages that have come from
 // a hub (internally), and sends them out.
 func (c *Client) receiveInt() {
-	log.Log.Debug(
+	c.log.Debug(
 		"c.receiveInt(), entering",
-		"clientID", c.ID,
 	)
 	for {
-		log.Log.Debug(
-			"c.receiveInt(), getting from Pending",
-			"clientID", c.ID,
+		c.log.Debug(
+			"c.receiveInt(), waiting on own channel Pending",
 		)
 		m := <-c.Pending
-		log.Log.Debug(
-			"c.receiveInt(), got from Pending",
-			"clientID", c.ID,
+		c.log.Debug(
+			"c.receiveInt(), received from own channel Pending",
 		)
 		if err := c.Websocket.WriteMessage(m.MType, m.Msg); err != nil {
-			log.Log.Warn(
+			c.log.Warn(
 				"WriteMessage",
-				"clientID", c.ID,
 				"error", err,
 			)
 			break
