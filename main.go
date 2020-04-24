@@ -17,7 +17,7 @@ var hub = NewHub()
 
 func init() {
 	// Output application logs
-	log.SetLvlDebugStdout()
+	// log.SetLvlDebugStdout()
 
 	hub.Start()
 }
@@ -49,12 +49,16 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create a websocket connection, and a client for it
-	clientID := ClientID(r.Cookies())
+	clientID := ClientIDOrNew(r.Cookies())
 	ws, err := Upgrade(w, r, clientID)
 	if err != nil {
 		log.Log.Warn("Upgrade", "error", err)
 		return
 	}
+	tLog.Debug(
+		"main.echoHandlder() creating client",
+		"clientID", clientID,
+	)
 	c := &Client{
 		ID:        clientID,
 		Websocket: ws,

@@ -42,6 +42,7 @@ func (h *Hub) Add(c *Client) {
 
 // Remove removed a client from the hub.
 func (h *Hub) Remove(c *Client) {
+	tLog.Debug("hub.Remove(), entering", "clientID", c.ID)
 	h.cMux.Lock()
 	defer h.cMux.Unlock()
 
@@ -73,6 +74,15 @@ func (h *Hub) receiveInt() {
 		msg := <-h.Pending
 		for _, c := range h.Clients() {
 			if c.ID != msg.From.ID {
+				tLog.Debug(
+					"hub.receiveInt() sending msg to client",
+					"clientID", c.ID,
+					"msg", msg.Msg,
+				)
+				tLog.Debug(
+					"hub.receiveInt() sent    msg to client",
+					"clientID", c.ID,
+				)
 				c.Pending <- msg
 			}
 		}

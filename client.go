@@ -40,6 +40,7 @@ func Upgrade(
 	clientID string,
 ) (*websocket.Conn, error) {
 
+	// NB: Try removing this clause; it shouldn't be needed.
 	if clientID == "" {
 		clientID = NewClientID()
 	}
@@ -66,7 +67,7 @@ func NewClientID() string {
 }
 
 // clientID returns the value of the clientID cookie, or empty string
-// if there's none there
+// if there's none there.
 func ClientID(cookies []*http.Cookie) string {
 	for _, cookie := range cookies {
 		if cookie.Name == "clientID" {
@@ -75,6 +76,16 @@ func ClientID(cookies []*http.Cookie) string {
 	}
 
 	return ""
+}
+
+// ClientIDOrNew returns the value of the clientID cookie, or a new ID
+// if there's none there.
+func ClientIDOrNew(cookies []*http.Cookie) string {
+	clientID := ClientID(cookies)
+	if clientID == "" {
+		return NewClientID()
+	}
+	return clientID
 }
 
 // clientID returns the Max-Age value of the clientID cookie,
@@ -126,12 +137,31 @@ func (c *Client) receiveExt() {
 func (c *Client) receiveInt() {
 	for {
 		m := <-c.Pending
+		tLog.Debug(
+			"client.receiveInt() got pending message, will write",
+			"ID", c.ID,
+			"msg", m.Msg,
+		)
 		if err := c.Websocket.WriteMessage(m.MType, m.Msg); err != nil {
 			c.log.Warn(
 				"WriteMessage",
+				"ID", c.ID,
 				"error", err,
 			)
+			c.Stop()
 			break
 		}
+		tLog.Debug(
+			"client.receiveInt() wrote message okay",
+			"ID", c.ID,
+			"msg", m.Msg,
+		)
 	}
+}
+
+// Stop will stop the client, disconnect from the server, and remove
+// itself from the hub.
+func (c *Client) Stop() {
+	c.Websocket.Close()
+	c.Hub.Remove(c)
 }
