@@ -1,6 +1,6 @@
-- Add a client to a hub when it's created.
-- Have a client message bounce to other clients in a hub.
-- Client to tell the server which group/game it belongs to.
+- Server to detect which game a client wants.
+- Server to reject a client request with no game/group specified.
+- Put clients into a hub per group/game.
 - Ensure App Engine runs with only one instance.
 - Be more responsible about pinging and ponging.
 - Queue messages in a channel, to reduce blocking.
@@ -19,3 +19,5 @@ DONE:
 - Make adding a client to a hub concurrency-safe.
 - Allow removing of clients from a hub (concurrency-safely).
 - Shift echoing into the client.
+- Add a client to a hub when it's created.
+- Have a client message bounce to other clients in a hub.
