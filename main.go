@@ -55,10 +55,6 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		log.Log.Warn("Upgrade", "error", err)
 		return
 	}
-	tLog.Debug(
-		"main.echoHandlder() creating client",
-		"clientID", clientID,
-	)
 	c := &Client{
 		ID:        clientID,
 		Websocket: ws,

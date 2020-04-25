@@ -13,7 +13,6 @@ import (
 )
 
 func TestClient_CreatesNewID(t *testing.T) {
-	tLog.Info("Inside TestClient_CreatesNewID")
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
@@ -72,7 +71,6 @@ func TestClient_ReusesOldId(t *testing.T) {
 }
 
 func TestClient_NewIDsAreDifferent(t *testing.T) {
-	tLog.Debug("TestClient_NewIDsAreDifferent(): Entering")
 	usedIDs := make(map[string]bool)
 
 	serv := newTestServer(echoHandler)
@@ -105,7 +103,6 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 }
 
 func TestClient_BouncesToOtherClients(t *testing.T) {
-	tLog.Debug("TestClient_BouncesToOtherClients(): Entering")
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 

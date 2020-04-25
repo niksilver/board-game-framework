@@ -45,7 +45,6 @@ func (h *Hub) Add(c *Client) {
 
 // Remove removed a client from the hub.
 func (h *Hub) Remove(c *Client) {
-	tLog.Debug("hub.Remove(), entering", "clientID", c.ID)
 	h.cMux.Lock()
 	defer h.cMux.Unlock()
 
@@ -85,9 +84,6 @@ func (h *Hub) Start() {
 // them out to the relevant clients.
 func (h *Hub) receiveInt() {
 	for {
-		tLog.Debug(
-			"hub.receiveInt() waiting for message or stop request",
-		)
 		select {
 		case c := <-h.stopReq:
 			// Defend against getting a stop request twice for the same
@@ -97,35 +93,13 @@ func (h *Hub) receiveInt() {
 				close(c.Pending)
 			}
 			if len(h.Clients()) == 0 {
-				tLog.Info(
-					"hub.receiveInt(), no more clients. What to do?",
-				)
 			}
 		case msg := <-h.Pending:
-			tLog.Debug(
-				"hub.receiveInt() got message",
-				"fromID", msg.From.ID,
-				"msg", msg.Msg,
-			)
 			for _, c := range h.Clients() {
 				if c.ID != msg.From.ID {
-					tLog.Debug(
-						"hub.receiveInt() sending msg to client",
-						"clientID", c.ID,
-						"msg", msg.Msg,
-					)
 					c.Pending <- msg
-					tLog.Debug(
-						"hub.receiveInt() sent    msg to client",
-						"clientID", c.ID,
-					)
 				}
 			}
-			tLog.Debug(
-				"hub.receiveInt() sent all messages",
-				"fromID", msg.From.ID,
-				"msg", msg.Msg,
-			)
 		}
 	}
 }

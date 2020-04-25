@@ -143,30 +143,12 @@ func (c *Client) receiveExt() {
 func (c *Client) receiveInt() {
 	// Keep receiving internal messages
 	for {
-		tLog.Debug(
-			"client.receiveInt() getting pending message",
-			"ID", c.ID,
-		)
 		m, ok := <-c.Pending
 		if !ok {
 			// Stop request received, acknowledged and acted on
-			tLog.Debug(
-				"client.receiveInt() got close, not pending message",
-				"ID", c.ID,
-			)
 			break
 		}
-		tLog.Debug(
-			"client.receiveInt() got pending message, will write",
-			"ID", c.ID,
-			"msg", m.Msg,
-		)
 		if err := c.Websocket.WriteMessage(m.MType, m.Msg); err != nil {
-			tLog.Debug(
-				"client.receiveInt() WriteMessage error",
-				"ID", c.ID,
-				"error", err,
-			)
 			c.log.Warn(
 				"WriteMessage",
 				"ID", c.ID,
@@ -175,11 +157,6 @@ func (c *Client) receiveInt() {
 			c.Hub.stopReq <- c
 			break
 		}
-		tLog.Debug(
-			"client.receiveInt() wrote message okay",
-			"ID", c.ID,
-			"msg", m.Msg,
-		)
 	}
 
 	c.stop()
@@ -188,10 +165,6 @@ func (c *Client) receiveInt() {
 // stop will stop the client without blocking any other goroutines, either
 // in the client or the hub.
 func (c *Client) stop() {
-	tLog.Debug(
-		"client.stop() entering",
-		"ID", c.ID,
-	)
 	// Make a stop request in a non-blocking way
 makeRequest:
 	for {
@@ -217,13 +190,5 @@ makeRequest:
 	}
 
 	// Stop request acknowledged and acted on
-	tLog.Debug(
-		"client.stop() closing websocket",
-		"ID", c.ID,
-	)
 	c.Websocket.Close()
-	tLog.Debug(
-		"client.stop() closed websocket",
-		"ID", c.ID,
-	)
 }
