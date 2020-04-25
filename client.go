@@ -161,10 +161,6 @@ intLoop:
 				break intLoop
 			}
 		case <-c.pinger.C:
-			tLog.Debug(
-				"client.receiveInt() sending ping",
-				"ID=", c.ID,
-			)
 			if err := c.Websocket.WriteMessage(websocket.PingMessage, nil); err != nil {
 				c.log.Warn(
 					"WriteMessage ping",
@@ -175,10 +171,6 @@ intLoop:
 				c.Hub.stopReq <- c
 				break intLoop
 			}
-			tLog.Debug(
-				"client.receiveInt() sent    ping",
-				"ID=", c.ID,
-			)
 		}
 	}
 

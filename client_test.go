@@ -121,7 +121,6 @@ func TestClient_SendsPings(t *testing.T) {
 	// Signal pings
 	pingC := make(chan bool)
 	ws.SetPingHandler(func(_ string) error {
-		tLog.Debug("TestClientSendPings() got ping")
 		pingC <- true
 		return nil
 	})
