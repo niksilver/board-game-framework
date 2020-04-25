@@ -73,36 +73,34 @@ import (
 
 func TestClient_NewIDsAreDifferent(t *testing.T) {
 	tLog.Debug("TestClient_NewIDsAreDifferent(): Entering")
-	//	usedIDs := make(map[string]bool)
+	usedIDs := make(map[string]bool)
 
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
-	// NB: Needs to go to 100
 	for i := 0; i < 100; i++ {
 		// Get a new client connection
-		//ws, resp, err := dial(serv, "")
-		ws, _, _ := dial(serv, "")
+		ws, resp, err := dial(serv, "")
 		defer ws.Close()
-		//		if err != nil {
-		//			t.Fatal(err)
-		//		}
-		//
-		//		cookies := resp.Cookies()
-		//		clientID := ClientID(cookies)
-		//
-		//		if usedIDs[clientID] {
-		//			t.Errorf("Iteration i = %d, clientID '%s' already used",
-		//				i,
-		//				clientID)
-		//			return
-		//		}
-		//		if clientID == "" {
-		//			t.Errorf("Iteration i = %d, clientID not set", i)
-		//			return
-		//		}
-		//
-		//		usedIDs[clientID] = true
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		cookies := resp.Cookies()
+		clientID := ClientID(cookies)
+
+		if usedIDs[clientID] {
+			t.Errorf("Iteration i = %d, clientID '%s' already used",
+				i,
+				clientID)
+			return
+		}
+		if clientID == "" {
+			t.Errorf("Iteration i = %d, clientID not set", i)
+			return
+		}
+
+		usedIDs[clientID] = true
 	}
 }
 
