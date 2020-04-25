@@ -14,6 +14,8 @@ type Hub struct {
 	clients map[*Client]bool
 	// Messages that need to be bounced out
 	Pending chan *Message
+	// The client will send true when it wants the hub to stop using it
+	stopReq chan *Client
 }
 
 // Message is something that the Hub needs to bounce out to clients
@@ -29,6 +31,7 @@ func NewHub() *Hub {
 	return &Hub{
 		clients: make(map[*Client]bool),
 		Pending: make(chan *Message),
+		stopReq: make(chan *Client),
 	}
 }
 
@@ -71,20 +74,43 @@ func (h *Hub) Start() {
 // them out to the relevant clients.
 func (h *Hub) receiveInt() {
 	for {
-		msg := <-h.Pending
-		for _, c := range h.Clients() {
-			if c.ID != msg.From.ID {
-				tLog.Debug(
-					"hub.receiveInt() sending msg to client",
-					"clientID", c.ID,
-					"msg", msg.Msg,
+		tLog.Debug(
+			"hub.receiveInt() waiting for message or stop request",
+		)
+		select {
+		case c := <-h.stopReq:
+			h.Remove(c)
+			close(c.Pending)
+			if len(h.Clients()) == 0 {
+				tLog.Info(
+					"hub.receiveInt(), no more clients. What to do?",
 				)
-				tLog.Debug(
-					"hub.receiveInt() sent    msg to client",
-					"clientID", c.ID,
-				)
-				c.Pending <- msg
 			}
+		case msg := <-h.Pending:
+			tLog.Debug(
+				"hub.receiveInt() got message",
+				"fromID", msg.From.ID,
+				"msg", msg.Msg,
+			)
+			for _, c := range h.Clients() {
+				if c.ID != msg.From.ID {
+					tLog.Debug(
+						"hub.receiveInt() sending msg to client",
+						"clientID", c.ID,
+						"msg", msg.Msg,
+					)
+					c.Pending <- msg
+					tLog.Debug(
+						"hub.receiveInt() sent    msg to client",
+						"clientID", c.ID,
+					)
+				}
+			}
+			tLog.Debug(
+				"hub.receiveInt() sent all messages",
+				"fromID", msg.From.ID,
+				"msg", msg.Msg,
+			)
 		}
 	}
 }

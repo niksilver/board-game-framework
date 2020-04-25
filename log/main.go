@@ -23,6 +23,7 @@ func SetLvlDebugStdout() {
 	Log.SetHandler(
 		log15.LvlFilterHandler(
 			log15.LvlDebug,
+			//log15.StreamHandler(os.Stdout, log15.LogfmtFormat()),
 			log15.StreamHandler(os.Stdout, log15.LogfmtFormat()),
 		))
 }

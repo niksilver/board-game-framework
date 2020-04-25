@@ -63,7 +63,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		ID:        clientID,
 		Websocket: ws,
 		Hub:       hub,
-		Pending:   make(chan *Message),
+		Pending:   make(chan *Message, 1),
 	}
 	c.Start()
 }

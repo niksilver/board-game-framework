@@ -78,6 +78,7 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
+	// NB: Needs to go to 100
 	for i := 0; i < 1; i++ {
 		// Get a new client connection
 		//ws, resp, err := dial(serv, "")

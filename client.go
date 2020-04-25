@@ -16,11 +16,14 @@ import (
 )
 
 type Client struct {
-	ID        string
+	ID string
+	// Don't close the websocket directly. Use the Stop() method.
 	Websocket *websocket.Conn
 	Hub       *Hub
-	Pending   chan *Message
-	log       log15.Logger
+	// To receive internal message from the hub. The hub will close it
+	// once it knows the client wants to stop.
+	Pending chan *Message
+	log     log15.Logger
 }
 
 var upgrader = websocket.Upgrader{
@@ -114,6 +117,7 @@ func (c *Client) Start() {
 func (c *Client) receiveExt() {
 	defer c.Websocket.Close()
 
+	// Read messages until we can no more
 	for {
 		mType, msg, err := c.Websocket.ReadMessage()
 		if err != nil {
@@ -121,6 +125,7 @@ func (c *Client) receiveExt() {
 				"ReadMessage",
 				"error", err,
 			)
+			c.Hub.stopReq <- c
 			break
 		}
 		// Currently ignores message type
@@ -130,25 +135,42 @@ func (c *Client) receiveExt() {
 			Msg:   msg,
 		}
 	}
+
+	// Stop request made. Tidy up.
+	c.tidyUp()
 }
 
 // receiveInt is a goroutine that acts on messages that have come from
 // a hub (internally), and sends them out.
 func (c *Client) receiveInt() {
+	// Keep receiving internal messages
 	for {
-		m := <-c.Pending
+		tLog.Debug(
+			"client.receiveInt() getting pending message",
+			"ID", c.ID,
+		)
+		m, ok := <-c.Pending
+		if !ok {
+			// Stop request received, acknowledged and acted on
+			break
+		}
 		tLog.Debug(
 			"client.receiveInt() got pending message, will write",
 			"ID", c.ID,
 			"msg", m.Msg,
 		)
 		if err := c.Websocket.WriteMessage(m.MType, m.Msg); err != nil {
+			tLog.Debug(
+				"client.receiveInt() WriteMessage error",
+				"ID", c.ID,
+				"error", err,
+			)
 			c.log.Warn(
 				"WriteMessage",
 				"ID", c.ID,
 				"error", err,
 			)
-			c.Stop()
+			c.Hub.stopReq <- c
 			break
 		}
 		tLog.Debug(
@@ -157,11 +179,23 @@ func (c *Client) receiveInt() {
 			"msg", m.Msg,
 		)
 	}
+
+	// Stop request made.
+	c.tidyUp()
 }
 
-// Stop will stop the client, disconnect from the server, and remove
-// itself from the hub.
-func (c *Client) Stop() {
+// tidyUp should be called once a stop request has been made. It will
+// keep consuming (and discarding) Pending messages until the channel is
+// closed (indicating the hub has acknowledged the stop request) and
+// closee the websocket.
+func (c *Client) tidyUp() {
+	// Stop request has been made, maybe acknowledged
+	for {
+		if _, ok := <-c.Pending; !ok {
+			break
+		}
+	}
+
+	// Stop request acknowledged and acted on
 	c.Websocket.Close()
-	c.Hub.Remove(c)
 }
