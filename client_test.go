@@ -129,6 +129,11 @@ func TestClient_BouncesToOtherClients(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Make sure all the clients have been added to hub.
+	waitForClient(hub, "CL1")
+	waitForClient(hub, "CL2")
+	waitForClient(hub, "CL3")
+
 	// Create 10 messages to send
 	msgs := []string{
 		"m0", "m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9",
@@ -147,8 +152,7 @@ func TestClient_BouncesToOtherClients(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		// Get a message from client 2
-		// NB: Reduce from 10 seconds!!!!
-		ws2.SetReadDeadline(time.Now().Add(10 * time.Second))
+		ws2.SetReadDeadline(time.Now().Add(time.Second))
 		_, rcvMsg, rcvErr := ws2.ReadMessage()
 		if rcvErr != nil {
 			t.Fatalf("Read error, ws2, i=%d: %s", i, rcvErr.Error())
@@ -160,8 +164,7 @@ func TestClient_BouncesToOtherClients(t *testing.T) {
 		}
 
 		// Get a message from client 3
-		// NB: Reduce from 10 seconds!!!!
-		ws3.SetReadDeadline(time.Now().Add(10 * time.Second))
+		ws3.SetReadDeadline(time.Now().Add(time.Second))
 		_, rcvMsg, rcvErr = ws3.ReadMessage()
 		if rcvErr != nil {
 			t.Fatalf("Read error, ws3, i=%d: %s", i, rcvErr.Error())

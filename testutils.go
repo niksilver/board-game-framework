@@ -73,3 +73,10 @@ func cookieRequestHeader(name string, value string) http.Header {
 
 	return header
 }
+
+// waitForClientInHub waits for the named client to be added to the hub.
+func waitForClient(h *Hub, id string) {
+	for !h.HasClient(id) {
+		// Go round again
+	}
+}

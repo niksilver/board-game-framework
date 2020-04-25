@@ -52,6 +52,17 @@ func (h *Hub) Remove(c *Client) {
 	delete(h.clients, c)
 }
 
+// HasClient checks if the client is known to the hub.
+func (h *Hub) HasClient(id string) bool {
+	cs := h.Clients()
+	for _, c := range cs {
+		if c.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
 // Clients returns a new slice with all the Hub's Clients.
 func (h *Hub) Clients() []*Client {
 	h.cMux.RLock()
