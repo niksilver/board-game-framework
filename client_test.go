@@ -49,27 +49,27 @@ import (
 //		)
 //	}
 //}
-//
-//func TestClient_ReusesOldId(t *testing.T) {
-//	serv := newTestServer(echoHandler)
-//	defer serv.Close()
-//
-//	initialClientID := "existing_value"
-//
-//	ws, resp, err := dial(serv, initialClientID)
-//	defer ws.Close()
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	cookies := resp.Cookies()
-//	clientID := ClientID(cookies)
-//	if clientID != initialClientID {
-//		t.Errorf("clientID cookie: expected '%s', got '%s'",
-//			clientID,
-//			initialClientID)
-//	}
-//}
+
+func TestClient_ReusesOldId(t *testing.T) {
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	initialClientID := "existing_value"
+
+	ws, resp, err := dial(serv, initialClientID)
+	defer ws.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cookies := resp.Cookies()
+	clientID := ClientID(cookies)
+	if clientID != initialClientID {
+		t.Errorf("clientID cookie: expected '%s', got '%s'",
+			clientID,
+			initialClientID)
+	}
+}
 
 func TestClient_NewIDsAreDifferent(t *testing.T) {
 	tLog.Debug("TestClient_NewIDsAreDifferent(): Entering")
