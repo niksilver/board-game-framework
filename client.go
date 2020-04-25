@@ -36,18 +36,12 @@ var upgrader = websocket.Upgrader{
 }
 
 // Upgrade converts an http request to a websocket, ensuring the client ID
-// is sent. The ID will be newly-generated if the supplied one is empty.
+// is sent. The ID should be set properly before entering.
 func Upgrade(
 	w http.ResponseWriter,
 	r *http.Request,
 	clientID string,
 ) (*websocket.Conn, error) {
-
-	// NB: Try removing this clause; it shouldn't be needed.
-	if clientID == "" {
-		clientID = NewClientID()
-	}
-
 	cookie := &http.Cookie{
 		Name:   "clientID",
 		Value:  clientID,

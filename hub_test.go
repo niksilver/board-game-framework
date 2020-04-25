@@ -7,7 +7,11 @@ package main
 import (
 	"sort"
 	"strconv"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 func TestHub_CanAddAndGetClients(t *testing.T) {
@@ -130,4 +134,89 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 			hub.Clients()
 		}
 	}()
+}
+
+func TestHub_BouncesToOtherClients(t *testing.T) {
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	// Connect 3 clients
+
+	ws1, _, err := dial(serv, "CL1")
+	defer ws1.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ws2, _, err := dial(serv, "CL2")
+	defer ws2.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ws3, _, err := dial(serv, "CL3")
+	defer ws3.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Make sure all the clients have been added to hub.
+	waitForClient(hub, "CL1")
+	waitForClient(hub, "CL2")
+	waitForClient(hub, "CL3")
+
+	// Create 10 messages to send
+	msgs := []string{
+		"m0", "m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9",
+	}
+
+	// Send 10 messages from client 1
+
+	for i := 0; i < 10; i++ {
+		msg := []byte(msgs[i])
+		if err := ws1.WriteMessage(websocket.BinaryMessage, msg); err != nil {
+			t.Fatalf("Write error for message %d: %s", i, err)
+		}
+	}
+
+	// We expect 10 messages to client 2 and client 3
+
+	for i := 0; i < 10; i++ {
+		// Get a message from client 2
+		ws2.SetReadDeadline(time.Now().Add(time.Second))
+		_, rcvMsg, rcvErr := ws2.ReadMessage()
+		if rcvErr != nil {
+			t.Fatalf("Read error, ws2, i=%d: %s", i, rcvErr.Error())
+		}
+		if string(rcvMsg) != string(msgs[i]) {
+			t.Errorf("ws2, i=%d, received '%s' but expected '%s'",
+				i, rcvMsg, msgs[i],
+			)
+		}
+
+		// Get a message from client 3
+		ws3.SetReadDeadline(time.Now().Add(time.Second))
+		_, rcvMsg, rcvErr = ws3.ReadMessage()
+		if rcvErr != nil {
+			t.Fatalf("Read error, ws3, i=%d: %s", i, rcvErr.Error())
+		}
+		if string(rcvMsg) != string(msgs[i]) {
+			t.Errorf("ws3, i=%d, received '%s' but expected '%s'",
+				i, rcvMsg, msgs[i],
+			)
+		}
+	}
+
+	// We expect no messages from client 1. It should timeout while waiting
+
+	ws1.SetReadDeadline(time.Now().Add(time.Second))
+	_, rcvMsg, rcvErr := ws1.ReadMessage()
+	switch {
+	case rcvErr == nil:
+		t.Fatalf("Should not have received message, got '%s'", rcvMsg)
+	case strings.Contains(rcvErr.Error(), "timeout"):
+		// This is what we want
+	default:
+		t.Fatal("Got ws1 read error, but it wasn't a timeout: ", rcvErr)
+	}
 }

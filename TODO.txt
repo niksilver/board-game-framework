@@ -1,5 +1,4 @@
 - Be more responsible about pinging and ponging.
-- Remove a client from hub when it leaves.
 - Server to detect which game a client wants.
 - Server to reject a client request with no game/group specified.
 - Put clients into a hub per group/game.
@@ -25,3 +24,4 @@ DONE:
 - Shift echoing into the client.
 - Add a client to a hub when it's created.
 - Have a client message bounce to other clients in a hub.
+- Remove a client from hub when it leaves.
