@@ -125,7 +125,6 @@ func (c *Client) receiveExt() {
 				"ReadMessage",
 				"error", err,
 			)
-			c.Hub.stopReq <- c
 			break
 		}
 		// Currently ignores message type
@@ -136,8 +135,7 @@ func (c *Client) receiveExt() {
 		}
 	}
 
-	// Stop request made. Tidy up.
-	c.tidyUp()
+	c.stop()
 }
 
 // receiveInt is a goroutine that acts on messages that have come from
@@ -152,6 +150,10 @@ func (c *Client) receiveInt() {
 		m, ok := <-c.Pending
 		if !ok {
 			// Stop request received, acknowledged and acted on
+			tLog.Debug(
+				"client.receiveInt() got close, not pending message",
+				"ID", c.ID,
+			)
 			break
 		}
 		tLog.Debug(
@@ -180,15 +182,33 @@ func (c *Client) receiveInt() {
 		)
 	}
 
-	// Stop request made.
-	c.tidyUp()
+	c.stop()
 }
 
-// tidyUp should be called once a stop request has been made. It will
-// keep consuming (and discarding) Pending messages until the channel is
-// closed (indicating the hub has acknowledged the stop request) and
-// closee the websocket.
-func (c *Client) tidyUp() {
+// stop will stop the client without blocking any other goroutines, either
+// in the client or the hub.
+func (c *Client) stop() {
+	tLog.Debug(
+		"client.stop() entering",
+		"ID", c.ID,
+	)
+	// Make a stop request in a non-blocking way
+makeRequest:
+	for {
+		select {
+		case _, ok := <-c.Pending:
+			// We're not interested in incoming message, so just swallow them.
+			// But perhaps the channel is closed, meaning an earlier stop
+			// has been acknowoledged.
+			if !ok {
+				break makeRequest
+			}
+		case c.Hub.stopReq <- c:
+			// We've successfully sent a stop request to the hub.
+			break makeRequest
+		}
+	}
+
 	// Stop request has been made, maybe acknowledged
 	for {
 		if _, ok := <-c.Pending; !ok {
@@ -197,5 +217,13 @@ func (c *Client) tidyUp() {
 	}
 
 	// Stop request acknowledged and acted on
+	tLog.Debug(
+		"client.stop() closing websocket",
+		"ID", c.ID,
+	)
 	c.Websocket.Close()
+	tLog.Debug(
+		"client.stop() closed websocket",
+		"ID", c.ID,
+	)
 }

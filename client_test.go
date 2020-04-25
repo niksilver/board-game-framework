@@ -79,7 +79,7 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 	defer serv.Close()
 
 	// NB: Needs to go to 100
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 100; i++ {
 		// Get a new client connection
 		//ws, resp, err := dial(serv, "")
 		ws, _, _ := dial(serv, "")
@@ -149,7 +149,8 @@ func TestClient_BouncesToOtherClients(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		// Get a message from client 2
-		ws2.SetReadDeadline(time.Now().Add(time.Second))
+		// NB: Reduce from 10 seconds!!!!
+		ws2.SetReadDeadline(time.Now().Add(10 * time.Second))
 		_, rcvMsg, rcvErr := ws2.ReadMessage()
 		if rcvErr != nil {
 			t.Fatalf("Read error, ws2, i=%d: %s", i, rcvErr.Error())
@@ -161,7 +162,8 @@ func TestClient_BouncesToOtherClients(t *testing.T) {
 		}
 
 		// Get a message from client 3
-		ws3.SetReadDeadline(time.Now().Add(time.Second))
+		// NB: Reduce from 10 seconds!!!!
+		ws3.SetReadDeadline(time.Now().Add(10 * time.Second))
 		_, rcvMsg, rcvErr = ws3.ReadMessage()
 		if rcvErr != nil {
 			t.Fatalf("Read error, ws3, i=%d: %s", i, rcvErr.Error())

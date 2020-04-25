@@ -79,8 +79,12 @@ func (h *Hub) receiveInt() {
 		)
 		select {
 		case c := <-h.stopReq:
-			h.Remove(c)
-			close(c.Pending)
+			// Defend against getting a stop request twice for the same
+			// client. We're not allowed to close a channel twice.
+			if h.clients[c] {
+				h.Remove(c)
+				close(c.Pending)
+			}
 			if len(h.Clients()) == 0 {
 				tLog.Info(
 					"hub.receiveInt(), no more clients. What to do?",
