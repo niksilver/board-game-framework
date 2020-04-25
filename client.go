@@ -15,6 +15,9 @@ import (
 	"github.com/niksilver/board-game-framework/log"
 )
 
+// How often we send pings
+var pingFrequency = 60 * time.Second
+
 type Client struct {
 	ID string
 	// Don't close the websocket directly. Use the Stop() method.
