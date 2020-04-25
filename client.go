@@ -156,8 +156,6 @@ intLoop:
 					"ID", c.ID,
 					"error", err,
 				)
-				// Need this???
-				c.Hub.stopReq <- c
 				break intLoop
 			}
 		case <-c.pinger.C:
@@ -167,8 +165,6 @@ intLoop:
 					"ID", c.ID,
 					"error", err,
 				)
-				// Need this???
-				c.Hub.stopReq <- c
 				break intLoop
 			}
 		}
