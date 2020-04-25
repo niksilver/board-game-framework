@@ -12,43 +12,43 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-//func TestClient_CreatesNewID(t *testing.T) {
-//	tLog.Info("Inside TestClient_CreatesNewID")
-//	serv := newTestServer(echoHandler)
-//	defer serv.Close()
-//
-//	ws, resp, err := dial(serv, "")
-//	defer ws.Close()
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	cookies := resp.Cookies()
-//	clientID := ClientID(cookies)
-//	if clientID == "" {
-//		t.Errorf("clientID cookie is empty or not defined")
-//	}
-//}
-//
-//func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
-//	serv := newTestServer(echoHandler)
-//	defer serv.Close()
-//
-//	ws, resp, err := dial(serv, "")
-//	defer ws.Close()
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	cookies := resp.Cookies()
-//	maxAge := ClientIDMaxAge(cookies)
-//	if maxAge < 100_000 {
-//		t.Errorf(
-//			"clientID cookie has max age %d, but expected 100,000 or more",
-//			maxAge,
-//		)
-//	}
-//}
+func TestClient_CreatesNewID(t *testing.T) {
+	tLog.Info("Inside TestClient_CreatesNewID")
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	ws, resp, err := dial(serv, "")
+	defer ws.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cookies := resp.Cookies()
+	clientID := ClientID(cookies)
+	if clientID == "" {
+		t.Errorf("clientID cookie is empty or not defined")
+	}
+}
+
+func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	ws, resp, err := dial(serv, "")
+	defer ws.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cookies := resp.Cookies()
+	maxAge := ClientIDMaxAge(cookies)
+	if maxAge < 100_000 {
+		t.Errorf(
+			"clientID cookie has max age %d, but expected 100,000 or more",
+			maxAge,
+		)
+	}
+}
 
 func TestClient_ReusesOldId(t *testing.T) {
 	serv := newTestServer(echoHandler)
