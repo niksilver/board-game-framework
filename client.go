@@ -27,6 +27,8 @@ type Client struct {
 	// once it knows the client wants to stop.
 	Pending chan *Message
 	log     log15.Logger
+	// pinger ticks for pinging
+	pinger *time.Ticker
 }
 
 var upgrader = websocket.Upgrader{
@@ -100,11 +102,12 @@ func ClientIDMaxAge(cookies []*http.Cookie) int {
 	return 0
 }
 
-// Start attaches the client to its hub and starts it running.
+// Start attaches the client to its hub and starts its goroutines.
 func (c *Client) Start() {
 	if c.log == nil {
 		c.log = log.Log.New("ID", c.ID)
 	}
+	c.pinger = time.NewTicker(pingFrequency)
 	c.Hub.Add(c)
 	go c.receiveExt()
 	go c.receiveInt()
@@ -139,20 +142,43 @@ func (c *Client) receiveExt() {
 // a hub (internally), and sends them out.
 func (c *Client) receiveInt() {
 	// Keep receiving internal messages
+intLoop:
 	for {
-		m, ok := <-c.Pending
-		if !ok {
-			// Stop request received, acknowledged and acted on
-			break
-		}
-		if err := c.Websocket.WriteMessage(m.MType, m.Msg); err != nil {
-			c.log.Warn(
-				"WriteMessage",
-				"ID", c.ID,
-				"error", err,
+		select {
+		case m, ok := <-c.Pending:
+			if !ok {
+				// Stop request received, acknowledged and acted on
+				break intLoop
+			}
+			if err := c.Websocket.WriteMessage(m.MType, m.Msg); err != nil {
+				c.log.Warn(
+					"WriteMessage msg",
+					"ID", c.ID,
+					"error", err,
+				)
+				// Need this???
+				c.Hub.stopReq <- c
+				break intLoop
+			}
+		case <-c.pinger.C:
+			tLog.Debug(
+				"client.receiveInt() sending ping",
+				"ID=", c.ID,
 			)
-			c.Hub.stopReq <- c
-			break
+			if err := c.Websocket.WriteMessage(websocket.PingMessage, nil); err != nil {
+				c.log.Warn(
+					"WriteMessage ping",
+					"ID", c.ID,
+					"error", err,
+				)
+				// Need this???
+				c.Hub.stopReq <- c
+				break intLoop
+			}
+			tLog.Debug(
+				"client.receiveInt() sent    ping",
+				"ID=", c.ID,
+			)
 		}
 	}
 
@@ -162,6 +188,8 @@ func (c *Client) receiveInt() {
 // stop will stop the client without blocking any other goroutines, either
 // in the client or the hub.
 func (c *Client) stop() {
+	c.pinger.Stop()
+
 	// Make a stop request in a non-blocking way
 makeRequest:
 	for {
