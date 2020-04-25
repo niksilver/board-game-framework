@@ -1,6 +1,3 @@
-- Be more responsible about pinging and ponging:
-  - Send pings. [DONE]
-  - Fail if no pongs.
 - Set read and write deadlines.
 - Server to detect which game a client wants.
 - Server to reject a client request with no game/group specified.
@@ -28,3 +25,4 @@ DONE:
 - Add a client to a hub when it's created.
 - Have a client message bounce to other clients in a hub.
 - Remove a client from hub when it leaves.
+- Does pings and pongs.

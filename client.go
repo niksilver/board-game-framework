@@ -16,7 +16,11 @@ import (
 )
 
 // How often we send pings
-var pingFrequency = 60 * time.Second
+var pingFreq = 60 * time.Second
+
+// How long we time out waiting for a pong or other data. Must be more
+// than pingFreq.
+var pongTimeout = (pingFreq * 5) / 4
 
 type Client struct {
 	ID string
@@ -107,7 +111,14 @@ func (c *Client) Start() {
 	if c.log == nil {
 		c.log = log.Log.New("ID", c.ID)
 	}
-	c.pinger = time.NewTicker(pingFrequency)
+
+	c.pinger = time.NewTicker(pingFreq)
+	c.Websocket.SetReadDeadline(time.Now().Add(pongTimeout))
+	c.Websocket.SetPongHandler(func(string) error {
+		c.Websocket.SetReadDeadline(time.Now().Add(pongTimeout))
+		return nil
+	})
+
 	c.Hub.Add(c)
 	go c.receiveExt()
 	go c.receiveInt()

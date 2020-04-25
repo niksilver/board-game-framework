@@ -102,13 +102,13 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 func TestClient_SendsPings(t *testing.T) {
 	// We'll send pings every 500ms, and wait for 3 seconds to receive
 	// at least three of them.
-	oldPingFreq := pingFrequency
-	pingFrequency = 500 * time.Millisecond
+	oldPingFreq := pingFreq
+	pingFreq = 500 * time.Millisecond
 	pings := 0
 
 	serv := newTestServer(echoHandler)
 	defer func() {
-		pingFrequency = oldPingFreq
+		pingFreq = oldPingFreq
 		serv.Close()
 	}()
 
@@ -120,7 +120,7 @@ func TestClient_SendsPings(t *testing.T) {
 
 	// Signal pings
 	pingC := make(chan bool)
-	ws.SetPingHandler(func(_ string) error {
+	ws.SetPingHandler(func(string) error {
 		pingC <- true
 		return nil
 	})
@@ -154,5 +154,52 @@ func TestClient_SendsPings(t *testing.T) {
 
 	if pings < 3 {
 		t.Errorf("Expected at least 3 pings but got %d", pings)
+	}
+}
+
+func TestClient_DisconnectsIfNoPongs(t *testing.T) {
+	// Give the echoHandler a very short pong timeout (just for this test)
+	oldPongTimeout := pongTimeout
+	pongTimeout = 500 * time.Millisecond
+
+	serv := newTestServer(echoHandler)
+	defer func() {
+		pongTimeout = oldPongTimeout
+		serv.Close()
+	}()
+
+	ws, _, err := dial(serv, "pingtester")
+	defer ws.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Wait for the client to have connected
+	waitForClient(hub, "pingtester")
+
+	// Set a timer for 3 seconds
+
+	// Read the connection. We will stop if we get (i) peer error,
+	// (ii) some data, (iv) we wait too long..
+	peerErrorC := make(chan bool)
+	peerDataC := make(chan bool)
+	ourTimeout := time.NewTimer(3 * time.Second)
+
+	go func() {
+		_, _, err := ws.ReadMessage()
+		if err == nil {
+			peerDataC <- true
+		} else {
+			peerErrorC <- true
+		}
+	}()
+
+	select {
+	case <-peerErrorC:
+		// Good
+	case <-peerDataC:
+		t.Errorf("Wrongly got data from peer")
+	case <-ourTimeout.C:
+		t.Errorf("Too long waiting for peer to time out")
 	}
 }
