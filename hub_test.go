@@ -366,19 +366,19 @@ func TestHub_GeneralChaos(t *testing.T) {
 			go consume(ws, id)
 		case cCount > 0 && action < 0.35:
 			// Some client leaves
-			cIdx := rand.Intn(len(cSlice))
-			cID := cSlice[cIdx]
-			cWS := cMap[cID]
-			cWS.Close()
-			delete(cMap, cID)
-			cSlice = append(cSlice[:cIdx], cSlice[cIdx+1:]...)
+			idx := rand.Intn(len(cSlice))
+			id := cSlice[idx]
+			ws := cMap[id]
+			ws.Close()
+			delete(cMap, id)
+			cSlice = append(cSlice[:idx], cSlice[idx+1:]...)
 		case cCount > 0:
 			// Some client sends a message
-			cIdx := rand.Intn(len(cSlice))
-			cID := cSlice[cIdx]
-			cWS := cMap[cID]
+			idx := rand.Intn(len(cSlice))
+			id := cSlice[idx]
+			ws := cMap[id]
 			msg := "Message " + strconv.Itoa(i)
-			err := cWS.WriteMessage(websocket.BinaryMessage, []byte(msg))
+			err := ws.WriteMessage(websocket.BinaryMessage, []byte(msg))
 			if err != nil {
 				t.Fatalf(
 					"Couldn't write message, i=%d, error '%s'", i, err.Error())
