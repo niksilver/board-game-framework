@@ -4,11 +4,12 @@
 - Put clients into a hub per group/game.
 - Hub to remove itself from superhub when it has no clients.
 - Ensure App Engine runs with only one instance.
-- Queue messages in a channel, to reduce blocking.
-- Close a client connection if ping doesn't get a response in time.
 - Store game state locally.
 - Add "other clients" list into server response.
 - Add own client ID into server response.
+- Add server time into server response.
+- Server to send update when a client is added or removed.
+- Have Javascript client unpack server response with envelope+contents.
 
 DONE:
 
@@ -26,3 +27,4 @@ DONE:
 - Have a client message bounce to other clients in a hub.
 - Remove a client from hub when it leaves.
 - Does pings and pongs.
+- Close a client connection if ping doesn't get a response in time.
