@@ -1,13 +1,18 @@
-- Set read and write deadlines.
+- Set maximum message size.
+  - Quietly drop (for now) a received message that's too large.
+  - Quietly drop (for now) a message that becomes too large after
+    adding the envelope.
 - Server to detect which game a client wants.
 - Server to reject a client request with no game/group specified.
 - Put clients into a hub per group/game.
 - Hub to remove itself from superhub when it has no clients.
 - Ensure App Engine runs with only one instance.
 - Store game state locally.
-- Add "other clients" list into server response.
-- Add own client ID into server response.
-- Add server time into server response.
+- Add "other clients" list into server response; a "From" field.
+- Add own client ID into server response; a "To" field.
+- Add server time into server response; a "Time" field.
+- Send a server message to sender if received message too large.
+- Send a server message to sender if message to be sent is too large.
 - Server to send update when a client is added or removed.
 - Have Javascript client unpack server response with envelope+contents.
 
@@ -28,3 +33,4 @@ DONE:
 - Remove a client from hub when it leaves.
 - Does pings and pongs.
 - Close a client connection if ping doesn't get a response in time.
+- Set write deadlines. (Read deadlines are for pongs only.)

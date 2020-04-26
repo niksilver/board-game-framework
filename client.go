@@ -22,6 +22,9 @@ var pingFreq = 60 * time.Second
 // than pingFreq.
 var pongTimeout = (pingFreq * 5) / 4
 
+// How long to allow to write to the websocket.
+var writeTimeout = 10 * time.Second
+
 type Client struct {
 	ID string
 	// Don't close the websocket directly. Use the Stop() method.
@@ -161,6 +164,16 @@ intLoop:
 				// Stop request received, acknowledged and acted on
 				break intLoop
 			}
+			if err := c.Websocket.SetWriteDeadline(
+				time.Now().Add(writeTimeout),
+			); err != nil {
+				c.log.Warn(
+					"WriteMessage msg",
+					"ID", c.ID,
+					"error", err,
+				)
+				break intLoop
+			}
 			if err := c.Websocket.WriteMessage(m.MType, m.Msg); err != nil {
 				c.log.Warn(
 					"WriteMessage msg",
@@ -170,7 +183,19 @@ intLoop:
 				break intLoop
 			}
 		case <-c.pinger.C:
-			if err := c.Websocket.WriteMessage(websocket.PingMessage, nil); err != nil {
+			if err := c.Websocket.SetWriteDeadline(
+				time.Now().Add(writeTimeout),
+			); err != nil {
+				c.log.Warn(
+					"WriteMessage msg",
+					"ID", c.ID,
+					"error", err,
+				)
+				break intLoop
+			}
+			if err := c.Websocket.WriteMessage(
+				websocket.PingMessage, nil,
+			); err != nil {
 				c.log.Warn(
 					"WriteMessage ping",
 					"ID", c.ID,
