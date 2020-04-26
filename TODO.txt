@@ -8,6 +8,7 @@
 - Hub to remove itself from superhub when it has no clients.
 - Ensure App Engine runs with only one instance.
 - Store game state locally.
+- Send a marshalled JSON message, and handle a marshalling error.
 - Add "other clients" list into server response; a "From" field.
 - Add own client ID into server response; a "To" field.
 - Add server time into server response; a "Time" field.

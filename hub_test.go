@@ -5,6 +5,7 @@
 package main
 
 import (
+	"encoding/json"
 	"sort"
 	"strconv"
 	"strings"
@@ -188,9 +189,14 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 		if rcvErr != nil {
 			t.Fatalf("Read error, ws2, i=%d: %s", i, rcvErr.Error())
 		}
-		if string(rcvMsg) != string(msgs[i]) {
+		env := Envelope{}
+		err := json.Unmarshal(rcvMsg, &env)
+		if err != nil {
+			t.Fatalf("Could not unmarshal '%s': %s", rcvMsg, err.Error())
+		}
+		if string(env.Msg) != string(msgs[i]) {
 			t.Errorf("ws2, i=%d, received '%s' but expected '%s'",
-				i, rcvMsg, msgs[i],
+				i, env.Msg, msgs[i],
 			)
 		}
 
@@ -200,9 +206,14 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 		if rcvErr != nil {
 			t.Fatalf("Read error, ws3, i=%d: %s", i, rcvErr.Error())
 		}
-		if string(rcvMsg) != string(msgs[i]) {
+		env = Envelope{}
+		err = json.Unmarshal(rcvMsg, &env)
+		if err != nil {
+			t.Fatalf("Could not unmarshal '%s': %s", rcvMsg, err.Error())
+		}
+		if string(env.Msg) != string(msgs[i]) {
 			t.Errorf("ws3, i=%d, received '%s' but expected '%s'",
-				i, rcvMsg, msgs[i],
+				i, env.Msg, msgs[i],
 			)
 		}
 	}
@@ -219,4 +230,64 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	default:
 		t.Fatal("Got ws1 read error, but it wasn't a timeout: ", rcvErr)
 	}
+}
+
+func TestClient_BasicMessageEnvelopeIsCorrect(t *testing.T) {
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	// Connect 3 clients.
+	// We'll want to check From, To and Time fields, as well as
+	// message contents.
+	// Because we have 3 clients we'll have 2 listed in the To field.
+
+	ws1, _, err := dial(serv, "EN1")
+	defer ws1.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ws2, _, err := dial(serv, "EN2")
+	defer ws2.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ws3, _, err := dial(serv, "EN3")
+	defer ws3.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Make sure all the clients have been added to hub.
+	waitForClient(hub, "EN1")
+	waitForClient(hub, "EN2")
+	waitForClient(hub, "EN3")
+
+	// Send a message, then pick up the results from one of the clients
+
+	err = ws1.WriteMessage(
+		websocket.BinaryMessage, []byte("Can you read me?"),
+	)
+	if err != nil {
+		t.Fatalf("Error writing message: %s", err.Error())
+	}
+
+	_, msg, err := ws2.ReadMessage()
+	if err != nil {
+		t.Fatalf("Error reading message: %s", err.Error())
+	}
+
+	env := Envelope{}
+	err = json.Unmarshal(msg, &env)
+	if err != nil {
+		t.Fatalf(
+			"Couldn't unmarshal message '%s'. Error %s",
+			msg, err.Error(),
+		)
+	}
+
+	// Test fields
+
+	t.Fatal("TODO: Test fields!")
 }

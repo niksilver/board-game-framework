@@ -5,6 +5,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -145,7 +146,7 @@ func (c *Client) receiveExt() {
 		c.Hub.Pending <- &Message{
 			From:  c,
 			MType: mType,
-			Msg:   msg,
+			Env:   &Envelope{Msg: msg},
 		}
 	}
 
@@ -174,7 +175,14 @@ intLoop:
 				)
 				break intLoop
 			}
-			if err := c.Websocket.WriteMessage(m.MType, m.Msg); err != nil {
+			envBytes, err := json.Marshal(m.Env)
+			if err != nil {
+				panic(fmt.Sprintf(
+					"Marshalling error %s on content '%#v'",
+					err.Error(), m.Env,
+				))
+			}
+			if err := c.Websocket.WriteMessage(m.MType, envBytes); err != nil {
 				c.log.Warn(
 					"WriteMessage msg",
 					"ID", c.ID,

@@ -23,7 +23,17 @@ type Hub struct {
 type Message struct {
 	From  *Client
 	MType int
-	Msg   []byte
+	Env   *Envelope
+}
+
+// Envelope is the structure for messages sent to clients. Other than msg,
+// all fields will be filled in by the hub. This struct has to be exported
+// to be processed by json marshalling.
+type Envelope struct {
+	From string   // Client id this is from
+	To   []string // Ids of all clients this is going to
+	Time int64    // Server time when sent
+	Msg  []byte   // Original raw message from the sending client
 }
 
 // NewHub creates a new, empty Hub.
