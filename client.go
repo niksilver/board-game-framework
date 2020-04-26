@@ -177,10 +177,13 @@ intLoop:
 			}
 			envBytes, err := json.Marshal(m.Env)
 			if err != nil {
-				panic(fmt.Sprintf(
-					"Marshalling error %s on content '%#v'",
-					err.Error(), m.Env,
-				))
+				// This means some internal coding mistake
+				c.log.Error(
+					"Envelope marshalling error",
+					"ID", c.ID,
+					"envelope", m.Env,
+					"error", err,
+				)
 			}
 			if err := c.Websocket.WriteMessage(m.MType, envBytes); err != nil {
 				c.log.Warn(

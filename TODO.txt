@@ -8,10 +8,6 @@
 - Hub to remove itself from superhub when it has no clients.
 - Ensure App Engine runs with only one instance.
 - Store game state locally.
-- Send a marshalled JSON message, and handle a marshalling error.
-- Add "other clients" list into server response; a "From" field.
-- Add own client ID into server response; a "To" field.
-- Add server time into server response; a "Time" field.
 - Send a server message to sender if received message too large.
 - Send a server message to sender if message to be sent is too large.
 - Server to send update when a client is added or removed.
@@ -35,3 +31,7 @@ DONE:
 - Does pings and pongs.
 - Close a client connection if ping doesn't get a response in time.
 - Set write deadlines. (Read deadlines are for pongs only.)
+- Send a marshalled JSON message, and handle a marshalling error.
+- Add "other clients" list into server response; a "From" field.
+- Add own client ID into server response; a "To" field.
+- Add server time into server response; a "Time" field.

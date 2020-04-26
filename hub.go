@@ -6,6 +6,7 @@ package main
 
 import (
 	"sync"
+	"time"
 )
 
 // Hub collects all related clients
@@ -32,7 +33,7 @@ type Message struct {
 type Envelope struct {
 	From string   // Client id this is from
 	To   []string // Ids of all clients this is going to
-	Time int64    // Server time when sent
+	Time int64    // Server time when sent, in seconds since the epoch
 	Msg  []byte   // Original raw message from the sending client
 }
 
@@ -105,11 +106,27 @@ func (h *Hub) receiveInt() {
 			if len(h.Clients()) == 0 {
 			}
 		case msg := <-h.Pending:
-			for _, c := range h.Clients() {
-				if c.ID != msg.From.ID {
-					c.Pending <- msg
-				}
+			toCls, toIDs := exclude(h.Clients(), msg.From.ID)
+			msg.Env.From = msg.From.ID
+			msg.Env.To = toIDs
+			msg.Env.Time = time.Now().Unix()
+			for _, c := range toCls {
+				c.Pending <- msg
 			}
 		}
 	}
+}
+
+// exclude finds all clients from a list which don't match the given one.
+// It returns a list of clients and the equivalent list of IDs.
+// Matching is done on IDs.
+func exclude(cs []*Client, id string) ([]*Client, []string) {
+	cPtr, cStr := make([]*Client, 0), make([]string, 0)
+	for _, c := range cs {
+		if c.ID != id {
+			cPtr = append(cPtr, c)
+			cStr = append(cStr, c.ID)
+		}
+	}
+	return cPtr, cStr
 }

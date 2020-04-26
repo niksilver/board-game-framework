@@ -6,6 +6,7 @@ package main
 
 import (
 	"encoding/json"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -287,7 +288,37 @@ func TestClient_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 		)
 	}
 
-	// Test fields
+	// Test fields...
 
-	t.Fatal("TODO: Test fields!")
+	// Msg field
+	if string(env.Msg) != "Can you read me?" {
+		t.Errorf("Envelope message not as expected, got '%s'", env.Msg)
+	}
+
+	// From field
+	if env.From != "EN1" {
+		t.Errorf("Got envelope From '%s' but expected 'EN1'", env.From)
+	}
+
+	// To field
+	toOpt1 := []string{"EN2", "EN3"}
+	toOpt2 := []string{"EN3", "EN2"}
+	if !reflect.DeepEqual(env.To, toOpt1) &&
+		!reflect.DeepEqual(env.To, toOpt2) {
+		t.Errorf(
+			"Envelope To was '%v' but expected it be just EN2 and EN3",
+			env.To,
+		)
+	}
+
+	// Time field
+	timeT := time.Unix(env.Time, 0) // Convert seconds back to Time(!)
+	now := time.Now()
+	recentPast := now.Add(-5 * time.Second)
+	if timeT.Before(recentPast) || timeT.After(now) {
+		t.Errorf(
+			"Got time %v, which wasn't between %v and %v",
+			timeT, recentPast, now,
+		)
+	}
 }
