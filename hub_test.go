@@ -6,6 +6,7 @@ package main
 
 import (
 	"encoding/json"
+	"math/rand"
 	"reflect"
 	"sort"
 	"strconv"
@@ -320,5 +321,70 @@ func TestClient_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 			"Got time %v, which wasn't between %v and %v",
 			timeT, recentPast, now,
 		)
+	}
+}
+
+// A test for general connecting, disconnecting and message sending...
+// This just needs to run and not deadlock.
+func TestHub_GeneralChaos(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+	cMap := make(map[string]*websocket.Conn)
+	cSlice := make([]string, 0)
+	consumed := 0
+
+	// Start a web server
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	// A client should consume messages until done
+	consume := func(ws *websocket.Conn, id string) {
+		for {
+			_, _, err := ws.ReadMessage()
+			if err == nil {
+				consumed += 1
+			} else {
+				break
+			}
+		}
+		ws.Close()
+	}
+
+	for i := 0; i < 1000; i++ {
+		action := rand.Float32()
+		cCount := len(cSlice)
+		switch {
+		case i < 10 || action < 0.25:
+			// New client join
+			id := "CHAOS" + strconv.Itoa(i)
+			ws, _, err := dial(serv, id)
+			defer ws.Close()
+			if err != nil {
+				t.Fatalf("Couldn't dial, i=%d, error '%s'", i, err.Error())
+			}
+			cMap[id] = ws
+			cSlice = append(cSlice, id)
+			go consume(ws, id)
+		case cCount > 0 && action < 0.35:
+			// Some client leaves
+			cIdx := rand.Intn(len(cSlice))
+			cID := cSlice[cIdx]
+			cWS := cMap[cID]
+			cWS.Close()
+			delete(cMap, cID)
+			cSlice = append(cSlice[:cIdx], cSlice[cIdx+1:]...)
+		case cCount > 0:
+			// Some client sends a message
+			cIdx := rand.Intn(len(cSlice))
+			cID := cSlice[cIdx]
+			cWS := cMap[cID]
+			msg := "Message " + strconv.Itoa(i)
+			err := cWS.WriteMessage(websocket.BinaryMessage, []byte(msg))
+			if err != nil {
+				t.Fatalf(
+					"Couldn't write message, i=%d, error '%s'", i, err.Error())
+			}
+		default:
+			// Can't take any action
+		}
 	}
 }
