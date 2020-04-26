@@ -1,3 +1,6 @@
+- Send a server message when you join ("welcome").
+- Send a server message when a client leaves.
+- Send a server message when a client joins.
 - Set maximum message size.
   - Quietly drop (for now) a received message that's too large.
   - Quietly drop (for now) a message that becomes too large after
@@ -35,3 +38,4 @@ DONE:
 - Add "other clients" list into server response; a "From" field.
 - Add own client ID into server response; a "To" field.
 - Add server time into server response; a "Time" field.
+- Describe message sending in README.
