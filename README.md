@@ -16,11 +16,11 @@ Inspired by the [open source version of Codenames](https://github.com/jbowens/co
 ## Connecting to the server
 
 When a client connects to the server for the first time it is given a
-unique ID. The unique ID persists with the client, even beyond any end
-of the game.
+unique ID, which is a string. The unique ID persists with the client,
+even beyond any end of the game.
 
 The ID is stored in a cookie related to a websocket connection, not
-an HTTP connection.
+an HTTP connection, so you won't find it in the usual place in the browser.
 
 ## Sending a message
 
@@ -43,14 +43,14 @@ it will be wrapped and sent to the other clients like this:
 { From: "123.456"
   To: ["222.234", "333.345"]
   Time: 76487293
-  Msg: { turn: 0
-         spaces: 3
-         letters: ["D", "K", "G"]
-       }
+  Body: { turn: 0
+          spaces: 3
+          letters: ["D", "K", "G"]
+        }
 }
 ```
 `From` is the sending client's ID; `To` is the ID of all other clients who
 are currently connected in that game; `Time` is the server time the
 message was sent, which is an integer number of seconds after 1 January 1970;
-`Msg` is the original message from the client.
+`Body` is the original message from the client.
 

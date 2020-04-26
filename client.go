@@ -146,7 +146,7 @@ func (c *Client) receiveExt() {
 		c.Hub.Pending <- &Message{
 			From:  c,
 			MType: mType,
-			Env:   &Envelope{Msg: msg},
+			Env:   &Envelope{Body: msg},
 		}
 	}
 

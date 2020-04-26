@@ -196,9 +196,9 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Could not unmarshal '%s': %s", rcvMsg, err.Error())
 		}
-		if string(env.Msg) != string(msgs[i]) {
+		if string(env.Body) != string(msgs[i]) {
 			t.Errorf("ws2, i=%d, received '%s' but expected '%s'",
-				i, env.Msg, msgs[i],
+				i, env.Body, msgs[i],
 			)
 		}
 
@@ -213,9 +213,9 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Could not unmarshal '%s': %s", rcvMsg, err.Error())
 		}
-		if string(env.Msg) != string(msgs[i]) {
+		if string(env.Body) != string(msgs[i]) {
 			t.Errorf("ws3, i=%d, received '%s' but expected '%s'",
-				i, env.Msg, msgs[i],
+				i, env.Body, msgs[i],
 			)
 		}
 	}
@@ -292,8 +292,8 @@ func TestClient_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	// Test fields...
 
 	// Msg field
-	if string(env.Msg) != "Can you read me?" {
-		t.Errorf("Envelope message not as expected, got '%s'", env.Msg)
+	if string(env.Body) != "Can you read me?" {
+		t.Errorf("Envelope body not as expected, got '%s'", env.Body)
 	}
 
 	// From field

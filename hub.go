@@ -34,7 +34,7 @@ type Envelope struct {
 	From string   // Client id this is from
 	To   []string // Ids of all clients this is going to
 	Time int64    // Server time when sent, in seconds since the epoch
-	Msg  []byte   // Original raw message from the sending client
+	Body []byte   // Original raw message from the sending client
 }
 
 // NewHub creates a new, empty Hub.
