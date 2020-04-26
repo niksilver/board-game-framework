@@ -1,6 +1,6 @@
-- Send a server message when you join ("welcome").
-- Send a server message when a client leaves.
-- Send a server message when a client joins.
+- Send a server message when you join (intent "Welcome").
+- Send a server message when a client leaves (intent "Leaver").
+- Send a server message when a client joins (intent "Joiner").
 - Set maximum message size.
   - Quietly drop (for now) a received message that's too large.
   - Quietly drop (for now) a message that becomes too large after
@@ -11,9 +11,10 @@
 - Hub to remove itself from superhub when it has no clients.
 - Ensure App Engine runs with only one instance.
 - Store game state locally.
-- Send a server message to sender if received message too large.
-- Send a server message to sender if message to be sent is too large.
-- Server to send update when a client is added or removed.
+- Send a server message to sender if received message too large
+  (intent "Error").
+- Send a server message to sender if message to be sent is too large
+  (intent "Error").
 - Have Javascript client unpack server response with envelope+contents.
 
 DONE:

@@ -291,7 +291,7 @@ func TestClient_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 
 	// Test fields...
 
-	// Msg field
+	// Body field
 	if string(env.Body) != "Can you read me?" {
 		t.Errorf("Envelope body not as expected, got '%s'", env.Body)
 	}
@@ -321,6 +321,11 @@ func TestClient_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 			"Got time %v, which wasn't between %v and %v",
 			timeT, recentPast, now,
 		)
+	}
+
+	// Intent field
+	if string(env.Intent) != "Peer" {
+		t.Errorf("Envelope intent not as expected, got '%s', expected 'Peer", env.Intent)
 	}
 }
 

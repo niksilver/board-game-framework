@@ -31,10 +31,11 @@ type Message struct {
 // all fields will be filled in by the hub. This struct has to be exported
 // to be processed by json marshalling.
 type Envelope struct {
-	From string   // Client id this is from
-	To   []string // Ids of all clients this is going to
-	Time int64    // Server time when sent, in seconds since the epoch
-	Body []byte   // Original raw message from the sending client
+	From   string   // Client id this is from
+	To     []string // Ids of all clients this is going to
+	Time   int64    // Server time when sent, in seconds since the epoch
+	Intent string   // What the message is intended to convey
+	Body   []byte   // Original raw message from the sending client
 }
 
 // NewHub creates a new, empty Hub.
@@ -110,6 +111,7 @@ func (h *Hub) receiveInt() {
 			msg.Env.From = msg.From.ID
 			msg.Env.To = toIDs
 			msg.Env.Time = time.Now().Unix()
+			msg.Env.Intent = "Peer"
 			for _, c := range toCls {
 				c.Pending <- msg
 			}
