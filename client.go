@@ -124,8 +124,15 @@ func (c *Client) Start() {
 	})
 
 	c.Hub.Add(c)
-	go c.receiveExt()
 	go c.receiveInt()
+	c.Pending <- &Message{
+		MType: websocket.BinaryMessage,
+		Env: &Envelope{
+			To:     []string{c.ID},
+			Time:   time.Now().Unix(),
+			Intent: "Welcome",
+		}}
+	go c.receiveExt()
 }
 
 // receiveExt is a goroutine that acts on external messages coming in.
@@ -169,7 +176,7 @@ intLoop:
 				time.Now().Add(writeTimeout),
 			); err != nil {
 				c.log.Warn(
-					"WriteMessage msg",
+					"SetWriteDeadline error",
 					"ID", c.ID,
 					"error", err,
 				)
@@ -187,7 +194,7 @@ intLoop:
 			}
 			if err := c.Websocket.WriteMessage(m.MType, envBytes); err != nil {
 				c.log.Warn(
-					"WriteMessage msg",
+					"WriteMessage error",
 					"ID", c.ID,
 					"error", err,
 				)

@@ -13,7 +13,7 @@ import (
 type Hub struct {
 	cMux    sync.RWMutex // For reading and writing clients
 	clients map[*Client]bool
-	// Messages that need to be bounced out.
+	// Messages from clients that need to be bounced out.
 	Pending chan *Message
 	// The client will send true when it wants the hub to stop using it
 	stopReq chan *Client

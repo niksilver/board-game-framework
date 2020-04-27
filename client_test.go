@@ -5,6 +5,8 @@
 package main
 
 import (
+	"encoding/json"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -201,5 +203,41 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 		t.Errorf("Wrongly got data from peer")
 	case <-ourTimeout.C:
 		t.Errorf("Too long waiting for peer to time out")
+	}
+}
+
+func TestClient_SendsWelcome(t *testing.T) {
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	ws, _, err := dial(serv, "WTESTER")
+	defer ws.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = ws.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, msg, err := ws.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	env := Envelope{}
+	err = json.Unmarshal(msg, &env)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if env.Intent != "Welcome" {
+		t.Errorf("Message intent was '%s' but expected 'Welcome'", env.Intent)
+	}
+	if !reflect.DeepEqual(env.To, []string{"WTESTER"}) {
+		t.Errorf(
+			"Message To field was %v but expected [\"WTESTER\"]",
+			env.To,
+		)
 	}
 }
