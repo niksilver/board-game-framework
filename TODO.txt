@@ -1,3 +1,4 @@
+- Add Count field to message envelope.
 - Send a server message when you join (intent "Welcome").
 - Send a server message when a client leaves (intent "Leaver").
 - Send a server message when a client joins (intent "Joiner").
