@@ -168,6 +168,17 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	waitForClient(hub, "CL2")
 	waitForClient(hub, "CL3")
 
+	// Swallow all the welcome messages
+	if err := readWelcomeMessage(ws1); err != nil {
+		t.Fatalf("Welcome error for ws1: %s", err)
+	}
+	if err := readWelcomeMessage(ws2); err != nil {
+		t.Fatalf("Welcome error for ws2: %s", err)
+	}
+	if err := readWelcomeMessage(ws3); err != nil {
+		t.Fatalf("Welcome error for ws3: %s", err)
+	}
+
 	// Create 10 messages to send
 	msgs := []string{
 		"m0", "m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9",
@@ -265,6 +276,17 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	waitForClient(hub, "EN1")
 	waitForClient(hub, "EN2")
 	waitForClient(hub, "EN3")
+
+	// Swallow all the welcome messages
+	if err := readWelcomeMessage(ws1); err != nil {
+		t.Fatalf("Welcome error for ws1: %s", err)
+	}
+	if err := readWelcomeMessage(ws2); err != nil {
+		t.Fatalf("Welcome error for ws2: %s", err)
+	}
+	if err := readWelcomeMessage(ws3); err != nil {
+		t.Fatalf("Welcome error for ws3: %s", err)
+	}
 
 	// Send a message, then pick up the results from one of the clients
 
