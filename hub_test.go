@@ -234,7 +234,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	}
 }
 
-func TestClient_BasicMessageEnvelopeIsCorrect(t *testing.T) {
+func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 

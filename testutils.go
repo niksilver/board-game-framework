@@ -5,9 +5,12 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/inconshreveable/log15"
@@ -78,5 +81,57 @@ func cookieRequestHeader(name string, value string) http.Header {
 func waitForClient(h *Hub, id string) {
 	for !h.HasClient(id) {
 		// Go round again
+	}
+}
+
+// readWelcomeMessage expects the next message to be a "Welcome" message.
+// It returns an error if not, or if it gets an error.
+// It will only wait 500ms to read any message.
+func readWelcomeMessage(ws *websocket.Conn) error {
+	var env Envelope
+	err := ws.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	if err != nil {
+		return err
+	}
+	_, msg, err := ws.ReadMessage()
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(msg, &env)
+	if err != nil {
+		return err
+	}
+	if env.Intent != "Welcome" {
+		return fmt.Errorf(
+			"Expected intent 'Welcome' but got '%s'", env.Intent,
+		)
+	}
+	return nil
+}
+
+// readPeerMessage is like websocket's ReadMessage, but if it successfully
+// reads a message whose intent is not "Peer" it will try again. If it
+// gets an error, it will return that. It will only wait
+//`timeout` milliseconds to read any message.
+func readPeerMessage(ws *websocket.Conn, timeout int) (int, []byte, error) {
+	var env Envelope
+	for {
+		err := ws.SetReadDeadline(
+			time.Now().Add(time.Duration(timeout) * time.Millisecond),
+		)
+		if err != nil {
+			return 0, []byte{}, err
+		}
+		mType, msg, err := ws.ReadMessage()
+		if err != nil {
+			return mType, msg, err
+		}
+		err = json.Unmarshal(msg, &env)
+		if err != nil {
+			return 0, []byte{}, err
+		}
+		if env.Intent == "Peer" {
+			return mType, msg, err
+		}
 	}
 }

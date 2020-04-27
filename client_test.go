@@ -152,7 +152,8 @@ func TestClient_SendsPings(t *testing.T) {
 	}()
 
 	// Read the connection, which will listen for pings
-	_, _, _ = ws.ReadMessage()
+	// It will exit with a close error when the above code times out
+	_, _, _ = readPeerMessage(ws, 10_000)
 
 	if pings < 3 {
 		t.Errorf("Expected at least 3 pings but got %d", pings)
@@ -176,8 +177,12 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Wait for the client to have connected
+	// Wait for the client to have connected, and swallow the "Welcome"
+	// message
 	waitForClient(hub, "pingtester")
+	if err := readWelcomeMessage(ws); err != nil {
+		t.Fatal(err)
+	}
 
 	// Set a timer for 3 seconds
 
