@@ -267,45 +267,47 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	defer serv.Close()
 
 	// Connect 3 clients.
+	// We'll make sure all the clients have been added to hub, and force
+	// the order by waiting on messages.
+
 	// We'll want to check From, To and Time fields, as well as
 	// message contents.
 	// Because we have 3 clients we'll have 2 listed in the To field.
+
+	// Client 1 joins normally
 
 	ws1, _, err := dial(serv, "EN1")
 	defer ws1.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := readIntentMessage(ws1, "Welcome"); err != nil {
+		t.Fatalf("Welcome error for ws1: %s", err)
+	}
+
+	// Client 2 joins, and client 1 gets a joiner message
 
 	ws2, _, err := dial(serv, "EN2")
 	defer ws2.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := readIntentMessage(ws2, "Welcome"); err != nil {
+		t.Fatalf("Welcome error for ws2: %s", err)
+	}
+	if err := readIntentMessage(ws1, "Joiner"); err != nil {
+		t.Fatalf("Joiner error for ws1 (1): %s", err)
+	}
+
+	// Client 3 joins, and clients 1 and 2 get joiner messages.
 
 	ws3, _, err := dial(serv, "EN3")
 	defer ws3.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// Make sure all the clients have been added to hub.
-	waitForClient(hub, "EN1")
-	waitForClient(hub, "EN2")
-	waitForClient(hub, "EN3")
-
-	// Swallow all the welcome messages
-	if err := readIntentMessage(ws1, "Welcome"); err != nil {
-		t.Fatalf("Welcome error for ws1: %s", err)
-	}
-	if err := readIntentMessage(ws2, "Welcome"); err != nil {
-		t.Fatalf("Welcome error for ws2: %s", err)
-	}
 	if err := readIntentMessage(ws3, "Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws3: %s", err)
-	}
-	if err := readIntentMessage(ws1, "Joiner"); err != nil {
-		t.Fatalf("Joiner error for ws1 (1): %s", err)
 	}
 	if err := readIntentMessage(ws1, "Joiner"); err != nil {
 		t.Fatalf("Joiner error for ws1 (2): %s", err)
@@ -313,6 +315,12 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	if err := readIntentMessage(ws2, "Joiner"); err != nil {
 		t.Fatalf("Joiner error for ws2: %s", err)
 	}
+
+	/*waitForClient(hub, "EN1")
+	waitForClient(hub, "EN2")
+	waitForClient(hub, "EN3")*/
+
+	tLog.Debug("TestHub_BasicMessageEnvelopeIsCorrect - got intros")
 
 	// Send a message, then pick up the results from one of the clients
 
