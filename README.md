@@ -43,14 +43,35 @@ it will be wrapped and sent to the other clients like this:
 { From: "123.456"
   To: ["222.234", "333.345"]
   Time: 76487293
+  Intent: "Peer"
   Body: { turn: 0
           spaces: 3
           letters: ["D", "K", "G"]
         }
 }
 ```
-`From` is the sending client's ID; `To` is the ID of all other clients who
-are currently connected in that game; `Time` is the server time the
-message was sent, which is an integer number of seconds after 1 January 1970;
-`Body` is the original message from the client.
+* `From` is the sending client's ID;
+* `To` is the ID of all other clients who are currently connected in that
+  game;
+* `Time` is the server time the message was sent, which is an integer
+  number of seconds after 1 January 1970;
+* `Intent` is what the envelope contains - in this case, a message from
+   a peer.
+* `Body` is the original message from the client.
 
+## Intents
+
+Most envelopes carry a message from another client. Its intent is `"Peer"`.
+There are other kinds of messages, too.
+
+A `"Welcome"` message is received by a client immediately after it
+connects. This enables the client to find out what its ID is.
+The `To` field is a singleton list with the client's own ID. There is
+no `Body`:
+
+```
+{ To: ["123.456"]
+  Time: 76487293
+  Intent: "Welcome"
+}
+```

@@ -1,4 +1,3 @@
-- Update README to talk about Welcome message.
 - Send a server message when a client leaves (intent "Leaver").
 - Send a server message when a client joins (intent "Joiner").
 - Set maximum message size.
@@ -41,3 +40,4 @@ DONE:
 - Add server time into server response; a "Time" field.
 - Describe message sending in README.
 - Send a server message when you join (intent "Welcome").
+- Update README to talk about Welcome message.
