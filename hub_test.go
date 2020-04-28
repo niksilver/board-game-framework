@@ -19,6 +19,7 @@ import (
 
 func TestHub_CanAddAndGetClients(t *testing.T) {
 	hub := NewHub()
+	hub.Start()
 
 	// A new Hub should have no clients
 	len0 := len(hub.Clients())
@@ -140,6 +141,10 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 }
 
 func TestHub_BouncesToOtherClients(t *testing.T) {
+	// Reset the global hub
+	hub = NewHub()
+	hub.Start()
+
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
@@ -246,6 +251,10 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 }
 
 func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
+	// Reset the global hub
+	hub = NewHub()
+	hub.Start()
+
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
@@ -354,6 +363,10 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 // A test for general connecting, disconnecting and message sending...
 // This just needs to run and not deadlock.
 func TestHub_GeneralChaos(t *testing.T) {
+	// Reset the global hub
+	hub = NewHub()
+	hub.Start()
+
 	rand.Seed(time.Now().UnixNano())
 	cMap := make(map[string]*websocket.Conn)
 	cSlice := make([]string, 0)
@@ -361,7 +374,10 @@ func TestHub_GeneralChaos(t *testing.T) {
 
 	// Start a web server
 	serv := newTestServer(echoHandler)
-	defer serv.Close()
+	defer func() {
+		tLog.Debug("defer: Closing server")
+		serv.Close()
+	}()
 
 	// A client should consume messages until done
 	consume := func(ws *websocket.Conn, id string) {
@@ -373,16 +389,19 @@ func TestHub_GeneralChaos(t *testing.T) {
 				break
 			}
 		}
+		tLog.Debug("consume: Closing client", "id", id)
 		ws.Close()
 	}
 
 	for i := 0; i < 1000; i++ {
+		tLog.Debug("Iteration", "i", i)
 		action := rand.Float32()
 		cCount := len(cSlice)
 		switch {
 		case i < 10 || action < 0.25:
 			// New client join
 			id := "CHAOS" + strconv.Itoa(i)
+			tLog.Debug("Adding client", "id", id)
 			ws, _, err := dial(serv, id)
 			defer ws.Close()
 			if err != nil {
@@ -396,6 +415,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 			idx := rand.Intn(len(cSlice))
 			id := cSlice[idx]
 			ws := cMap[id]
+			tLog.Debug("case: Closing client", "id", id)
 			ws.Close()
 			delete(cMap, id)
 			cSlice = append(cSlice[:idx], cSlice[idx+1:]...)
@@ -408,10 +428,145 @@ func TestHub_GeneralChaos(t *testing.T) {
 			err := ws.WriteMessage(websocket.BinaryMessage, []byte(msg))
 			if err != nil {
 				t.Fatalf(
-					"Couldn't write message, i=%d, error '%s'", i, err.Error())
+					"Couldn't write message, i=%d, id=%s error '%s'",
+					i, id, err.Error(),
+				)
 			}
 		default:
 			// Can't take any action
 		}
+	}
+}
+
+func TestHub_JoinerMessagesHappen(t *testing.T) {
+	// Reset the global hub
+	hub = NewHub()
+	hub.Start()
+
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	// Connect 3 clients in turn. Each existing client should
+	// receive a joiner message about each new client.
+
+	// Connect the first client
+	ws1, _, err := dial(serv, "JM1")
+	defer ws1.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitForClient(hub, "JM1")
+	if err := readWelcomeMessage(ws1); err != nil {
+		t.Fatalf("Welcome error for ws1: %s", err)
+	}
+
+	// Connect the second client
+	ws2, _, err := dial(serv, "JM2")
+	defer ws2.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitForClient(hub, "JM2")
+	if err := readWelcomeMessage(ws2); err != nil {
+		t.Fatalf("Welcome error for ws2: %s", err)
+	}
+
+	// Expect a joiner message to ws1
+	_, msg, err := ws1.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var env Envelope
+	err = json.Unmarshal(msg, &env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env.Intent != "Joiner" {
+		t.Fatalf("ws1 message isn't a joiner message. env is %#v", env)
+	}
+	if !reflect.DeepEqual(env.From, []string{"JM2"}) {
+		t.Fatalf("ws1 got From field not with JM2. env is %#v", env)
+	}
+	if !reflect.DeepEqual(env.To, []string{"JM1"}) {
+		t.Fatalf("ws1 To field didn't contain just its ID. env is %#v", env)
+	}
+	if env.Time < time.Now().Unix() {
+		t.Fatalf("ws1 got Time field in the past. env is %#v", env)
+	}
+	if env.Body != nil {
+		t.Fatalf("ws1 got unexpected Body field. env is %#v", env)
+	}
+
+	// Expect no message to ws2
+	err = expectNoMessage(ws2, 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Connect the third client
+	ws3, _, err := dial(serv, "JM3")
+	defer ws3.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	toOpt1 := []string{"JM1", "JM2"}
+	toOpt2 := []string{"JM2", "JM1"}
+
+	// Expect a joiner message to ws1 (and ws2)
+	_, msg, err = ws1.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = json.Unmarshal(msg, &env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env.Intent != "Joiner" {
+		t.Fatalf("ws1 message isn't a joiner message. env is %#v", env)
+	}
+	if !reflect.DeepEqual(env.From, []string{"JM3"}) {
+		t.Fatalf("ws1 got From field not with JM3. env is %#v", env)
+	}
+	if !reflect.DeepEqual(env.To, toOpt1) &&
+		!reflect.DeepEqual(env.To, toOpt2) {
+		t.Fatalf("ws1 To field didn't contain JM1 and JM2. env is %#v", env)
+	}
+	if env.Time < time.Now().Unix() {
+		t.Fatalf("ws1 got Time field in the past. env is %#v", env)
+	}
+	if env.Body != nil {
+		t.Fatalf("ws1 got unexpected Body field. env is %#v", env)
+	}
+
+	// Now check the joiner message to ws2
+	_, msg, err = ws2.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = json.Unmarshal(msg, &env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env.Intent != "Joiner" {
+		t.Fatalf("ws1 message isn't a joiner message. env is %#v", env)
+	}
+	if !reflect.DeepEqual(env.From, []string{"JM3"}) {
+		t.Fatalf("ws1 got From field not with JM3. env is %#v", env)
+	}
+	if !reflect.DeepEqual(env.To, toOpt1) &&
+		!reflect.DeepEqual(env.To, toOpt2) {
+		t.Fatalf("ws1 To field didn't contain JM1 and JM2. env is %#v", env)
+	}
+	if env.Time < time.Now().Unix() {
+		t.Fatalf("ws1 got Time field in the past. env is %#v", env)
+	}
+	if env.Body != nil {
+		t.Fatalf("ws1 got unexpected Body field. env is %#v", env)
+	}
+
+	// Expect no message to ws3
+	err = expectNoMessage(ws3, 500)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

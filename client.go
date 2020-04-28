@@ -193,6 +193,11 @@ intLoop:
 				)
 			}
 			if err := c.Websocket.WriteMessage(m.MType, envBytes); err != nil {
+				tLog.Debug(
+					"WriteMessage error",
+					"ID", c.ID,
+					"error", err,
+				)
 				c.log.Warn(
 					"WriteMessage error",
 					"ID", c.ID,
@@ -204,6 +209,11 @@ intLoop:
 			if err := c.Websocket.SetWriteDeadline(
 				time.Now().Add(writeTimeout),
 			); err != nil {
+				tLog.Debug(
+					"WriteMessage msg",
+					"ID", c.ID,
+					"error", err,
+				)
 				c.log.Warn(
 					"WriteMessage msg",
 					"ID", c.ID,
@@ -214,6 +224,11 @@ intLoop:
 			if err := c.Websocket.WriteMessage(
 				websocket.PingMessage, nil,
 			); err != nil {
+				tLog.Debug(
+					"WriteMessage ping",
+					"ID", c.ID,
+					"error", err,
+				)
 				c.log.Warn(
 					"WriteMessage ping",
 					"ID", c.ID,

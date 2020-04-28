@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -77,6 +78,18 @@ func cookieRequestHeader(name string, value string) http.Header {
 	return header
 }
 
+// waitForEmptyHub wait for up to 2 seconds for the hub to be emptied
+// or reports an test failure.
+func waitForEmptyHub(desc string, h *Hub, t *testing.T) {
+	deadline := time.Now().Add(2 * time.Second)
+	for h.NumClients() > 0 {
+		if time.Now().After(deadline) {
+			t.Errorf("%s: Timeout waiting for hub to empty", desc)
+			break
+		}
+	}
+}
+
 // waitForClientInHub waits for the named client to be added to the hub.
 func waitForClient(h *Hub, id string) {
 	for !h.HasClient(id) {
@@ -134,4 +147,23 @@ func readPeerMessage(ws *websocket.Conn, timeout int) (int, []byte, error) {
 			return mType, msg, err
 		}
 	}
+}
+
+// expectNoMessage expects no message within a timeout period (milliseconds).
+// If it gets one it returns an error.
+func expectNoMessage(ws *websocket.Conn, timeout int) error {
+	err := ws.SetReadDeadline(
+		time.Now().Add(time.Duration(timeout) * time.Millisecond),
+	)
+	if err != nil {
+		return err
+	}
+	_, msg, err := ws.ReadMessage()
+	if err != nil && strings.Contains(err.Error(), "timeout") {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("Got non-timeout error: %s", err.Error())
+	}
+	return fmt.Errorf("Wrongly got message '%s'", string(msg))
 }

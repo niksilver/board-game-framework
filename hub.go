@@ -7,6 +7,8 @@ package main
 import (
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 // Hub collects all related clients
@@ -15,6 +17,8 @@ type Hub struct {
 	clients map[*Client]bool
 	// Messages from clients that need to be bounced out.
 	Pending chan *Message
+	// Joiner clients, to trigger joiner messages
+	Joiners chan *Client
 	// The client will send true when it wants the hub to stop using it
 	stopReq chan *Client
 }
@@ -43,16 +47,27 @@ func NewHub() *Hub {
 	return &Hub{
 		clients: make(map[*Client]bool),
 		Pending: make(chan *Message),
+		Joiners: make(chan *Client),
 		stopReq: make(chan *Client),
 	}
 }
 
-// Add adds a new Client into the Hub.
+// Add adds a new Client into the Hub and triggers a joiner message.
 func (h *Hub) Add(c *Client) {
 	h.cMux.Lock()
 	defer h.cMux.Unlock()
 
 	h.clients[c] = true
+
+	tLog.Debug("Sending joiner message", "id", c.ID)
+	h.Joiners <- c
+	/*h.Pending <- &Message{
+		From: c,
+		Env: &Envelope{
+			Intent: "Joiner",
+		},
+	}*/
+	tLog.Debug("Sent joiner message", "id", c.ID)
 }
 
 // Remove removed a client from the hub.
@@ -72,6 +87,14 @@ func (h *Hub) HasClient(id string) bool {
 		}
 	}
 	return false
+}
+
+// NumClients returns the number of clients in the hub.
+func (h *Hub) NumClients() int {
+	h.cMux.RLock()
+	defer h.cMux.RUnlock()
+
+	return len(h.clients)
 }
 
 // Clients returns a new slice with all the Hub's Clients.
@@ -106,14 +129,42 @@ func (h *Hub) receiveInt() {
 			}
 			if len(h.Clients()) == 0 {
 			}
+		case c := <-h.Joiners:
+			toCls, toIDs := exclude(h.Clients(), c.ID)
+			msg := &Message{
+				From:  c,
+				MType: websocket.BinaryMessage,
+				Env: &Envelope{
+					From:   c.ID,
+					To:     toIDs,
+					Time:   time.Now().Unix(),
+					Intent: "Joiner",
+				},
+			}
+			for _, cl := range toCls {
+				tLog.Debug("receiveInt: Sending joiner msg", "rcptID", cl.ID)
+				cl.Pending <- msg
+				tLog.Debug("receiveInt: Sent joiner msg", "rcptID", cl.ID)
+			}
 		case msg := <-h.Pending:
+			switch {
+			/*case msg.Env != nil && msg.Env.Intent == "Joiner":
 			toCls, toIDs := exclude(h.Clients(), msg.From.ID)
 			msg.Env.From = msg.From.ID
 			msg.Env.To = toIDs
 			msg.Env.Time = time.Now().Unix()
-			msg.Env.Intent = "Peer"
 			for _, c := range toCls {
 				c.Pending <- msg
+			}*/
+			default:
+				toCls, toIDs := exclude(h.Clients(), msg.From.ID)
+				msg.Env.From = msg.From.ID
+				msg.Env.To = toIDs
+				msg.Env.Time = time.Now().Unix()
+				msg.Env.Intent = "Peer"
+				for _, c := range toCls {
+					c.Pending <- msg
+				}
 			}
 		}
 	}
