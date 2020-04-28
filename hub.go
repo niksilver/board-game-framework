@@ -60,7 +60,10 @@ func (h *Hub) Add(c *Client) {
 	h.clients[c] = true
 
 	tLog.Debug("Sending joiner message", "id", c.ID)
-	h.Joiners <- c
+	if c.Websocket != nil {
+		// Only do this if we've got a real client
+		h.Joiners <- c
+	}
 	/*h.Pending <- &Message{
 		From: c,
 		Env: &Envelope{

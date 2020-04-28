@@ -19,7 +19,6 @@ import (
 
 func TestHub_CanAddAndGetClients(t *testing.T) {
 	hub := NewHub()
-	hub.Start()
 
 	// A new Hub should have no clients
 	len0 := len(hub.Clients())
@@ -173,15 +172,24 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	waitForClient(hub, "CL2")
 	waitForClient(hub, "CL3")
 
-	// Swallow all the welcome messages
-	if err := readWelcomeMessage(ws1); err != nil {
+	// Swallow all the welcome and joiner messages
+	if err := readIntentMessage(ws1, "Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws1: %s", err)
 	}
-	if err := readWelcomeMessage(ws2); err != nil {
+	if err := readIntentMessage(ws2, "Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws2: %s", err)
 	}
-	if err := readWelcomeMessage(ws3); err != nil {
+	if err := readIntentMessage(ws3, "Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws3: %s", err)
+	}
+	if err := readIntentMessage(ws1, "Joiner"); err != nil {
+		t.Fatalf("Joiner error for ws1 (1): %s", err)
+	}
+	if err := readIntentMessage(ws1, "Joiner"); err != nil {
+		t.Fatalf("Joiner error for ws1 (2): %s", err)
+	}
+	if err := readIntentMessage(ws2, "Joiner"); err != nil {
+		t.Fatalf("Joiner error for ws2: %s", err)
 	}
 
 	// Create 10 messages to send
@@ -287,14 +295,23 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	waitForClient(hub, "EN3")
 
 	// Swallow all the welcome messages
-	if err := readWelcomeMessage(ws1); err != nil {
+	if err := readIntentMessage(ws1, "Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws1: %s", err)
 	}
-	if err := readWelcomeMessage(ws2); err != nil {
+	if err := readIntentMessage(ws2, "Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws2: %s", err)
 	}
-	if err := readWelcomeMessage(ws3); err != nil {
+	if err := readIntentMessage(ws3, "Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws3: %s", err)
+	}
+	if err := readIntentMessage(ws1, "Joiner"); err != nil {
+		t.Fatalf("Joiner error for ws1 (1): %s", err)
+	}
+	if err := readIntentMessage(ws1, "Joiner"); err != nil {
+		t.Fatalf("Joiner error for ws1 (2): %s", err)
+	}
+	if err := readIntentMessage(ws2, "Joiner"); err != nil {
+		t.Fatalf("Joiner error for ws2: %s", err)
 	}
 
 	// Send a message, then pick up the results from one of the clients
@@ -456,7 +473,7 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitForClient(hub, "JM1")
-	if err := readWelcomeMessage(ws1); err != nil {
+	if err := readIntentMessage(ws1, "Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws1: %s", err)
 	}
 
@@ -467,7 +484,7 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitForClient(hub, "JM2")
-	if err := readWelcomeMessage(ws2); err != nil {
+	if err := readIntentMessage(ws2, "Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws2: %s", err)
 	}
 

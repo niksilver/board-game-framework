@@ -180,7 +180,7 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 	// Wait for the client to have connected, and swallow the "Welcome"
 	// message
 	waitForClient(hub, "pingtester")
-	if err := readWelcomeMessage(ws); err != nil {
+	if err := readIntentMessage(ws, "Welcome"); err != nil {
 		t.Fatal(err)
 	}
 

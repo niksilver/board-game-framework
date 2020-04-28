@@ -97,10 +97,10 @@ func waitForClient(h *Hub, id string) {
 	}
 }
 
-// readWelcomeMessage expects the next message to be a "Welcome" message.
+// readIntentMessage expects the next message to be of the given intent.
 // It returns an error if not, or if it gets an error.
 // It will only wait 500ms to read any message.
-func readWelcomeMessage(ws *websocket.Conn) error {
+func readIntentMessage(ws *websocket.Conn, intent string) error {
 	var env Envelope
 	err := ws.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
 	if err != nil {
@@ -114,9 +114,9 @@ func readWelcomeMessage(ws *websocket.Conn) error {
 	if err != nil {
 		return err
 	}
-	if env.Intent != "Welcome" {
+	if env.Intent != intent {
 		return fmt.Errorf(
-			"Expected intent 'Welcome' but got '%s'", env.Intent,
+			"Expected intent '%s' but got '%s'", intent, env.Intent,
 		)
 	}
 	return nil
