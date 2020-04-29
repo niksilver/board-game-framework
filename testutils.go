@@ -18,6 +18,19 @@ import (
 	"github.com/niksilver/board-game-framework/log"
 )
 
+// tConn is a websocket.Conn whose ReadMessage can time out safely
+type tConn struct {
+	ws      *websocket.Conn
+	readRes chan readRes
+}
+
+// A combined ReadMessage result that can be put into a channel.
+type readRes struct {
+	mType int
+	msg   []byte
+	err   error
+}
+
 // tLog is a logger for our tests only.
 //
 // Use it like this:
@@ -97,20 +110,64 @@ func waitForClient(h *Hub, id string) {
 	}
 }
 
-// readIntentMessage expects the next message to be of the given intent.
+/*func setNoReadDeadline(ws *websocket.Conn) {
+	err := ws.SetReadDeadline(time.Time{})
+	if err != nil {
+		panic(err.Error())
+	}
+}*/
+
+// newTConn creates a new timeoutable connection from the given one.
+func newTConn(ws *websocket.Conn) *tConn {
+	return &tConn{
+		ws: ws,
+		// If this is not nil it means a readMessage call is in flight
+		readRes: nil,
+	}
+}
+
+// readMessage is like websocket.ReadMessage, but it can time out safely
+// using the timeout given, in milliseconds. It returns the result of the
+// read and false (no timeout), or a zero value and true (timed out).
+// The result of the read may still include a read error.
+// If using a `tConn` to read and if it times out, then the next
+// read should also be using the `tConn`, not the usual `websocket.Conn`,
+// because behind the scenes the read operation will still be in progress.
+func (c *tConn) readMessage(timeout int) (readRes, bool) {
+	if c.readRes == nil {
+		// We're not already running a read, so let's start one
+		c.readRes = make(chan readRes)
+		go func() {
+			mType, msg, err := c.ws.ReadMessage()
+			c.readRes <- readRes{mType, msg, err}
+		}()
+	}
+	// Now wait for a result or a timeout
+	timeoutC := time.After(time.Duration(timeout) * time.Millisecond)
+	select {
+	case rr := <-c.readRes:
+		// We've got a result from the readMessage operation
+		c.readRes = nil
+		return rr, false
+	case <-timeoutC:
+		// We timed out
+		return readRes{}, true
+	}
+}
+
+// swallowIntentMessage expects the next message to be of the given intent.
 // It returns an error if not, or if it gets an error.
-// It will only wait 500ms to read any message.
-func readIntentMessage(ws *websocket.Conn, intent string) error {
+// It will only wait 500 ms to read any message.
+func (ws *tConn) swallowIntentMessage(intent string) error {
 	var env Envelope
-	err := ws.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
-	if err != nil {
-		return err
+	rr, timedOut := ws.readMessage(500)
+	if timedOut {
+		return fmt.Errorf("readMessage timed out")
 	}
-	_, msg, err := ws.ReadMessage()
-	if err != nil {
-		return err
+	if rr.err != nil {
+		return rr.err
 	}
-	err = json.Unmarshal(msg, &env)
+	err := json.Unmarshal(rr.msg, &env)
 	if err != nil {
 		return err
 	}
@@ -126,44 +183,35 @@ func readIntentMessage(ws *websocket.Conn, intent string) error {
 // reads a message whose intent is not "Peer" it will try again. If it
 // gets an error, it will return that. It will only wait
 //`timeout` milliseconds to read any message.
-func readPeerMessage(ws *websocket.Conn, timeout int) (int, []byte, error) {
+func (ws *tConn) readPeerMessage(timeout int) (int, []byte, error) {
 	var env Envelope
 	for {
-		err := ws.SetReadDeadline(
-			time.Now().Add(time.Duration(timeout) * time.Millisecond),
-		)
-		if err != nil {
-			return 0, []byte{}, err
+		rr, timedOut := ws.readMessage(timeout)
+		if timedOut {
+			return 0, []byte{}, fmt.Errorf("readMessage timed out")
 		}
-		mType, msg, err := ws.ReadMessage()
-		if err != nil {
-			return mType, msg, err
+		if rr.err != nil {
+			return rr.mType, rr.msg, rr.err
 		}
-		err = json.Unmarshal(msg, &env)
+		err := json.Unmarshal(rr.msg, &env)
 		if err != nil {
 			return 0, []byte{}, err
 		}
 		if env.Intent == "Peer" {
-			return mType, msg, err
+			return rr.mType, rr.msg, nil
 		}
 	}
 }
 
 // expectNoMessage expects no message within a timeout period (milliseconds).
 // If it gets one it returns an error.
-func expectNoMessage(ws *websocket.Conn, timeout int) error {
-	err := ws.SetReadDeadline(
-		time.Now().Add(time.Duration(timeout) * time.Millisecond),
-	)
-	if err != nil {
-		return err
-	}
-	_, msg, err := ws.ReadMessage()
-	if err != nil && strings.Contains(err.Error(), "timeout") {
+func (ws *tConn) expectNoMessage(timeout int) error {
+	rr, timedOut := ws.readMessage(timeout)
+	if timedOut {
 		return nil
 	}
-	if err != nil {
-		return fmt.Errorf("Got non-timeout error: %s", err.Error())
+	if rr.err != nil {
+		return fmt.Errorf("Got non-timeout error: %s", rr.err.Error())
 	}
-	return fmt.Errorf("Wrongly got message '%s'", string(msg))
+	return fmt.Errorf("Wrongly got message '%s'", string(rr.msg))
 }

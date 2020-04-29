@@ -119,6 +119,7 @@ func TestClient_SendsPings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	tws := newTConn(ws)
 
 	// Signal pings
 	pingC := make(chan bool)
@@ -153,7 +154,7 @@ func TestClient_SendsPings(t *testing.T) {
 
 	// Read the connection, which will listen for pings
 	// It will exit with a close error when the above code times out
-	_, _, _ = readPeerMessage(ws, 10_000)
+	tws.readPeerMessage(10_000)
 
 	if pings < 3 {
 		t.Errorf("Expected at least 3 pings but got %d", pings)
@@ -176,38 +177,23 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	tws := newTConn(ws)
 
 	// Wait for the client to have connected, and swallow the "Welcome"
 	// message
 	waitForClient(hub, "pingtester")
-	if err := readIntentMessage(ws, "Welcome"); err != nil {
+	if err := tws.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatal(err)
 	}
 
-	// Set a timer for 3 seconds
-
-	// Read the connection. We will stop if we get (i) peer error,
-	// (ii) some data, (iv) we wait too long..
-	peerErrorC := make(chan bool)
-	peerDataC := make(chan bool)
-	ourTimeout := time.NewTimer(3 * time.Second)
-
-	go func() {
-		_, _, err := ws.ReadMessage()
-		if err == nil {
-			peerDataC <- true
-		} else {
-			peerErrorC <- true
-		}
-	}()
-
-	select {
-	case <-peerErrorC:
-		// Good
-	case <-peerDataC:
+	// Within 3 seconds we should get no message, and the peer should
+	// close. It shouldn't time out.
+	rr, timedOut := tws.readMessage(3000)
+	if timedOut {
+		t.Errorf("Too long waiting for peer to close")
+	}
+	if rr.err == nil {
 		t.Errorf("Wrongly got data from peer")
-	case <-ourTimeout.C:
-		t.Errorf("Too long waiting for peer to time out")
 	}
 }
 
