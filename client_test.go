@@ -11,7 +11,7 @@ import (
 )
 
 func TestClient_CreatesNewID(t *testing.T) {
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	ws, resp, err := dial(serv, "")
@@ -28,7 +28,7 @@ func TestClient_CreatesNewID(t *testing.T) {
 }
 
 func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	ws, resp, err := dial(serv, "")
@@ -48,7 +48,7 @@ func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
 }
 
 func TestClient_ReusesOldId(t *testing.T) {
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	initialClientID := "existing_value"
@@ -71,7 +71,7 @@ func TestClient_ReusesOldId(t *testing.T) {
 func TestClient_NewIDsAreDifferent(t *testing.T) {
 	usedIDs := make(map[string]bool)
 
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	for i := 0; i < 100; i++ {
@@ -111,7 +111,7 @@ func TestClient_SendsPings(t *testing.T) {
 	pingFreq = 500 * time.Millisecond
 	pings := 0
 
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer func() {
 		pingFreq = oldPingFreq
 		serv.Close()
@@ -169,11 +169,11 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 	hub = NewHub()
 	hub.Start()
 
-	// Give the echoHandler a very short pong timeout (just for this test)
+	// Give the bounceHandler a very short pong timeout (just for this test)
 	oldPongTimeout := pongTimeout
 	pongTimeout = 500 * time.Millisecond
 
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer func() {
 		pongTimeout = oldPongTimeout
 		serv.Close()
@@ -205,7 +205,7 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 }
 
 func TestClient_SendsWelcome(t *testing.T) {
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	// Connect to the server
@@ -249,7 +249,7 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 	hub = NewHub()
 	hub.Start()
 
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	// Connect 3 clients in turn. Each existing client should
@@ -328,7 +328,7 @@ func TestClient_NoDuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 	hub = NewHub()
 	hub.Start()
 
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	// Connect 3 clients in turn. Each existing client should

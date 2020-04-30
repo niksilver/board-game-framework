@@ -26,7 +26,7 @@ func main() {
 	// Set the logger -only for when the application runs, as this is in main
 	log.Log.SetHandler(log15.StdoutHandler)
 
-	http.HandleFunc("/", echoHandler)
+	http.HandleFunc("/", bounceHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -41,8 +41,8 @@ func main() {
 	}
 }
 
-// echoHandler sets up a websocket to echo whatever it receives
-func echoHandler(w http.ResponseWriter, r *http.Request) {
+// bounceHandler sets up a websocket to echo whatever it receives
+func bounceHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return

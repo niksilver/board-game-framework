@@ -1,4 +1,3 @@
-- Rename echoHandler to bounceHander.
 - Send a server message when a client leaves (intent "Leaver").
 - Set maximum message size.
   - Quietly drop (for now) a received message that's too large.
@@ -45,4 +44,5 @@ DONE:
 - Make sure "From" is a list.
 - Set the welcome "From" field to all other clients, so the new
   client knows all the peers.
-- Duplicate clients IDs will show in the From and To fields.
+- Duplicate clients IDs will shown in the From and To fields.
+- Rename echoHandler to bounceHander.

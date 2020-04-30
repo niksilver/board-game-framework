@@ -144,7 +144,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	hub = NewHub()
 	hub.Start()
 
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	// Connect 3 clients
@@ -267,7 +267,7 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	hub = NewHub()
 	hub.Start()
 
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	// Connect 3 clients.
@@ -397,7 +397,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 	consumed := 0
 
 	// Start a web server
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	// A client should consume messages until done
@@ -460,7 +460,7 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	hub = NewHub()
 	hub.Start()
 
-	serv := newTestServer(echoHandler)
+	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	// Connect 3 clients in turn. Each existing client should
