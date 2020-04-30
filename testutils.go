@@ -158,6 +158,9 @@ func (c *tConn) readMessage(timeout int) (readRes, bool) {
 // swallowIntentMessage expects the next message to be of the given intent.
 // It returns an error if not, or if it gets an error.
 // It will only wait 500 ms to read any message.
+// If there's an error, then future reads must be from the `tConn`,
+// not the `websocket.Conn`, because a "timed out" error will mean there
+// is still a read operation pending, and the `tConn` can handle that.
 func (ws *tConn) swallowIntentMessage(intent string) error {
 	var env Envelope
 	rr, timedOut := ws.readMessage(500)
@@ -183,6 +186,9 @@ func (ws *tConn) swallowIntentMessage(intent string) error {
 // reads a message whose intent is not "Peer" it will try again. If it
 // gets an error, it will return that. It will only wait
 //`timeout` milliseconds to read any message.
+// If there's an error, then future reads must be from the `tConn`,
+// not the `websocket.Conn`, because a "timed out" error will mean there
+// is still a read operation pending, and the `tConn` can handle that.
 func (ws *tConn) readPeerMessage(timeout int) (int, []byte, error) {
 	var env Envelope
 	for {
@@ -205,6 +211,9 @@ func (ws *tConn) readPeerMessage(timeout int) (int, []byte, error) {
 
 // expectNoMessage expects no message within a timeout period (milliseconds).
 // If it gets one it returns an error.
+// If this function returns nil, then future reads must be from the `tConn`,
+// not the `websocket.Conn`, because that means the read timed out, so there
+// is still a read operation pending, and the `tConn` can handle that.
 func (ws *tConn) expectNoMessage(timeout int) error {
 	rr, timedOut := ws.readMessage(timeout)
 	if timedOut {

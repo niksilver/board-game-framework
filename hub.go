@@ -59,7 +59,6 @@ func (h *Hub) Add(c *Client) {
 
 	h.clients[c] = true
 
-	tLog.Debug("Sending joiner message", "id", c.ID)
 	if c.Websocket != nil {
 		// Only do this if we've got a real client
 		h.Joiners <- c
@@ -70,7 +69,6 @@ func (h *Hub) Add(c *Client) {
 			Intent: "Joiner",
 		},
 	}*/
-	tLog.Debug("Sent joiner message", "id", c.ID)
 }
 
 // Remove removed a client from the hub.

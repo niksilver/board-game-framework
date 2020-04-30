@@ -139,7 +139,7 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 	}()
 }
 
-/*func TestHub_BouncesToOtherClients(t *testing.T) {
+func TestHub_BouncesToOtherClients(t *testing.T) {
 	// Reset the global hub
 	hub = NewHub()
 	hub.Start()
@@ -162,7 +162,8 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := swallowIntentMessage(ws1, "Welcome"); err != nil {
+	tws1 := newTConn(ws1)
+	if err := tws1.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws1: %s", err)
 	}
 
@@ -173,10 +174,11 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := swallowIntentMessage(ws2, "Welcome"); err != nil {
+	tws2 := newTConn(ws2)
+	if err := tws2.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws2: %s", err)
 	}
-	if err := swallowIntentMessage(ws1, "Joiner"); err != nil {
+	if err := tws1.swallowIntentMessage("Joiner"); err != nil {
 		t.Fatalf("Joiner error for ws1 (1): %s", err)
 	}
 
@@ -187,13 +189,14 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := swallowIntentMessage(ws3, "Welcome"); err != nil {
+	tws3 := newTConn(ws3)
+	if err := tws3.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws3: %s", err)
 	}
-	if err := swallowIntentMessage(ws1, "Joiner"); err != nil {
+	if err := tws1.swallowIntentMessage("Joiner"); err != nil {
 		t.Fatalf("Joiner error for ws1 (2): %s", err)
 	}
-	if err := swallowIntentMessage(ws2, "Joiner"); err != nil {
+	if err := tws2.swallowIntentMessage("Joiner"); err != nil {
 		t.Fatalf("Joiner error for ws2: %s", err)
 	}
 
@@ -215,15 +218,17 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		// Get a message from client 2
-		ws2.SetReadDeadline(time.Now().Add(time.Second))
-		_, rcvMsg, rcvErr := ws2.ReadMessage()
-		if rcvErr != nil {
-			t.Fatalf("Read error, ws2, i=%d: %s", i, rcvErr.Error())
+		rr, timedOut := tws2.readMessage(1000)
+		if timedOut {
+			t.Fatalf("Timed out reading ws2, i=%d", i)
+		}
+		if rr.err != nil {
+			t.Fatalf("Read error, ws2, i=%d: %s", i, rr.err.Error())
 		}
 		env := Envelope{}
-		err := json.Unmarshal(rcvMsg, &env)
+		err := json.Unmarshal(rr.msg, &env)
 		if err != nil {
-			t.Fatalf("Could not unmarshal '%s': %s", rcvMsg, err.Error())
+			t.Fatalf("Could not unmarshal '%s': %s", rr.msg, err.Error())
 		}
 		if string(env.Body) != string(msgs[i]) {
 			t.Errorf("ws2, i=%d, received '%s' but expected '%s'",
@@ -232,15 +237,17 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 		}
 
 		// Get a message from client 3
-		ws3.SetReadDeadline(time.Now().Add(time.Second))
-		_, rcvMsg, rcvErr = ws3.ReadMessage()
-		if rcvErr != nil {
-			t.Fatalf("Read error, ws3, i=%d: %s", i, rcvErr.Error())
+		rr, timedOut = tws3.readMessage(1000)
+		if timedOut {
+			t.Fatalf("Timed out reading ws3, i=%d", i)
+		}
+		if rr.err != nil {
+			t.Fatalf("Read error, ws3, i=%d: %s", i, rr.err.Error())
 		}
 		env = Envelope{}
-		err = json.Unmarshal(rcvMsg, &env)
+		err = json.Unmarshal(rr.msg, &env)
 		if err != nil {
-			t.Fatalf("Could not unmarshal '%s': %s", rcvMsg, err.Error())
+			t.Fatalf("Could not unmarshal '%s': %s", rr.msg, err.Error())
 		}
 		if string(env.Body) != string(msgs[i]) {
 			t.Errorf("ws3, i=%d, received '%s' but expected '%s'",
@@ -251,19 +258,13 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 
 	// We expect no messages from client 1. It should timeout while waiting
 
-	ws1.SetReadDeadline(time.Now().Add(time.Second))
-	_, rcvMsg, rcvErr := ws1.ReadMessage()
-	switch {
-	case rcvErr == nil:
-		t.Fatalf("Should not have received message, got '%s'", rcvMsg)
-	case strings.Contains(rcvErr.Error(), "timeout"):
-		// This is what we want
-	default:
-		t.Fatal("Got ws1 read error, but it wasn't a timeout: ", rcvErr)
+	err = tws1.expectNoMessage(1000)
+	if err != nil {
+		t.Fatalf("Got something while expecting no message: %s", err.Error())
 	}
-}*/
+}
 
-/*func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
+func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	// Reset the global hub
 	hub = NewHub()
 	hub.Start()
@@ -286,7 +287,8 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := swallowIntentMessage(ws1, "Welcome"); err != nil {
+	tws1 := newTConn(ws1)
+	if err := tws1.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws1: %s", err)
 	}
 
@@ -297,10 +299,11 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := swallowIntentMessage(ws2, "Welcome"); err != nil {
+	tws2 := newTConn(ws2)
+	if err := tws2.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws2: %s", err)
 	}
-	if err := swallowIntentMessage(ws1, "Joiner"); err != nil {
+	if err := tws1.swallowIntentMessage("Joiner"); err != nil {
 		t.Fatalf("Joiner error for ws1 (1): %s", err)
 	}
 
@@ -311,13 +314,14 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := swallowIntentMessage(ws3, "Welcome"); err != nil {
+	tws3 := newTConn(ws3)
+	if err := tws3.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws3: %s", err)
 	}
-	if err := swallowIntentMessage(ws1, "Joiner"); err != nil {
+	if err := tws1.swallowIntentMessage("Joiner"); err != nil {
 		t.Fatalf("Joiner error for ws1 (2): %s", err)
 	}
-	if err := swallowIntentMessage(ws2, "Joiner"); err != nil {
+	if err := tws2.swallowIntentMessage("Joiner"); err != nil {
 		t.Fatalf("Joiner error for ws2: %s", err)
 	}
 
@@ -330,17 +334,20 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 		t.Fatalf("Error writing message: %s", err.Error())
 	}
 
-	_, msg, err := ws2.ReadMessage()
-	if err != nil {
-		t.Fatalf("Error reading message: %s", err.Error())
+	rr, timedOut := tws2.readMessage(500)
+	if timedOut {
+		t.Fatal("Timed out trying to read message")
+	}
+	if rr.err != nil {
+		t.Fatalf("Error reading message: %s", rr.err.Error())
 	}
 
 	env := Envelope{}
-	err = json.Unmarshal(msg, &env)
+	err = json.Unmarshal(rr.msg, &env)
 	if err != nil {
 		t.Fatalf(
 			"Couldn't unmarshal message '%s'. Error %s",
-			msg, err.Error(),
+			rr.msg, err.Error(),
 		)
 	}
 
@@ -382,7 +389,7 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 	if string(env.Intent) != "Peer" {
 		t.Errorf("Envelope intent not as expected, got '%s', expected 'Peer", env.Intent)
 	}
-}*/
+}
 
 // A test for general connecting, disconnecting and message sending...
 // This just needs to run and not deadlock.
@@ -398,10 +405,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 
 	// Start a web server
 	serv := newTestServer(echoHandler)
-	defer func() {
-		tLog.Debug("defer: Closing server")
-		serv.Close()
-	}()
+	defer serv.Close()
 
 	// A client should consume messages until done
 	consume := func(ws *websocket.Conn, id string) {
@@ -413,7 +417,6 @@ func TestHub_GeneralChaos(t *testing.T) {
 				break
 			}
 		}
-		tLog.Debug("consume: Closing client", "id", id)
 		ws.Close()
 	}
 
