@@ -127,14 +127,11 @@ func (c *Client) Start() {
 
 	// Add ourselves to the hub, send the client a welcome message,
 	// and start processing messages from inside.
-	// Note that if another client with the same ID has already joined
-	// (e.g. by the user opening a second browser window) that ID
-	// will not appear in the From list.
 	go c.receiveInt()
 	c.Pending <- &Message{
 		MType: websocket.BinaryMessage,
 		Env: &Envelope{
-			From:   excludeID(c.Hub.ClientIDs(), c.ID),
+			From:   ids(c.Hub.Clients()),
 			To:     []string{c.ID},
 			Time:   time.Now().Unix(),
 			Intent: "Welcome",
@@ -142,17 +139,6 @@ func (c *Client) Start() {
 	c.Hub.Add(c)
 	// Start processing messages from the outside.
 	go c.receiveExt()
-}
-
-// excludeID returns the original slice of IDs, with the given one removed.
-func excludeID(ids []string, ex string) []string {
-	out := make([]string, 0)
-	for _, id := range ids {
-		if id != ex {
-			out = append(out, id)
-		}
-	}
-	return out
 }
 
 // receiveExt is a goroutine that acts on external messages coming in.

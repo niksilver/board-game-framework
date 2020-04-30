@@ -45,5 +45,4 @@ DONE:
 - Make sure "From" is a list.
 - Set the welcome "From" field to all other clients, so the new
   client knows all the peers.
-- Prove the From field contains only other IDs, even when a second
-  client with the same ID has joined.
+- Duplicate clients IDs will show in the From and To fields.

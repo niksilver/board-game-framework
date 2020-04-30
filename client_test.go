@@ -322,7 +322,7 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 // the same ID in the game. This will happen if the same user opens another
 // browser to the same game, and hence reuses the ID cookie.
 // In this case the From and To fields in both welcome and joiner envelopes
-// should together include only unique IDs - no duplicates.
+// will contain duplicates.
 func TestClient_NoDuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 	// Reset the global hub
 	hub = NewHub()
@@ -370,7 +370,7 @@ func TestClient_NoDuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 	tws2b := newTConn(ws2b)
 
 	// The first client should get a joiner message from the second
-	// client (again), and there should be no dupes between From and To
+	// client (again). It should see the ID in the To and From fields.
 	rr, timedOut := tws1.readMessage(500)
 	if timedOut {
 		t.Fatal("Timed out reading message from ws1")
@@ -391,25 +391,55 @@ func TestClient_NoDuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 	}
 	if !sameElements(env.From, []string{"DUP2"}) {
 		t.Errorf(
-			"ws1: Message From field was %v but expected it to be [DUP2]",
+			"ws1: Message From field was %v but expected [DUP2]",
 			env.From,
 		)
 	}
-	if !sameElements(env.To, []string{"DUP1"}) {
+	if !sameElements(env.To, []string{"DUP1", "DUP2"}) {
 		t.Errorf(
-			"ws1: Message To field was %v but expected it to be [DUP1]",
+			"ws1: Message To field was %v but expected [DUP1, DUP2]",
 			env.From,
 		)
 	}
 
-	// We've not decided what the second client should receive, so
-	// we won't test for it
+	// The second client should get a joiner message from the second
+	// client. It should see its ID in the To and From fields.
+	rr, timedOut = tws2a.readMessage(500)
+	if timedOut {
+		t.Fatal("Timed out reading message from ws2")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Unwrap the message and check it
+	env = Envelope{}
+	err = json.Unmarshal(rr.msg, &env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env.Intent != "Joiner" {
+		t.Errorf(
+			"ws2: Message intent was '%s' but expected 'Joiner'", env.Intent,
+		)
+	}
+	if !sameElements(env.From, []string{"DUP2"}) {
+		t.Errorf(
+			"ws2: Message From field was %v but expected [DUP2]",
+			env.From,
+		)
+	}
+	if !sameElements(env.To, []string{"DUP1", "DUP2"}) {
+		t.Errorf(
+			"ws2: Message To field was %v but expected [DUP1, DUP2]",
+			env.From,
+		)
+	}
 
-	// The third client should get a welcome message and there
-	// should be no dupes between the From and To fields.
+	// The third client should get a welcome message.
+	// It should see its ID in the To and From fields.
 	rr, timedOut = tws2b.readMessage(500)
 	if timedOut {
-		t.Fatal("Timed out reading message from ws2b")
+		t.Fatal("Timed out reading message from ws2")
 	}
 	if err != nil {
 		t.Fatal(err)
@@ -422,18 +452,18 @@ func TestClient_NoDuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 	}
 	if env.Intent != "Welcome" {
 		t.Errorf(
-			"ws2b: Message intent was '%s' but expected 'Welcome'", env.Intent,
+			"ws3: Message intent was '%s' but expected 'Welcome'", env.Intent,
 		)
 	}
-	if !sameElements(env.From, []string{"DUP1"}) {
+	if !sameElements(env.From, []string{"DUP1", "DUP2"}) {
 		t.Errorf(
-			"ws2b: Message From field was %v but expected it to be [DUP1]",
+			"ws3: Message From field was %v but expected [DUP1,DUP2]",
 			env.From,
 		)
 	}
 	if !sameElements(env.To, []string{"DUP2"}) {
 		t.Errorf(
-			"ws2b: Message To field was %v but expected it to be [DUP2]",
+			"ws3: Message To field was %v but expected [DUP2]",
 			env.From,
 		)
 	}

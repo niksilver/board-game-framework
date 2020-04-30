@@ -140,13 +140,13 @@ func (h *Hub) receiveInt() {
 				// No clients left - what to do?
 			}
 		case c := <-h.Joiners:
-			toCls, toIDs := exclude(h.Clients(), c.ID)
+			toCls := exclude(h.Clients(), c)
 			msg := &Message{
 				From:  c,
 				MType: websocket.BinaryMessage,
 				Env: &Envelope{
 					From:   []string{c.ID},
-					To:     toIDs,
+					To:     ids(toCls),
 					Time:   time.Now().Unix(),
 					Intent: "Joiner",
 				},
@@ -155,9 +155,9 @@ func (h *Hub) receiveInt() {
 				cl.Pending <- msg
 			}
 		case msg := <-h.Pending:
-			toCls, toIDs := exclude(h.Clients(), msg.From.ID)
+			toCls := exclude(h.Clients(), msg.From)
 			msg.Env.From = []string{msg.From.ID}
-			msg.Env.To = toIDs
+			msg.Env.To = ids(toCls)
 			msg.Env.Time = time.Now().Unix()
 			msg.Env.Intent = "Peer"
 			for _, c := range toCls {
@@ -168,15 +168,22 @@ func (h *Hub) receiveInt() {
 }
 
 // exclude finds all clients from a list which don't match the given one.
-// It returns a list of clients and the equivalent list of IDs.
-// Matching is done on IDs.
-func exclude(cs []*Client, id string) ([]*Client, []string) {
-	cPtr, cStr := make([]*Client, 0), make([]string, 0)
+// Matching is done on pointers.
+func exclude(cs []*Client, cx *Client) []*Client {
+	cOut := make([]*Client, 0)
 	for _, c := range cs {
-		if c.ID != id {
-			cPtr = append(cPtr, c)
-			cStr = append(cStr, c.ID)
+		if c != cx {
+			cOut = append(cOut, c)
 		}
 	}
-	return cPtr, cStr
+	return cOut
+}
+
+// ids returns just the IDs of the clients
+func ids(cs []*Client) []string {
+	out := make([]string, len(cs))
+	for i, c := range cs {
+		out[i] = c.ID
+	}
+	return out
 }

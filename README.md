@@ -106,14 +106,17 @@ clients receive:
 }
 ```
 
-Note that it's possible for a two clients to join a game with the same ID.
+## Duplicate IDs
+
+It's possible for a two clients to join a game with the same ID.
 This will happen if a user opens another browser window and connects
 to the same game, because that second browser window will reuse the ID
-cookie. In these cases the `From` and `To` fields in the "welcome" and
-"joiner" envelopes can still be appended to create a complete list of
-clients, and no client ID will be duplicated.
+cookie. If this happens, the `From` and `To` fields in envelopes
+will show duplicate IDs: there is one ID for each client, and if
+two clients have the same ID, that will be listed. The game
+logic will have to decide how it will deal with this.
 
-(To allow a user to connect multiple times and get different IDs they
-should use private browser windows for the second and subsequent
-connections.)
+If a user wants to connect multiple times using different IDs
+(e.g. to play as multiple players) then they should use a
+private browser window for the second and subsequent connections.
 
