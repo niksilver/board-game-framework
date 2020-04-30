@@ -63,12 +63,6 @@ func (h *Hub) Add(c *Client) {
 		// Only do this if we've got a real client
 		h.Joiners <- c
 	}
-	/*h.Pending <- &Message{
-		From: c,
-		Env: &Envelope{
-			Intent: "Joiner",
-		},
-	}*/
 }
 
 // Remove removed a client from the hub.
@@ -129,6 +123,7 @@ func (h *Hub) receiveInt() {
 				close(c.Pending)
 			}
 			if len(h.Clients()) == 0 {
+				// No clients left - what to do?
 			}
 		case c := <-h.Joiners:
 			toCls, toIDs := exclude(h.Clients(), c.ID)
@@ -146,24 +141,13 @@ func (h *Hub) receiveInt() {
 				cl.Pending <- msg
 			}
 		case msg := <-h.Pending:
-			switch {
-			/*case msg.Env != nil && msg.Env.Intent == "Joiner":
 			toCls, toIDs := exclude(h.Clients(), msg.From.ID)
 			msg.Env.From = msg.From.ID
 			msg.Env.To = toIDs
 			msg.Env.Time = time.Now().Unix()
+			msg.Env.Intent = "Peer"
 			for _, c := range toCls {
 				c.Pending <- msg
-			}*/
-			default:
-				toCls, toIDs := exclude(h.Clients(), msg.From.ID)
-				msg.Env.From = msg.From.ID
-				msg.Env.To = toIDs
-				msg.Env.Time = time.Now().Unix()
-				msg.Env.Intent = "Peer"
-				for _, c := range toCls {
-					c.Pending <- msg
-				}
 			}
 		}
 	}
