@@ -12,6 +12,7 @@ import (
 )
 
 func TestClient_CreatesNewID(t *testing.T) {
+	tLog.Debug("TestClient_CreatesNewID, entering")
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
@@ -29,6 +30,7 @@ func TestClient_CreatesNewID(t *testing.T) {
 }
 
 func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
+	tLog.Debug("TestClient_ClientIDCookieIsPersistent, entering")
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
@@ -49,6 +51,7 @@ func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
 }
 
 func TestClient_ReusesOldId(t *testing.T) {
+	tLog.Debug("TestClient_ReusesOldId, entering")
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
@@ -70,6 +73,8 @@ func TestClient_ReusesOldId(t *testing.T) {
 }
 
 func TestClient_NewIDsAreDifferent(t *testing.T) {
+	tLog.Debug("TestClient_NewIDsAreDifferent, entering")
+
 	usedIDs := make(map[string]bool)
 
 	serv := newTestServer(echoHandler)
@@ -102,6 +107,11 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 }
 
 func TestClient_SendsPings(t *testing.T) {
+	tLog.Debug("TestClient_SendsPings, entering")
+	// Reset the global hub
+	hub = NewHub()
+	hub.Start()
+
 	// We'll send pings every 500ms, and wait for 3 seconds to receive
 	// at least three of them.
 	oldPingFreq := pingFreq
@@ -162,6 +172,11 @@ func TestClient_SendsPings(t *testing.T) {
 }
 
 func TestClient_DisconnectsIfNoPongs(t *testing.T) {
+	tLog.Debug("TestClient_DisconnectsIfNoPongs, entering")
+	// Reset the global hub
+	hub = NewHub()
+	hub.Start()
+
 	// Give the echoHandler a very short pong timeout (just for this test)
 	oldPongTimeout := pongTimeout
 	pongTimeout = 500 * time.Millisecond
@@ -198,26 +213,31 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 }
 
 func TestClient_SendsWelcome(t *testing.T) {
+	tLog.Debug("TestClient_SendsWelcome, entering")
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
+	// Connect to the server
 	ws, _, err := dial(serv, "WTESTER")
 	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
+	tws := newTConn(ws)
 
-	err = ws.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
-	if err != nil {
-		t.Fatal(err)
+	// Read the next message, expected within 500ms
+	rr, timedOut := tws.readMessage(500)
+	if timedOut {
+		t.Fatal("Timed out waiting for welcome message")
 	}
-	_, msg, err := ws.ReadMessage()
-	if err != nil {
-		t.Fatal(err)
+	if rr.err != nil {
+		t.Fatalf("Error waiting for welcome message: %s", rr.err.Error())
 	}
+
+	// Unwrap the message and check it
 
 	env := Envelope{}
-	err = json.Unmarshal(msg, &env)
+	err = json.Unmarshal(rr.msg, &env)
 	if err != nil {
 		t.Fatal(err)
 	}
