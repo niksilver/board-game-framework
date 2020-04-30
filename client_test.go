@@ -243,3 +243,77 @@ func TestClient_SendsWelcome(t *testing.T) {
 		)
 	}
 }
+
+func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
+	// Reset the global hub
+	hub = NewHub()
+	hub.Start()
+
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	// Connect 3 clients in turn. Each existing client should
+	// receive a joiner message about each new client.
+
+	// Connect the first client, and consume the welcome message
+	ws1, _, err := dial(serv, "WF1")
+	defer ws1.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws1 := newTConn(ws1)
+	if err = swallowMany(
+		intentExp{"WF1 joining, ws1", tws1, "Welcome"},
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Connect the second client, and consume intro messages
+	ws2, _, err := dial(serv, "WF2")
+	defer ws2.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws2 := newTConn(ws2)
+	if err = swallowMany(
+		intentExp{"WF2 joining, ws2", tws2, "Welcome"},
+		intentExp{"WF2 joining, ws1", tws1, "Joiner"},
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Connect the third client
+	ws3, _, err := dial(serv, "WF3")
+	defer ws3.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws3 := newTConn(ws3)
+
+	// Get what we expect to be the the welcome message
+	rr, timedOut := tws3.readMessage(500)
+	if timedOut {
+		t.Fatal("Timed out reading message from ws3")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Unwrap the message and check it
+
+	env := Envelope{}
+	err = json.Unmarshal(rr.msg, &env)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if env.Intent != "Welcome" {
+		t.Errorf("Message intent was '%s' but expected 'Welcome'", env.Intent)
+	}
+	if !sameElements(env.From, []string{"WF1", "WF2"}) {
+		t.Errorf(
+			"Message From field was %v but expected it to be [WF1, WF2]",
+			env.From,
+		)
+	}
+}

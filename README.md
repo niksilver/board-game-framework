@@ -68,13 +68,17 @@ There are other intents, too.
 
 A `"Welcome"` envelope is received by a client immediately after it
 connects. This enables the client to find out what its ID is.
+The `From` field is a list with the IDs of all the other clients.
 The `To` field is a singleton list with the client's own ID.
+Together, the `To` and `From` fields contain the IDs of all clients
+currently connected.
 There is no `Body`.
 This is the format of the envelope sent to client `123.456` after it joins:
 
 
 ```
-{ To: ["123.456"]
+{ From: ["222.234", "333.345"]
+  To: ["123.456"]
   Time: 76487293
   Intent: "Welcome"
 }

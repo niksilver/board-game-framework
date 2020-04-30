@@ -106,6 +106,19 @@ func (h *Hub) Clients() []*Client {
 	return cs
 }
 
+// ClientIDs returns a new slice with all the Hub's client IDs.
+func (h *Hub) ClientIDs() []string {
+	h.cMux.RLock()
+	defer h.cMux.RUnlock()
+
+	cs := make([]string, 0, len(h.clients))
+	for c := range h.clients {
+		cs = append(cs, c.ID)
+	}
+
+	return cs
+}
+
 // Start starts goroutines running that process the messages.
 func (h *Hub) Start() {
 	go h.receiveInt()
