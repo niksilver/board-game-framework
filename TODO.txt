@@ -1,5 +1,3 @@
-- Prove the From field contains only other IDs, even when a second
-  client with the same ID has joined.
 - Rename echoHandler to bounceHander.
 - Send a server message when a client leaves (intent "Leaver").
 - Set maximum message size.
@@ -47,3 +45,5 @@ DONE:
 - Make sure "From" is a list.
 - Set the welcome "From" field to all other clients, so the new
   client knows all the peers.
+- Prove the From field contains only other IDs, even when a second
+  client with the same ID has joined.

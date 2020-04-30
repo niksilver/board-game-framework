@@ -134,7 +134,7 @@ func (c *Client) Start() {
 	c.Pending <- &Message{
 		MType: websocket.BinaryMessage,
 		Env: &Envelope{
-			From:   c.Hub.ClientIDs(),
+			From:   excludeID(c.Hub.ClientIDs(), c.ID),
 			To:     []string{c.ID},
 			Time:   time.Now().Unix(),
 			Intent: "Welcome",
@@ -142,6 +142,17 @@ func (c *Client) Start() {
 	c.Hub.Add(c)
 	// Start processing messages from the outside.
 	go c.receiveExt()
+}
+
+// excludeID returns the original slice of IDs, with the given one removed.
+func excludeID(ids []string, ex string) []string {
+	out := make([]string, 0)
+	for _, id := range ids {
+		if id != ex {
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 // receiveExt is a goroutine that acts on external messages coming in.

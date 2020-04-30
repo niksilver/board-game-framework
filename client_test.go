@@ -317,3 +317,124 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 		)
 	}
 }
+
+// It might be that when a client joins there is already a client with
+// the same ID in the game. This will happen if the same user opens another
+// browser to the same game, and hence reuses the ID cookie.
+// In this case the From and To fields in both welcome and joiner envelopes
+// should together include only unique IDs - no duplicates.
+func TestClient_NoDuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
+	// Reset the global hub
+	hub = NewHub()
+	hub.Start()
+
+	serv := newTestServer(echoHandler)
+	defer serv.Close()
+
+	// Connect 3 clients in turn. Each existing client should
+	// receive a joiner message about each new client.
+
+	// Connect the first client, and consume the welcome message
+	ws1, _, err := dial(serv, "DUP1")
+	defer ws1.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws1 := newTConn(ws1)
+	if err = swallowMany(
+		intentExp{"WF1 joining, ws1", tws1, "Welcome"},
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Connect the second client (will be duped), and consume intro messages
+	ws2a, _, err := dial(serv, "DUP2")
+	defer ws2a.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws2a := newTConn(ws2a)
+	if err = swallowMany(
+		intentExp{"DUP2 joining (a), ws2a", tws2a, "Welcome"},
+		intentExp{"DUP2 joining (a), ws1", tws1, "Joiner"},
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Connect the third client, which is reusing the ID of the second
+	ws2b, _, err := dial(serv, "DUP2")
+	defer ws2b.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws2b := newTConn(ws2b)
+
+	// The first client should get a joiner message from the second
+	// client (again), and there should be no dupes between From and To
+	rr, timedOut := tws1.readMessage(500)
+	if timedOut {
+		t.Fatal("Timed out reading message from ws1")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Unwrap the message and check it
+	env := Envelope{}
+	err = json.Unmarshal(rr.msg, &env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env.Intent != "Joiner" {
+		t.Errorf(
+			"ws1: Message intent was '%s' but expected 'Joiner'", env.Intent,
+		)
+	}
+	if !sameElements(env.From, []string{"DUP2"}) {
+		t.Errorf(
+			"ws1: Message From field was %v but expected it to be [DUP2]",
+			env.From,
+		)
+	}
+	if !sameElements(env.To, []string{"DUP1"}) {
+		t.Errorf(
+			"ws1: Message To field was %v but expected it to be [DUP1]",
+			env.From,
+		)
+	}
+
+	// We've not decided what the second client should receive, so
+	// we won't test for it
+
+	// The third client should get a welcome message and there
+	// should be no dupes between the From and To fields.
+	rr, timedOut = tws2b.readMessage(500)
+	if timedOut {
+		t.Fatal("Timed out reading message from ws2b")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Unwrap the message and check it
+	env = Envelope{}
+	err = json.Unmarshal(rr.msg, &env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env.Intent != "Welcome" {
+		t.Errorf(
+			"ws2b: Message intent was '%s' but expected 'Welcome'", env.Intent,
+		)
+	}
+	if !sameElements(env.From, []string{"DUP1"}) {
+		t.Errorf(
+			"ws2b: Message From field was %v but expected it to be [DUP1]",
+			env.From,
+		)
+	}
+	if !sameElements(env.To, []string{"DUP2"}) {
+		t.Errorf(
+			"ws2b: Message To field was %v but expected it to be [DUP2]",
+			env.From,
+		)
+	}
+}

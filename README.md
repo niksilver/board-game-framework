@@ -105,3 +105,15 @@ clients receive:
   Intent: "Joiner"
 }
 ```
+
+Note that it's possible for a two clients to join a game with the same ID.
+This will happen if a user opens another browser window and connects
+to the same game, because that second browser window will reuse the ID
+cookie. In these cases the `From` and `To` fields in the "welcome" and
+"joiner" envelopes can still be appended to create a complete list of
+clients, and no client ID will be duplicated.
+
+(To allow a user to connect multiple times and get different IDs they
+should use private browser windows for the second and subsequent
+connections.)
+
