@@ -66,7 +66,7 @@ Most envelopes carry a message from another client, which is found in
 the envelope `Body`. The intent of such an envelope is `"Peer"`.
 There are other intents, too.
 
-A `"Welcome"` message is received by a client immediately after it
+A `"Welcome"` envelope is received by a client immediately after it
 connects. This enables the client to find out what its ID is.
 The `To` field is a singleton list with the client's own ID.
 There is no `Body`.
@@ -80,7 +80,7 @@ This is the format of the envelope sent to client `123.456` after it joins:
 }
 ```
 
-A `"Joiner"` message is received by all existing clients after a new one
+A `"Joiner"` envelope is received by all existing clients after a new one
 connects.
 It helps all existing clients update their record of current clients, if
 they want to do that.

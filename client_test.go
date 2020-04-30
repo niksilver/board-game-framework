@@ -6,7 +6,6 @@ package main
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -237,7 +236,7 @@ func TestClient_SendsWelcome(t *testing.T) {
 	if env.Intent != "Welcome" {
 		t.Errorf("Message intent was '%s' but expected 'Welcome'", env.Intent)
 	}
-	if !reflect.DeepEqual(env.To, []string{"WTESTER"}) {
+	if !sameElements(env.To, []string{"WTESTER"}) {
 		t.Errorf(
 			"Message To field was %v but expected [\"WTESTER\"]",
 			env.To,

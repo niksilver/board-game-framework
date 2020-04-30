@@ -131,13 +131,6 @@ func waitForClient(h *Hub, id string) {
 	}
 }
 
-/*func setNoReadDeadline(ws *websocket.Conn) {
-	err := ws.SetReadDeadline(time.Time{})
-	if err != nil {
-		panic(err.Error())
-	}
-}*/
-
 // newTConn creates a new timeoutable connection from the given one.
 func newTConn(ws *websocket.Conn) *tConn {
 	return &tConn{
@@ -199,6 +192,30 @@ func (ws *tConn) swallowIntentMessage(intent string) error {
 		return fmt.Errorf(
 			"Expected intent '%s' but got '%s'", intent, env.Intent,
 		)
+	}
+	return nil
+}
+
+// intentExp is an expectation of some intent received from a `tConn`
+// websocket connection.
+type intentExp struct {
+	desc   string
+	ws     *tConn
+	intent string
+}
+
+// swallowMany expects a series of messages to be of the given intents,
+// in the order given. It retuns an error as soon as one of them is not.
+// It will wait only 500 ms to read any message.
+// If there's an error, then future reads must be from the relevant `tConn`,
+// not the `websocket.Conn`, because a "timed out" error will mean there
+// is still a read operation pending, and the `tConn` can handle that.
+func swallowMany(exps ...intentExp) error {
+	for _, exp := range exps {
+		err := exp.ws.swallowIntentMessage(exp.intent)
+		if err != nil {
+			return fmt.Errorf("%s: %s", exp.desc, err.Error())
+		}
 	}
 	return nil
 }

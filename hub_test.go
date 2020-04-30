@@ -175,11 +175,11 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 		t.Fatal(err)
 	}
 	tws2 := newTConn(ws2)
-	if err := tws2.swallowIntentMessage("Welcome"); err != nil {
-		t.Fatalf("Welcome error for ws2: %s", err)
-	}
-	if err := tws1.swallowIntentMessage("Joiner"); err != nil {
-		t.Fatalf("Joiner error for ws1 (1): %s", err)
+	if err = swallowMany(
+		intentExp{"CL2 joining, ws2", tws2, "Welcome"},
+		intentExp{"CL2 joining, ws1", tws1, "Joiner"},
+	); err != nil {
+		t.Fatal(err)
 	}
 
 	// Client 3 joins, and clients 1 and 2 get joiner messages.
@@ -190,14 +190,12 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 		t.Fatal(err)
 	}
 	tws3 := newTConn(ws3)
-	if err := tws3.swallowIntentMessage("Welcome"); err != nil {
-		t.Fatalf("Welcome error for ws3: %s", err)
-	}
-	if err := tws1.swallowIntentMessage("Joiner"); err != nil {
-		t.Fatalf("Joiner error for ws1 (2): %s", err)
-	}
-	if err := tws2.swallowIntentMessage("Joiner"); err != nil {
-		t.Fatalf("Joiner error for ws2: %s", err)
+	if err = swallowMany(
+		intentExp{"CL3 joining, ws2", tws3, "Welcome"},
+		intentExp{"CL3 joining, ws1", tws1, "Joiner"},
+		intentExp{"CL3 joining, ws2", tws2, "Joiner"},
+	); err != nil {
+		t.Fatal(err)
 	}
 
 	// Create 10 messages to send
@@ -300,11 +298,11 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 		t.Fatal(err)
 	}
 	tws2 := newTConn(ws2)
-	if err := tws2.swallowIntentMessage("Welcome"); err != nil {
-		t.Fatalf("Welcome error for ws2: %s", err)
-	}
-	if err := tws1.swallowIntentMessage("Joiner"); err != nil {
-		t.Fatalf("Joiner error for ws1 (1): %s", err)
+	if err = swallowMany(
+		intentExp{"EN2 joining, ws2", tws2, "Welcome"},
+		intentExp{"EN2 joining, ws1", tws1, "Joiner"},
+	); err != nil {
+		t.Fatal(err)
 	}
 
 	// Client 3 joins, and clients 1 and 2 get joiner messages.
@@ -315,14 +313,12 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 		t.Fatal(err)
 	}
 	tws3 := newTConn(ws3)
-	if err := tws3.swallowIntentMessage("Welcome"); err != nil {
-		t.Fatalf("Welcome error for ws3: %s", err)
-	}
-	if err := tws1.swallowIntentMessage("Joiner"); err != nil {
-		t.Fatalf("Joiner error for ws1 (2): %s", err)
-	}
-	if err := tws2.swallowIntentMessage("Joiner"); err != nil {
-		t.Fatalf("Joiner error for ws2: %s", err)
+	if err = swallowMany(
+		intentExp{"EN3 joining, ws3", tws3, "Welcome"},
+		intentExp{"EN3 joining, ws1", tws1, "Joiner"},
+		intentExp{"EN3 joining, ws2", tws2, "Joiner"},
+	); err != nil {
+		t.Fatal(err)
 	}
 
 	// Send a message, then pick up the results from one of the clients
