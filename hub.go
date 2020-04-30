@@ -143,9 +143,7 @@ func (h *Hub) receiveInt() {
 				},
 			}
 			for _, cl := range toCls {
-				tLog.Debug("receiveInt: Sending joiner msg", "rcptID", cl.ID)
 				cl.Pending <- msg
-				tLog.Debug("receiveInt: Sent joiner msg", "rcptID", cl.ID)
 			}
 		case msg := <-h.Pending:
 			switch {

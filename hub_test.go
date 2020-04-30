@@ -421,14 +421,12 @@ func TestHub_GeneralChaos(t *testing.T) {
 	}
 
 	for i := 0; i < 1000; i++ {
-		tLog.Debug("Iteration", "i", i)
 		action := rand.Float32()
 		cCount := len(cSlice)
 		switch {
 		case i < 10 || action < 0.25:
 			// New client join
 			id := "CHAOS" + strconv.Itoa(i)
-			tLog.Debug("Adding client", "id", id)
 			ws, _, err := dial(serv, id)
 			defer ws.Close()
 			if err != nil {
@@ -442,7 +440,6 @@ func TestHub_GeneralChaos(t *testing.T) {
 			idx := rand.Intn(len(cSlice))
 			id := cSlice[idx]
 			ws := cMap[id]
-			tLog.Debug("case: Closing client", "id", id)
 			ws.Close()
 			delete(cMap, id)
 			cSlice = append(cSlice[:idx], cSlice[idx+1:]...)
@@ -543,7 +540,6 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	if err := tws3.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for tws3: %s", err)
 	}
-	tLog.Debug("TestHub_JoinerMessagesHappen, connected 3rd client")
 
 	toOpt1 := []string{"JM1", "JM2"}
 	toOpt2 := []string{"JM2", "JM1"}

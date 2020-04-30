@@ -12,7 +12,6 @@ import (
 )
 
 func TestClient_CreatesNewID(t *testing.T) {
-	tLog.Debug("TestClient_CreatesNewID, entering")
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
@@ -30,7 +29,6 @@ func TestClient_CreatesNewID(t *testing.T) {
 }
 
 func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
-	tLog.Debug("TestClient_ClientIDCookieIsPersistent, entering")
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
@@ -51,7 +49,6 @@ func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
 }
 
 func TestClient_ReusesOldId(t *testing.T) {
-	tLog.Debug("TestClient_ReusesOldId, entering")
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
@@ -73,8 +70,6 @@ func TestClient_ReusesOldId(t *testing.T) {
 }
 
 func TestClient_NewIDsAreDifferent(t *testing.T) {
-	tLog.Debug("TestClient_NewIDsAreDifferent, entering")
-
 	usedIDs := make(map[string]bool)
 
 	serv := newTestServer(echoHandler)
@@ -107,7 +102,6 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 }
 
 func TestClient_SendsPings(t *testing.T) {
-	tLog.Debug("TestClient_SendsPings, entering")
 	// Reset the global hub
 	hub = NewHub()
 	hub.Start()
@@ -172,7 +166,6 @@ func TestClient_SendsPings(t *testing.T) {
 }
 
 func TestClient_DisconnectsIfNoPongs(t *testing.T) {
-	tLog.Debug("TestClient_DisconnectsIfNoPongs, entering")
 	// Reset the global hub
 	hub = NewHub()
 	hub.Start()
@@ -213,7 +206,6 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 }
 
 func TestClient_SendsWelcome(t *testing.T) {
-	tLog.Debug("TestClient_SendsWelcome, entering")
 	serv := newTestServer(echoHandler)
 	defer serv.Close()
 
