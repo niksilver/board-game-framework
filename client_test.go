@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 func TestClient_CreatesNewID(t *testing.T) {
@@ -465,6 +467,53 @@ func TestClient_NoDuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 		t.Errorf(
 			"ws3: Message To field was %v but expected [DUP2]",
 			env.From,
+		)
+	}
+}
+
+func TestClient_ExcessiveMessageWillCloseConnection(t *testing.T) {
+	// Reset the global hub
+	hub = NewHub()
+	hub.Start()
+
+	serv := newTestServer(bounceHandler)
+	defer serv.Close()
+
+	// Connect the client, and consume the welcome message
+	ws1, _, err := dial(serv, "EXCESS1")
+	defer ws1.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws1 := newTConn(ws1)
+	if err = swallowMany(
+		intentExp{"WF1 joining, ws1", tws1, "Welcome"},
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create 100k message, and send that. It should fail at some point
+	msg := make([]byte, 100*1024)
+	err = ws1.WriteMessage(websocket.BinaryMessage, msg)
+	if err != nil {
+		// We got an error, and that's probably okay
+	}
+
+	// Reading should tell us the connection has been closed by peer
+	rr, timedOut := tws1.readMessage(500)
+	if timedOut {
+		t.Fatal("Timed out reading, but should have got an immediate close")
+	}
+	if rr.err == nil {
+		t.Fatal("Didn't get an error reading connection, which is wrong")
+	}
+	// We got an error, and that's good.
+	if websocket.IsCloseError(rr.err, websocket.CloseMessageTooBig) {
+		// The right error
+	} else {
+		t.Errorf(
+			"Got an error reading, but it was the wrong one: %s",
+			rr.err.Error(),
 		)
 	}
 }

@@ -120,3 +120,7 @@ If a user wants to connect multiple times using different IDs
 (e.g. to play as multiple players) then they should use a
 private browser window for the second and subsequent connections.
 
+## Limits
+
+There is a 60k limit on messages. The connection will terminate if this
+is breached.

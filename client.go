@@ -117,6 +117,9 @@ func (c *Client) Start() {
 		c.log = log.Log.New("ID", c.ID)
 	}
 
+	// Immediate termination for an excessive message
+	c.Websocket.SetReadLimit(60 * 1024)
+
 	// Set up pinging
 	c.pinger = time.NewTicker(pingFreq)
 	c.Websocket.SetReadDeadline(time.Now().Add(pongTimeout))
