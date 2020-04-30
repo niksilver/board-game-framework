@@ -359,15 +359,12 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	}
 
 	// From field
-	if env.From != "EN1" {
-		t.Errorf("Got envelope From '%s' but expected 'EN1'", env.From)
+	if !sameElements(env.From, []string{"EN1"}) {
+		t.Errorf("Got envelope From '%s' but expected ['EN1']", env.From)
 	}
 
 	// To field
-	toOpt1 := []string{"EN2", "EN3"}
-	toOpt2 := []string{"EN3", "EN2"}
-	if !reflect.DeepEqual(env.To, toOpt1) &&
-		!reflect.DeepEqual(env.To, toOpt2) {
+	if !sameElements(env.To, []string{"EN2", "EN3"}) {
 		t.Errorf(
 			"Envelope To was '%v' but expected it be just EN2 and EN3",
 			env.To,
@@ -511,7 +508,7 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	if env.Intent != "Joiner" {
 		t.Fatalf("ws1 message isn't a joiner message. env is %#v", env)
 	}
-	if env.From != "JM2" {
+	if !sameElements(env.From, []string{"JM2"}) {
 		t.Fatalf("ws1 got From field which wasn't JM2. env is %#v", env)
 	}
 	if !reflect.DeepEqual(env.To, []string{"JM1"}) {
@@ -559,8 +556,8 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	if env.Intent != "Joiner" {
 		t.Fatalf("ws1 message isn't a joiner message. env is %#v", env)
 	}
-	if env.From != "JM3" {
-		t.Fatalf("ws1 got From field not with JM3. env is %#v", env)
+	if !sameElements(env.From, []string{"JM3"}) {
+		t.Fatalf("ws1 got From field not with just JM3. env is %#v", env)
 	}
 	if !reflect.DeepEqual(env.To, toOpt1) &&
 		!reflect.DeepEqual(env.To, toOpt2) {
@@ -588,7 +585,7 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	if env.Intent != "Joiner" {
 		t.Fatalf("ws2 message isn't a joiner message. env is %#v", env)
 	}
-	if env.From != "JM3" {
+	if !sameElements(env.From, []string{"JM3"}) {
 		t.Fatalf("ws2 got From field not with JM3. env is %#v", env)
 	}
 	if !reflect.DeepEqual(env.To, toOpt1) &&

@@ -31,11 +31,12 @@ type Message struct {
 	Env   *Envelope
 }
 
-// Envelope is the structure for messages sent to clients. Other than msg,
-// all fields will be filled in by the hub. This struct has to be exported
+// Envelope is the structure for messages sent to clients. Other than
+// the bare minimum,
+// all fields will be filled in by the hub. The fields have to be exported
 // to be processed by json marshalling.
 type Envelope struct {
-	From   string   // Client id this is from
+	From   []string // Client id this is from
 	To     []string // Ids of all clients this is going to
 	Time   int64    // Server time when sent, in seconds since the epoch
 	Intent string   // What the message is intended to convey
@@ -131,7 +132,7 @@ func (h *Hub) receiveInt() {
 				From:  c,
 				MType: websocket.BinaryMessage,
 				Env: &Envelope{
-					From:   c.ID,
+					From:   []string{c.ID},
 					To:     toIDs,
 					Time:   time.Now().Unix(),
 					Intent: "Joiner",
@@ -142,7 +143,7 @@ func (h *Hub) receiveInt() {
 			}
 		case msg := <-h.Pending:
 			toCls, toIDs := exclude(h.Clients(), msg.From.ID)
-			msg.Env.From = msg.From.ID
+			msg.Env.From = []string{msg.From.ID}
 			msg.Env.To = toIDs
 			msg.Env.Time = time.Now().Unix()
 			msg.Env.Intent = "Peer"

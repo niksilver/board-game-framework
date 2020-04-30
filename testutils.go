@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -50,6 +51,26 @@ func init() {
 	tLog.SetHandler(
 		log15.FilterHandler(filter, log15.StdoutHandler),
 	)
+}
+
+// sameElements tests if two string slices have the same elements
+// (including the same duplicates), regardless of order.
+func sameElements(a []string, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	as := make([]string, len(a))
+	bs := make([]string, len(b))
+	copy(as, a)
+	copy(bs, b)
+	sort.Strings(as)
+	sort.Strings(bs)
+	for i := range as {
+		if as[i] != bs[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // newTestServer creates a new server to connect to, using the given handler.
