@@ -1,5 +1,5 @@
-- Put clients into a hub per group/game.
-  - Hub to remove itself from superhub when it has no clients.
+- Explore wait groups to check the superhub really does empty
+  when it should.
 - Allow a maximum number of clients in one game.
 - Send a server message when a client leaves (intent "Leaver").
 - Server to detect which game a client wants.
@@ -42,3 +42,5 @@ DONE:
 - Duplicate clients IDs will shown in the From and To fields.
 - Rename echoHandler to bounceHander.
 - The connection closes if a client sends a message over 60 kilobytes.
+- Put clients into a hub per group/game.
+- Hub to remove itself from superhub when it has no clients.

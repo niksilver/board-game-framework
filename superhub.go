@@ -52,8 +52,19 @@ func (sh *superhub) hasHub(name string) bool {
 
 // remove removes the given hub from the superhub
 func (sh *superhub) remove(h *Hub) {
-	sh.mux.RLock()
+	sh.mux.Lock()
 	defer sh.mux.Unlock()
 	delete(sh.hubs, sh.names[h])
 	delete(sh.names, h)
+}
+
+// count returns the number of hubs in the superhub
+func (sh *superhub) count() int {
+	sh.mux.RLock()
+	defer sh.mux.RUnlock()
+
+	for _, name := range sh.names {
+		tLog.Debug("superhub.count, counting", "name", name)
+	}
+	return len(sh.names)
 }

@@ -134,10 +134,13 @@ func (h *Hub) receiveInt() {
 			// client. We're not allowed to close a channel twice.
 			if h.clients[c] {
 				h.Remove(c)
+				tLog.Debug("hub.receiveInt, removed client from hub", "id", c.ID)
 				close(c.Pending)
 			}
 			if len(h.Clients()) == 0 {
-				// No clients left - what to do?
+				// No clients left in the hub
+				shub.remove(h)
+				tLog.Debug("hub.receiveInt, removed hub from superhub", "clid", c.ID)
 			}
 		case c := <-h.Joiners:
 			toCls := exclude(h.Clients(), c)

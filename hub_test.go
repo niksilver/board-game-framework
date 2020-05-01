@@ -381,7 +381,6 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 // A test for general connecting, disconnecting and message sending...
 // This just needs to run and not deadlock.
 func TestHub_GeneralChaos(t *testing.T) {
-	tLog.Debug("Chaos, entering")
 	rand.Seed(time.Now().UnixNano())
 	cMap := make(map[string]*websocket.Conn)
 	cSlice := make([]string, 0)
@@ -412,10 +411,8 @@ func TestHub_GeneralChaos(t *testing.T) {
 			// New client join
 			id := "CHAOS" + strconv.Itoa(i)
 			ws, _, err := dial(serv, "/hub.chaos", id)
-			tLog.Debug("Chaos, dialled server", "id", id)
 			defer func() {
 				ws.Close()
-				tLog.Debug("Chaos, defer from add, closed server", "id", id)
 			}()
 			if err != nil {
 				t.Fatalf("Couldn't dial, i=%d, error '%s'", i, err.Error())
@@ -429,7 +426,6 @@ func TestHub_GeneralChaos(t *testing.T) {
 			id := cSlice[idx]
 			ws := cMap[id]
 			ws.Close()
-			tLog.Debug("Chaos, from leave, closed server", "id", id)
 			delete(cMap, id)
 			cSlice = append(cSlice[:idx], cSlice[idx+1:]...)
 		case cCount > 0:
@@ -440,7 +436,6 @@ func TestHub_GeneralChaos(t *testing.T) {
 			msg := "Message " + strconv.Itoa(i)
 			err := ws.WriteMessage(websocket.BinaryMessage, []byte(msg))
 			if err != nil {
-				tLog.Debug("Chaos, error from write", "id", id, "err", err)
 				t.Fatalf(
 					"Couldn't write message, i=%d, id=%s error '%s'",
 					i, id, err.Error(),
@@ -450,7 +445,6 @@ func TestHub_GeneralChaos(t *testing.T) {
 			// Can't take any action
 		}
 	}
-	tLog.Debug("Chaos, exiting", "consumed", consumed)
 }
 
 func TestHub_JoinerMessagesHappen(t *testing.T) {

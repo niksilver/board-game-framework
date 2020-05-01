@@ -240,6 +240,7 @@ intLoop:
 // stop will stop the client without blocking any other goroutines, either
 // in the client or the hub.
 func (c *Client) stop() {
+	tLog.Debug("client.stop, entering", "id", c.ID)
 	c.pinger.Stop()
 
 	// Make a stop request in a non-blocking way
