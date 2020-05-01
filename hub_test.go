@@ -423,7 +423,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 			cMap[id] = ws
 			cSlice = append(cSlice, id)
 			go consume(ws, id)
-		case cCount > 0 && action < 0.35:
+		case cCount > 0 && action <= 0.25 && action < 0.35:
 			// Some client leaves
 			idx := rand.Intn(len(cSlice))
 			id := cSlice[idx]
@@ -450,6 +450,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 			// Can't take any action
 		}
 	}
+	tLog.Debug("Chaos, exiting", "consumed", consumed)
 }
 
 func TestHub_JoinerMessagesHappen(t *testing.T) {
