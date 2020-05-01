@@ -13,13 +13,12 @@ import (
 	"github.com/niksilver/board-game-framework/log"
 )
 
-var hub = NewHub()
+// Global superhub that holds all the hubs
+var shub = newSuperhub()
 
 func init() {
 	// Output application logs
 	// log.SetLvlDebugStdout()
-
-	hub.Start()
 }
 
 func main() {
@@ -41,9 +40,10 @@ func main() {
 	}
 }
 
-// bounceHandler sets up a websocket to echo whatever it receives
+// bounceHandler sets up a websocket to bounce whatever it receives to
+// other clients in the same game.
 func bounceHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
+	if r.URL.Path == "" {
 		http.NotFound(w, r)
 		return
 	}
@@ -58,7 +58,7 @@ func bounceHandler(w http.ResponseWriter, r *http.Request) {
 	c := &Client{
 		ID:        clientID,
 		Websocket: ws,
-		Hub:       hub,
+		Hub:       shub.hub(r.URL.Path),
 		Pending:   make(chan *Message),
 	}
 	c.Start()

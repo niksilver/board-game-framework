@@ -11,7 +11,6 @@ import (
 	"net/http/httptest"
 	"sort"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -39,7 +38,7 @@ type readRes struct {
 var tLog = log.Log.New("test", true)
 
 func init() {
-	// Accept only log messages that are from test
+	// tLog should accept only log messages that are from test
 	filter := func(r *log15.Record) bool {
 		for i := 0; i < len(r.Ctx); i += 2 {
 			if r.Ctx[i] == "test" {
@@ -79,13 +78,14 @@ func newTestServer(hdlr http.HandlerFunc) *httptest.Server {
 }
 
 // dial connects to a test server, sending a clientID (if non-empty).
-func dial(serv *httptest.Server, clientID string) (
+func dial(serv *httptest.Server, path string, clientID string) (
 	ws *websocket.Conn,
 	resp *http.Response,
 	err error,
 ) {
 	// Convert http://a.b.c.d to ws://a.b.c.d
-	url := "ws" + strings.TrimPrefix(serv.URL, "http")
+	// and add the given path
+	url := "ws" + strings.TrimPrefix(serv.URL, "http") + path
 
 	// If necessary, creater a header with the given cookie
 	var header http.Header
@@ -112,7 +112,7 @@ func cookieRequestHeader(name string, value string) http.Header {
 	return header
 }
 
-// waitForEmptyHub wait for up to 2 seconds for the hub to be emptied
+/* // waitForEmptyHub wait for up to 2 seconds for the hub to be emptied
 // or reports an test failure.
 func waitForEmptyHub(desc string, h *Hub, t *testing.T) {
 	deadline := time.Now().Add(2 * time.Second)
@@ -122,12 +122,15 @@ func waitForEmptyHub(desc string, h *Hub, t *testing.T) {
 			break
 		}
 	}
-}
+}*/
 
-// waitForClientInHub waits for the named client to be added to the hub.
-func waitForClient(h *Hub, id string) {
-	for !h.HasClient(id) {
-		// Go round again
+// waitForClient waits for the named client to be added to the given hub.
+func waitForClient(hubName string, id string) {
+	for !shub.hasHub(hubName) {
+		// Keep waiting for the hub to be added to the superhub
+	}
+	for !shub.hub(hubName).HasClient(id) {
+		// Keep waiting for the client to be added to the hub
 	}
 }
 

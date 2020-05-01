@@ -128,9 +128,9 @@ func (c *Client) Start() {
 		return nil
 	})
 
-	// Add ourselves to the hub, send the client a welcome message,
-	// and start processing messages from inside.
+	// Start processing messages from the inside
 	go c.receiveInt()
+	// Post a welcome message
 	c.Pending <- &Message{
 		MType: websocket.BinaryMessage,
 		Env: &Envelope{
@@ -139,8 +139,9 @@ func (c *Client) Start() {
 			Time:   time.Now().Unix(),
 			Intent: "Welcome",
 		}}
+	// Add ourselves to our hub
 	c.Hub.Add(c)
-	// Start processing messages from the outside.
+	// Start processing messages from the outside
 	go c.receiveExt()
 }
 

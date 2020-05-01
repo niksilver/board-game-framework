@@ -1,13 +1,11 @@
+- Put clients into a hub per group/game.
+  - Hub to remove itself from superhub when it has no clients.
 - Allow a maximum number of clients in one game.
 - Send a server message when a client leaves (intent "Leaver").
 - Server to detect which game a client wants.
 - Server to reject a client request with no game/group specified.
-- Put clients into a hub per group/game.
-- Hub to remove itself from superhub when it has no clients.
 - Ensure App Engine runs with only one instance.
 - Store game state locally.
-- Send a server message to sender if received message too large
-  (intent "Error").
 - Send a server message to sender if message to be sent is too large
   (intent "Error").
 - Have Javascript client unpack server response with envelope+contents.

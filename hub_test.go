@@ -7,10 +7,8 @@ package main
 import (
 	"encoding/json"
 	"math/rand"
-	"reflect"
 	"sort"
 	"strconv"
-	//"strings"
 	"testing"
 	"time"
 
@@ -140,10 +138,6 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 }
 
 func TestHub_BouncesToOtherClients(t *testing.T) {
-	// Reset the global hub
-	hub = NewHub()
-	hub.Start()
-
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -151,13 +145,15 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	// We'll make sure all the clients have been added to hub, and force
 	// the order by waiting on messages.
 
+	game := "/hub.bounces.to.other"
+
 	// We'll want to check From, To and Time fields, as well as
 	// message contents.
 	// Because we have 3 clients we'll have 2 listed in the To field.
 
 	// Client 1 joins normally
 
-	ws1, _, err := dial(serv, "CL1")
+	ws1, _, err := dial(serv, game, "CL1")
 	defer ws1.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -169,7 +165,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 
 	// Client 2 joins, and client 1 gets a joiner message
 
-	ws2, _, err := dial(serv, "CL2")
+	ws2, _, err := dial(serv, game, "CL2")
 	defer ws2.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -184,7 +180,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 
 	// Client 3 joins, and clients 1 and 2 get joiner messages.
 
-	ws3, _, err := dial(serv, "CL3")
+	ws3, _, err := dial(serv, game, "CL3")
 	defer ws3.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -263,10 +259,6 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 }
 
 func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
-	// Reset the global hub
-	hub = NewHub()
-	hub.Start()
-
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -274,13 +266,15 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	// We'll make sure all the clients have been added to hub, and force
 	// the order by waiting on messages.
 
+	game := "/hub.basic.envelope"
+
 	// We'll want to check From, To and Time fields, as well as
 	// message contents.
 	// Because we have 3 clients we'll have 2 listed in the To field.
 
 	// Client 1 joins normally
 
-	ws1, _, err := dial(serv, "EN1")
+	ws1, _, err := dial(serv, game, "EN1")
 	defer ws1.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -292,7 +286,7 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 
 	// Client 2 joins, and client 1 gets a joiner message
 
-	ws2, _, err := dial(serv, "EN2")
+	ws2, _, err := dial(serv, game, "EN2")
 	defer ws2.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -307,7 +301,7 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 
 	// Client 3 joins, and clients 1 and 2 get joiner messages.
 
-	ws3, _, err := dial(serv, "EN3")
+	ws3, _, err := dial(serv, game, "EN3")
 	defer ws3.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -387,10 +381,7 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 // A test for general connecting, disconnecting and message sending...
 // This just needs to run and not deadlock.
 func TestHub_GeneralChaos(t *testing.T) {
-	// Reset the global hub
-	hub = NewHub()
-	hub.Start()
-
+	tLog.Debug("Chaos, entering")
 	rand.Seed(time.Now().UnixNano())
 	cMap := make(map[string]*websocket.Conn)
 	cSlice := make([]string, 0)
@@ -420,8 +411,12 @@ func TestHub_GeneralChaos(t *testing.T) {
 		case i < 10 || action < 0.25:
 			// New client join
 			id := "CHAOS" + strconv.Itoa(i)
-			ws, _, err := dial(serv, id)
-			defer ws.Close()
+			ws, _, err := dial(serv, "/hub.chaos", id)
+			tLog.Debug("Chaos, dialled server", "id", id)
+			defer func() {
+				ws.Close()
+				tLog.Debug("Chaos, defer from add, closed server", "id", id)
+			}()
 			if err != nil {
 				t.Fatalf("Couldn't dial, i=%d, error '%s'", i, err.Error())
 			}
@@ -434,6 +429,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 			id := cSlice[idx]
 			ws := cMap[id]
 			ws.Close()
+			tLog.Debug("Chaos, from leave, closed server", "id", id)
 			delete(cMap, id)
 			cSlice = append(cSlice[:idx], cSlice[idx+1:]...)
 		case cCount > 0:
@@ -444,6 +440,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 			msg := "Message " + strconv.Itoa(i)
 			err := ws.WriteMessage(websocket.BinaryMessage, []byte(msg))
 			if err != nil {
+				tLog.Debug("Chaos, error from write", "id", id, "err", err)
 				t.Fatalf(
 					"Couldn't write message, i=%d, id=%s error '%s'",
 					i, id, err.Error(),
@@ -456,18 +453,16 @@ func TestHub_GeneralChaos(t *testing.T) {
 }
 
 func TestHub_JoinerMessagesHappen(t *testing.T) {
-	// Reset the global hub
-	hub = NewHub()
-	hub.Start()
-
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	// Connect 3 clients in turn. Each existing client should
 	// receive a joiner message about each new client.
 
+	game := "/hub.joiner.messages"
+
 	// Connect the first client
-	ws1, _, err := dial(serv, "JM1")
+	ws1, _, err := dial(serv, game, "JM1")
 	defer ws1.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -478,7 +473,7 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	}
 
 	// Connect the second client
-	ws2, _, err := dial(serv, "JM2")
+	ws2, _, err := dial(serv, game, "JM2")
 	defer ws2.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -507,7 +502,7 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	if !sameElements(env.From, []string{"JM2"}) {
 		t.Fatalf("ws1 got From field which wasn't JM2. env is %#v", env)
 	}
-	if !reflect.DeepEqual(env.To, []string{"JM1"}) {
+	if !sameElements(env.To, []string{"JM1"}) {
 		t.Fatalf("ws1 To field didn't contain just its ID. env is %#v", env)
 	}
 	if env.Time < time.Now().Unix() {
@@ -524,7 +519,7 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	}
 
 	// Connect the third client
-	ws3, _, err := dial(serv, "JM3")
+	ws3, _, err := dial(serv, game, "JM3")
 	defer ws3.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -533,9 +528,6 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	if err := tws3.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for tws3: %s", err)
 	}
-
-	toOpt1 := []string{"JM1", "JM2"}
-	toOpt2 := []string{"JM2", "JM1"}
 
 	// Expect a joiner message to ws1 (and shortly, ws2)
 	rr, timedOut = tws1.readMessage(500)
@@ -555,8 +547,7 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	if !sameElements(env.From, []string{"JM3"}) {
 		t.Fatalf("ws1 got From field not with just JM3. env is %#v", env)
 	}
-	if !reflect.DeepEqual(env.To, toOpt1) &&
-		!reflect.DeepEqual(env.To, toOpt2) {
+	if !sameElements(env.To, []string{"JM1", "JM2"}) {
 		t.Fatalf("ws1 To field didn't contain JM1 and JM2. env is %#v", env)
 	}
 	if env.Time > time.Now().Unix() {
@@ -584,8 +575,7 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	if !sameElements(env.From, []string{"JM3"}) {
 		t.Fatalf("ws2 got From field not with JM3. env is %#v", env)
 	}
-	if !reflect.DeepEqual(env.To, toOpt1) &&
-		!reflect.DeepEqual(env.To, toOpt2) {
+	if !sameElements(env.To, []string{"JM2", "JM1"}) {
 		t.Fatalf("ws2 To field didn't contain JM1 and JM2. env is %#v", env)
 	}
 	if env.Time < time.Now().Unix() {

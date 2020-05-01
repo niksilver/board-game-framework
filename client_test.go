@@ -16,7 +16,7 @@ func TestClient_CreatesNewID(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
-	ws, resp, err := dial(serv, "")
+	ws, resp, err := dial(serv, "/cl.creates.new.id", "")
 	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
-	ws, resp, err := dial(serv, "")
+	ws, resp, err := dial(serv, "/cl.client.id.cookie.persistent", "")
 	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -55,7 +55,7 @@ func TestClient_ReusesOldId(t *testing.T) {
 
 	initialClientID := "existing_value"
 
-	ws, resp, err := dial(serv, initialClientID)
+	ws, resp, err := dial(serv, "/cl.reuses.old.id", initialClientID)
 	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -78,7 +78,7 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		// Get a new client connection
-		ws, resp, err := dial(serv, "")
+		ws, resp, err := dial(serv, "/cl.new.ids.different", "")
 		defer ws.Close()
 		if err != nil {
 			t.Fatal(err)
@@ -103,10 +103,6 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 }
 
 func TestClient_SendsPings(t *testing.T) {
-	// Reset the global hub
-	hub = NewHub()
-	hub.Start()
-
 	// We'll send pings every 500ms, and wait for 3 seconds to receive
 	// at least three of them.
 	oldPingFreq := pingFreq
@@ -119,7 +115,7 @@ func TestClient_SendsPings(t *testing.T) {
 		serv.Close()
 	}()
 
-	ws, _, err := dial(serv, "pingtester")
+	ws, _, err := dial(serv, "/cl.sends.pings", "pingtester")
 	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -137,7 +133,7 @@ func TestClient_SendsPings(t *testing.T) {
 	timeout := time.After(3 * time.Second)
 
 	// Wait for the client to have connected
-	waitForClient(hub, "pingtester")
+	waitForClient("/cl.sends.pings", "pingtester")
 
 	// In the background loop until we get three pings, an error, or a timeout
 	go func() {
@@ -167,10 +163,6 @@ func TestClient_SendsPings(t *testing.T) {
 }
 
 func TestClient_DisconnectsIfNoPongs(t *testing.T) {
-	// Reset the global hub
-	hub = NewHub()
-	hub.Start()
-
 	// Give the bounceHandler a very short pong timeout (just for this test)
 	oldPongTimeout := pongTimeout
 	pongTimeout = 500 * time.Millisecond
@@ -181,7 +173,7 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 		serv.Close()
 	}()
 
-	ws, _, err := dial(serv, "pingtester")
+	ws, _, err := dial(serv, "/cl.if.no.pongs", "pingtester")
 	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -190,7 +182,6 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 
 	// Wait for the client to have connected, and swallow the "Welcome"
 	// message
-	waitForClient(hub, "pingtester")
 	if err := tws.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +202,7 @@ func TestClient_SendsWelcome(t *testing.T) {
 	defer serv.Close()
 
 	// Connect to the server
-	ws, _, err := dial(serv, "WTESTER")
+	ws, _, err := dial(serv, "/cl.sends.welcome", "WTESTER")
 	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -247,18 +238,16 @@ func TestClient_SendsWelcome(t *testing.T) {
 }
 
 func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
-	// Reset the global hub
-	hub = NewHub()
-	hub.Start()
-
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	// Connect 3 clients in turn. Each existing client should
 	// receive a joiner message about each new client.
 
+	game := "/cl.welcome.from.existing"
+
 	// Connect the first client, and consume the welcome message
-	ws1, _, err := dial(serv, "WF1")
+	ws1, _, err := dial(serv, game, "WF1")
 	defer ws1.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -271,7 +260,7 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 	}
 
 	// Connect the second client, and consume intro messages
-	ws2, _, err := dial(serv, "WF2")
+	ws2, _, err := dial(serv, game, "WF2")
 	defer ws2.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -285,7 +274,7 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 	}
 
 	// Connect the third client
-	ws3, _, err := dial(serv, "WF3")
+	ws3, _, err := dial(serv, game, "WF3")
 	defer ws3.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -325,19 +314,17 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 // browser to the same game, and hence reuses the ID cookie.
 // In this case the From and To fields in both welcome and joiner envelopes
 // will contain duplicates.
-func TestClient_NoDuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
-	// Reset the global hub
-	hub = NewHub()
-	hub.Start()
-
+func TestClient_DuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	// Connect 3 clients in turn. Each existing client should
 	// receive a joiner message about each new client.
 
+	game := "/cl.dupe.ids"
+
 	// Connect the first client, and consume the welcome message
-	ws1, _, err := dial(serv, "DUP1")
+	ws1, _, err := dial(serv, game, "DUP1")
 	defer ws1.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -350,7 +337,7 @@ func TestClient_NoDuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 	}
 
 	// Connect the second client (will be duped), and consume intro messages
-	ws2a, _, err := dial(serv, "DUP2")
+	ws2a, _, err := dial(serv, game, "DUP2")
 	defer ws2a.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -364,7 +351,7 @@ func TestClient_NoDuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 	}
 
 	// Connect the third client, which is reusing the ID of the second
-	ws2b, _, err := dial(serv, "DUP2")
+	ws2b, _, err := dial(serv, game, "DUP2")
 	defer ws2b.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -472,15 +459,11 @@ func TestClient_NoDuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 }
 
 func TestClient_ExcessiveMessageWillCloseConnection(t *testing.T) {
-	// Reset the global hub
-	hub = NewHub()
-	hub.Start()
-
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
 	// Connect the client, and consume the welcome message
-	ws1, _, err := dial(serv, "EXCESS1")
+	ws1, _, err := dial(serv, "/cl.excess.message", "EXCESS1")
 	defer ws1.Close()
 	if err != nil {
 		t.Fatal(err)
