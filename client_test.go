@@ -14,6 +14,7 @@ import (
 )
 
 func TestClient_CreatesNewID(t *testing.T) {
+	tLog.Debug("TestClient_CreatesNewID, entering")
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -30,6 +31,7 @@ func TestClient_CreatesNewID(t *testing.T) {
 	}
 
 	// Check everything in the main app finishes
+	tLog.Debug("TestClient_CreatesNewID, waiting on application")
 	wg.Wait()
 }
 
