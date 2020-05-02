@@ -121,12 +121,14 @@ func (h *Hub) ClientIDs() []string {
 
 // Start starts goroutines running that process the messages.
 func (h *Hub) Start() {
+	wg.Add(1)
 	go h.receiveInt()
 }
 
 // receiveInt is a goroutine that listens for pending messages, and sends
 // them out to the relevant clients.
 func (h *Hub) receiveInt() {
+	defer wg.Done()
 	for {
 		select {
 		case c := <-h.stopReq:
@@ -134,13 +136,11 @@ func (h *Hub) receiveInt() {
 			// client. We're not allowed to close a channel twice.
 			if h.clients[c] {
 				h.Remove(c)
-				tLog.Debug("hub.receiveInt, removed client from hub", "id", c.ID)
 				close(c.Pending)
 			}
 			if len(h.Clients()) == 0 {
 				// No clients left in the hub
 				shub.remove(h)
-				tLog.Debug("hub.receiveInt, removed hub from superhub", "clid", c.ID)
 			}
 		case c := <-h.Joiners:
 			toCls := exclude(h.Clients(), c)

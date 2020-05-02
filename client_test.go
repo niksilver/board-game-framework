@@ -6,6 +6,7 @@ package main
 
 import (
 	"encoding/json"
+	"sync"
 	"testing"
 	"time"
 
@@ -136,7 +137,10 @@ func TestClient_SendsPings(t *testing.T) {
 	waitForClient("/cl.sends.pings", "pingtester")
 
 	// In the background loop until we get three pings, an error, or a timeout
+	w := sync.WaitGroup{}
+	w.Add(1)
 	go func() {
+		defer w.Done()
 	pingLoop:
 		for {
 			select {
@@ -160,6 +164,8 @@ func TestClient_SendsPings(t *testing.T) {
 	if pings < 3 {
 		t.Errorf("Expected at least 3 pings but got %d", pings)
 	}
+
+	w.Wait()
 }
 
 func TestClient_DisconnectsIfNoPongs(t *testing.T) {

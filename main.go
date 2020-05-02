@@ -8,6 +8,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/inconshreveable/log15"
 	"github.com/niksilver/board-game-framework/log"
@@ -15,6 +16,10 @@ import (
 
 // Global superhub that holds all the hubs
 var shub = newSuperhub()
+
+// A global wait group, not used in the normal course of things,
+// but useful to wait on when debuggging.
+var wg = sync.WaitGroup{}
 
 func init() {
 	// Output application logs

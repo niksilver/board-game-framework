@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"sort"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -118,23 +119,31 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 		cs[i] = &Client{ID: strconv.Itoa(i)}
 	}
 
+	w := sync.WaitGroup{}
+	w.Add(3)
+
 	go func() {
 		for i := 0; i < count; i++ {
 			hub.Add(cs[i])
 		}
+		w.Done()
 	}()
 
 	go func() {
 		for i := 0; i < count; i++ {
 			hub.Remove(cs[i])
 		}
+		w.Done()
 	}()
 
 	go func() {
 		for i := 0; i < count; i++ {
 			hub.Clients()
 		}
+		w.Done()
 	}()
+
+	w.Wait()
 }
 
 func TestHub_BouncesToOtherClients(t *testing.T) {
@@ -391,7 +400,9 @@ func TestHub_GeneralChaos(t *testing.T) {
 	defer serv.Close()
 
 	// A client should consume messages until done
+	w := sync.WaitGroup{}
 	consume := func(ws *websocket.Conn, id string) {
+		defer w.Done()
 		for {
 			_, _, err := ws.ReadMessage()
 			if err == nil {
@@ -419,8 +430,9 @@ func TestHub_GeneralChaos(t *testing.T) {
 			}
 			cMap[id] = ws
 			cSlice = append(cSlice, id)
+			w.Add(1)
 			go consume(ws, id)
-		case cCount > 0 && action <= 0.25 && action < 0.35:
+		case cCount > 0 && action >= 0.25 && action < 0.35:
 			// Some client leaves
 			idx := rand.Intn(len(cSlice))
 			id := cSlice[idx]
@@ -445,6 +457,12 @@ func TestHub_GeneralChaos(t *testing.T) {
 			// Can't take any action
 		}
 	}
+
+	// Close remaining connections and wait for goroutines
+	for _, ws := range cMap {
+		ws.Close()
+	}
+	w.Wait()
 }
 
 func TestHub_JoinerMessagesHappen(t *testing.T) {

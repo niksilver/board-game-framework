@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,7 +24,9 @@ func TestSuperhub_LotsOfActivityEndsWithEmptySuperHub(t *testing.T) {
 	defer serv.Close()
 
 	// A client should consume messages until done
+	w := sync.WaitGroup{}
 	consume := func(ws *websocket.Conn, id string) {
+		defer w.Done()
 		for {
 			_, _, err := ws.ReadMessage()
 			if err == nil {
@@ -52,6 +55,7 @@ func TestSuperhub_LotsOfActivityEndsWithEmptySuperHub(t *testing.T) {
 			}
 			cMap[id] = ws
 			cSlice = append(cSlice, id)
+			w.Add(1)
 			go consume(ws, id)
 		case cCount > 0 && action <= 0.25 && action < 0.35:
 			// Some client leaves
@@ -80,11 +84,11 @@ func TestSuperhub_LotsOfActivityEndsWithEmptySuperHub(t *testing.T) {
 	}
 
 	// Close remaining clients
-	tLog.Debug("TestSuperhub_LotsOfActivity closing off")
-	for id, ws := range cMap {
-		tLog.Debug("TestSuperhub_LotsOfActivity closing", "id", id)
+	for _, ws := range cMap {
 		ws.Close()
 	}
+
+	w.Wait()
 
 	// At this point we could test there are no hubs in the
 	// superhub, using shub.count(), but it will take a while

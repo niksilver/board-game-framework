@@ -154,7 +154,9 @@ func (c *tConn) readMessage(timeout int) (readRes, bool) {
 	if c.readRes == nil {
 		// We're not already running a read, so let's start one
 		c.readRes = make(chan readRes)
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			mType, msg, err := c.ws.ReadMessage()
 			c.readRes <- readRes{mType, msg, err}
 		}()

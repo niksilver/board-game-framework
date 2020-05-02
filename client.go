@@ -129,6 +129,7 @@ func (c *Client) Start() {
 	})
 
 	// Start processing messages from the inside
+	wg.Add(1)
 	go c.receiveInt()
 	// Post a welcome message
 	c.Pending <- &Message{
@@ -142,11 +143,13 @@ func (c *Client) Start() {
 	// Add ourselves to our hub
 	c.Hub.Add(c)
 	// Start processing messages from the outside
+	wg.Add(1)
 	go c.receiveExt()
 }
 
 // receiveExt is a goroutine that acts on external messages coming in.
 func (c *Client) receiveExt() {
+	defer wg.Done()
 	defer c.Websocket.Close()
 
 	// Read messages until we can no more
@@ -173,6 +176,8 @@ func (c *Client) receiveExt() {
 // receiveInt is a goroutine that acts on messages that have come from
 // a hub (internally), and sends them out.
 func (c *Client) receiveInt() {
+	defer wg.Done()
+
 	// Keep receiving internal messages
 intLoop:
 	for {
@@ -240,7 +245,6 @@ intLoop:
 // stop will stop the client without blocking any other goroutines, either
 // in the client or the hub.
 func (c *Client) stop() {
-	tLog.Debug("client.stop, entering", "id", c.ID)
 	c.pinger.Stop()
 
 	// Make a stop request in a non-blocking way
