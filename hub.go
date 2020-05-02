@@ -143,6 +143,7 @@ func (h *Hub) receiveInt() {
 			if len(h.Clients()) == 0 {
 				// No clients left in the hub
 				shub.remove(h)
+				return
 			}
 		case c := <-h.Joiners:
 			toCls := exclude(h.Clients(), c)

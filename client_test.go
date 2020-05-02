@@ -30,7 +30,8 @@ func TestClient_CreatesNewID(t *testing.T) {
 		t.Errorf("clientID cookie is empty or not defined")
 	}
 
-	// Check everything in the main app finishes
+	// Tidy up, and check everything in the main app finishes
+	ws.Close()
 	tLog.Debug("TestClient_CreatesNewID, waiting on application")
 	wg.Wait()
 }
