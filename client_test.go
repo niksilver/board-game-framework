@@ -502,6 +502,12 @@ func TestClient_DuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 			env.From,
 		)
 	}
+
+	// Tidy up, and check everything in the main app finishes
+	ws1.Close()
+	ws2a.Close()
+	ws2b.Close()
+	wg.Wait()
 }
 
 func TestClient_ExcessiveMessageWillCloseConnection(t *testing.T) {
