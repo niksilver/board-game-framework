@@ -129,7 +129,7 @@ func (c *Client) Start() {
 	})
 
 	// Start processing messages from the inside
-	tLog.Debug("client.start, adding for receiveInt")
+	tLog.Debug("client.start, adding for receiveInt", "id", c.ID)
 	wg.Add(1)
 	go c.receiveInt()
 	// Post a welcome message
@@ -144,21 +144,23 @@ func (c *Client) Start() {
 	// Add ourselves to our hub
 	c.Hub.Add(c)
 	// Start processing messages from the outside
-	tLog.Debug("client.start, adding for receiveExt")
+	tLog.Debug("client.start, adding for receiveExt", "id", c.ID)
 	wg.Add(1)
 	go c.receiveExt()
 }
 
 // receiveExt is a goroutine that acts on external messages coming in.
 func (c *Client) receiveExt() {
-	defer tLog.Debug("client.receiveExt, goroutine done")
+	defer tLog.Debug("client.receiveExt, goroutine done", "id", c.ID)
 	defer wg.Done()
 	defer c.Websocket.Close()
 
 	// Read messages until we can no more
 	for {
+		tLog.Debug("client.receiveExt, reading", "id", c.ID)
 		mType, msg, err := c.Websocket.ReadMessage()
 		if err != nil {
+			tLog.Debug("client.receiveExt, read error", "error", err, "id", c.ID)
 			c.log.Warn(
 				"ReadMessage",
 				"error", err,
@@ -166,6 +168,7 @@ func (c *Client) receiveExt() {
 			break
 		}
 		// Currently ignores message type
+		tLog.Debug("client.receiveExt, read is good", "id", c.ID)
 		c.Hub.Pending <- &Message{
 			From:  c,
 			MType: mType,
@@ -179,14 +182,16 @@ func (c *Client) receiveExt() {
 // receiveInt is a goroutine that acts on messages that have come from
 // a hub (internally), and sends them out.
 func (c *Client) receiveInt() {
-	defer tLog.Debug("client.receiveInt, goroutine done")
+	defer tLog.Debug("client.receiveInt, goroutine done", "id", c.ID)
 	defer wg.Done()
 
 	// Keep receiving internal messages
 intLoop:
 	for {
+		tLog.Debug("client.receiveInt, entering select", "id", c.ID)
 		select {
 		case m, ok := <-c.Pending:
+			tLog.Debug("client.receiveInt, got pending", "id", c.ID)
 			if !ok {
 				// Stop request received, acknowledged and acted on
 				break intLoop
@@ -220,6 +225,7 @@ intLoop:
 				break intLoop
 			}
 		case <-c.pinger.C:
+			tLog.Debug("client.receiveInt, got ping", "id", c.ID)
 			if err := c.Websocket.SetWriteDeadline(
 				time.Now().Add(writeTimeout),
 			); err != nil {
@@ -249,26 +255,33 @@ intLoop:
 // stop will stop the client without blocking any other goroutines, either
 // in the client or the hub.
 func (c *Client) stop() {
+	tLog.Debug("client.stop, entering", "id", c.ID)
 	c.pinger.Stop()
 
 	// Make a stop request in a non-blocking way
 makeRequest:
 	for {
+		tLog.Debug("client.stop, selecting", "id", c.ID)
 		select {
 		case _, ok := <-c.Pending:
+			tLog.Debug("client.stop, got from pending", "id", c.ID)
 			// We're not interested in incoming message, so just swallow them.
 			// But perhaps the channel is closed, meaning an earlier stop
 			// has been acknowoledged.
 			if !ok {
+				tLog.Debug("client.stop, got close from pending", "id", c.ID)
 				break makeRequest
 			}
+			tLog.Debug("client.stop, got msg from pending", "id", c.ID)
 		case c.Hub.stopReq <- c:
+			tLog.Debug("client.stop, make step request", "id", c.ID)
 			// We've successfully sent a stop request to the hub.
 			break makeRequest
 		}
 	}
 
 	// Stop request has been made, maybe acknowledged
+	tLog.Debug("client.stop, clearing pending", "id", c.ID)
 	for {
 		if _, ok := <-c.Pending; !ok {
 			break
@@ -276,5 +289,6 @@ makeRequest:
 	}
 
 	// Stop request acknowledged and acted on
+	tLog.Debug("client.stop, closing", "id", c.ID)
 	c.Websocket.Close()
 }

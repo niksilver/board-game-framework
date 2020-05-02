@@ -89,6 +89,7 @@ func TestClient_ReusesOldId(t *testing.T) {
 
 func TestClient_NewIDsAreDifferent(t *testing.T) {
 	usedIDs := make(map[string]bool)
+	cIDs := make([]string, 100)
 	wss := make([]*websocket.Conn, 100)
 
 	serv := newTestServer(bounceHandler)
@@ -105,6 +106,7 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 
 		cookies := resp.Cookies()
 		clientID := ClientID(cookies)
+		cIDs[i] = clientID
 
 		if usedIDs[clientID] {
 			t.Errorf("Iteration i = %d, clientID '%s' already used",
@@ -122,7 +124,7 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 
 	// Tidy up, and check everything in the main app finishes
 	for i, ws := range wss {
-		tLog.Debug("TestClient_CreatesNewID, closing at end", "i", i)
+		tLog.Debug("TestClient_CreatesNewID, closing at end", "cid", cIDs[i])
 		ws.Close()
 	}
 	tLog.Debug("TestClient_CreatesNewID, waiting on application")
