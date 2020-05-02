@@ -347,6 +347,12 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 			env.From,
 		)
 	}
+
+	// Tidy up, and check everything in the main app finishes
+	ws1.Close()
+	ws2.Close()
+	ws3.Close()
+	wg.Wait()
 }
 
 // It might be that when a client joins there is already a client with
