@@ -70,6 +70,9 @@ func TestHub_CanAddAndGetClients(t *testing.T) {
 			id2,
 		)
 	}
+
+	// Check everything in the main app finishes
+	wg.Wait()
 }
 
 func TestHub_CanRemoveClients(t *testing.T) {
