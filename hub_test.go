@@ -149,7 +149,9 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 		w.Done()
 	}()
 
+	// Check everything in this test and the main app finishes
 	w.Wait()
+	wg.Wait()
 }
 
 func TestHub_BouncesToOtherClients(t *testing.T) {
