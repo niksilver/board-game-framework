@@ -111,6 +111,9 @@ func TestHub_CanRemoveClients(t *testing.T) {
 			cs2[1].ID,
 		)
 	}
+
+	// Check everything in the main app finishes
+	wg.Wait()
 }
 
 func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
