@@ -14,7 +14,6 @@ import (
 )
 
 func TestClient_CreatesNewID(t *testing.T) {
-	tLog.Debug("TestClient_CreatesNewID, entering")
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -32,7 +31,6 @@ func TestClient_CreatesNewID(t *testing.T) {
 
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
-	tLog.Debug("TestClient_CreatesNewID, waiting on application")
 	wg.Wait()
 }
 
@@ -57,7 +55,6 @@ func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
 
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
-	tLog.Debug("TestClient_CreatesNewID, waiting on application")
 	wg.Wait()
 }
 
@@ -83,7 +80,6 @@ func TestClient_ReusesOldId(t *testing.T) {
 
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
-	tLog.Debug("TestClient_CreatesNewID, waiting on application")
 	wg.Wait()
 }
 
@@ -123,11 +119,9 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 	}
 
 	// Tidy up, and check everything in the main app finishes
-	for i, ws := range wss {
-		tLog.Debug("TestClient_CreatesNewID, closing at end", "cid", cIDs[i])
+	for _, ws := range wss {
 		ws.Close()
 	}
-	tLog.Debug("TestClient_CreatesNewID, waiting on application")
 	wg.Wait()
 }
 

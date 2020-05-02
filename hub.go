@@ -94,10 +94,7 @@ func (h *Hub) NumClients() int {
 
 // Clients returns a new slice with all the Hub's Clients.
 func (h *Hub) Clients() []*Client {
-	tLog.Debug("hub.Clients, entering")
-	defer tLog.Debug("hub.Clients, exiting")
 	h.cMux.RLock()
-	tLog.Debug("hub.Clients, got read lock")
 	defer h.cMux.RUnlock()
 
 	cs := make([]*Client, 0, len(h.clients))
@@ -123,7 +120,6 @@ func (h *Hub) ClientIDs() []string {
 
 // Start starts goroutines running that process the messages.
 func (h *Hub) Start() {
-	tLog.Debug("hub.Start, adding for receiveInt")
 	wg.Add(1)
 	go h.receiveInt()
 }
@@ -131,13 +127,10 @@ func (h *Hub) Start() {
 // receiveInt is a goroutine that listens for pending messages, and sends
 // them out to the relevant clients.
 func (h *Hub) receiveInt() {
-	defer tLog.Debug("hub.receiveInt, goroutine done")
 	defer wg.Done()
 	for {
-		defer tLog.Debug("hub.receiveInt, selecting")
 		select {
 		case c := <-h.stopReq:
-			tLog.Debug("hub.receiveInt, got stopReq", "cid", c.ID)
 			// Defend against getting a stop request twice for the same
 			// client. We're not allowed to close a channel twice.
 			if h.clients[c] {
@@ -150,9 +143,7 @@ func (h *Hub) receiveInt() {
 				return
 			}
 		case c := <-h.Joiners:
-			tLog.Debug("hub.receiveInt, got joiner", "cid", c.ID)
 			toCls := exclude(h.Clients(), c)
-			tLog.Debug("hub.receiveInt, got toCls")
 			msg := &Message{
 				From:  c,
 				MType: websocket.BinaryMessage,
@@ -163,14 +154,10 @@ func (h *Hub) receiveInt() {
 					Intent: "Joiner",
 				},
 			}
-			tLog.Debug("hub.receiveInt, sending msg toCls")
 			for _, cl := range toCls {
-				tLog.Debug("hub.receiveInt, sending msg", "fromcid", c.ID, "tocid", cl.ID)
 				cl.Pending <- msg
 			}
-			tLog.Debug("hub.receiveInt, sent msg toCls")
 		case msg := <-h.Pending:
-			tLog.Debug("hub.receiveInt, got pending msg", "cid", msg.From.ID)
 			toCls := exclude(h.Clients(), msg.From)
 			msg.Env.From = []string{msg.From.ID}
 			msg.Env.To = ids(toCls)
@@ -186,14 +173,12 @@ func (h *Hub) receiveInt() {
 // exclude finds all clients from a list which don't match the given one.
 // Matching is done on pointers.
 func exclude(cs []*Client, cx *Client) []*Client {
-	tLog.Debug("hub.exclude, entering")
 	cOut := make([]*Client, 0)
 	for _, c := range cs {
 		if c != cx {
 			cOut = append(cOut, c)
 		}
 	}
-	tLog.Debug("hub.exclude, exiting")
 	return cOut
 }
 
