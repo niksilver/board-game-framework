@@ -129,6 +129,7 @@ func (c *Client) Start() {
 	})
 
 	// Start processing messages from the inside
+	tLog.Debug("client.start, adding for receiveInt")
 	wg.Add(1)
 	go c.receiveInt()
 	// Post a welcome message
@@ -143,12 +144,14 @@ func (c *Client) Start() {
 	// Add ourselves to our hub
 	c.Hub.Add(c)
 	// Start processing messages from the outside
+	tLog.Debug("client.start, adding for receiveExt")
 	wg.Add(1)
 	go c.receiveExt()
 }
 
 // receiveExt is a goroutine that acts on external messages coming in.
 func (c *Client) receiveExt() {
+	defer tLog.Debug("client.receiveExt, goroutine done")
 	defer wg.Done()
 	defer c.Websocket.Close()
 
@@ -176,6 +179,7 @@ func (c *Client) receiveExt() {
 // receiveInt is a goroutine that acts on messages that have come from
 // a hub (internally), and sends them out.
 func (c *Client) receiveInt() {
+	defer tLog.Debug("client.receiveInt, goroutine done")
 	defer wg.Done()
 
 	// Keep receiving internal messages

@@ -28,6 +28,9 @@ func TestClient_CreatesNewID(t *testing.T) {
 	if clientID == "" {
 		t.Errorf("clientID cookie is empty or not defined")
 	}
+
+	// Check everything in the main app finishes
+	wg.Wait()
 }
 
 func TestClient_ClientIDCookieIsPersistent(t *testing.T) {

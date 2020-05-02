@@ -121,6 +121,7 @@ func (h *Hub) ClientIDs() []string {
 
 // Start starts goroutines running that process the messages.
 func (h *Hub) Start() {
+	tLog.Debug("hub.Start, adding for receiveInt")
 	wg.Add(1)
 	go h.receiveInt()
 }
@@ -128,6 +129,7 @@ func (h *Hub) Start() {
 // receiveInt is a goroutine that listens for pending messages, and sends
 // them out to the relevant clients.
 func (h *Hub) receiveInt() {
+	defer tLog.Debug("hub.receiveInt, goroutine done")
 	defer wg.Done()
 	for {
 		select {
