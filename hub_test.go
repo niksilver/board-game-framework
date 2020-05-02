@@ -273,6 +273,14 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Got something while expecting no message: %s", err.Error())
 	}
+
+	// Tidy up and heck everything in the main app finishes
+	tLog.Debug("TestHub_BouncesToOtherClients, closing off")
+	ws1.Close()
+	ws2.Close()
+	ws3.Close()
+	tLog.Debug("TestHub_BouncesToOtherClients, waiting on group")
+	wg.Wait()
 }
 
 func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
