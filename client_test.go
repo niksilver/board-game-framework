@@ -89,14 +89,16 @@ func TestClient_ReusesOldId(t *testing.T) {
 
 func TestClient_NewIDsAreDifferent(t *testing.T) {
 	usedIDs := make(map[string]bool)
+	wss := make([]*websocket.Conn, 100)
 
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < len(wss); i++ {
 		// Get a new client connection
 		ws, resp, err := dial(serv, "/cl.new.ids.different", "")
-		defer ws.Close()
+		wss[i] = ws
+		defer wss[i].Close()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -117,6 +119,14 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 
 		usedIDs[clientID] = true
 	}
+
+	// Tidy up, and check everything in the main app finishes
+	for i, ws := range wss {
+		tLog.Debug("TestClient_CreatesNewID, closing at end", "i", i)
+		ws.Close()
+	}
+	tLog.Debug("TestClient_CreatesNewID, waiting on application")
+	wg.Wait()
 }
 
 func TestClient_SendsPings(t *testing.T) {
