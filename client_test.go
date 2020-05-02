@@ -191,7 +191,6 @@ func TestClient_SendsPings(t *testing.T) {
 
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
-	tLog.Debug("TestClient_SendsPings: Waiting for wait groups....")
 	wg.Wait()
 }
 
@@ -228,6 +227,10 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 	if rr.err == nil {
 		t.Errorf("Wrongly got data from peer")
 	}
+
+	// Tidy up, and check everything in the main app finishes
+	ws.Close()
+	wg.Wait()
 }
 
 func TestClient_SendsWelcome(t *testing.T) {
