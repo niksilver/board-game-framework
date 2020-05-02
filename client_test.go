@@ -515,27 +515,27 @@ func TestClient_ExcessiveMessageWillCloseConnection(t *testing.T) {
 	defer serv.Close()
 
 	// Connect the client, and consume the welcome message
-	ws1, _, err := dial(serv, "/cl.excess.message", "EXCESS1")
-	defer ws1.Close()
+	ws, _, err := dial(serv, "/cl.excess.message", "EXCESS1")
+	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws1 := newTConn(ws1)
+	tws := newTConn(ws)
 	if err = swallowMany(
-		intentExp{"WF1 joining, ws1", tws1, "Welcome"},
+		intentExp{"WF1 joining", tws, "Welcome"},
 	); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create 100k message, and send that. It should fail at some point
 	msg := make([]byte, 100*1024)
-	err = ws1.WriteMessage(websocket.BinaryMessage, msg)
+	err = ws.WriteMessage(websocket.BinaryMessage, msg)
 	if err != nil {
 		// We got an error, and that's probably okay
 	}
 
 	// Reading should tell us the connection has been closed by peer
-	rr, timedOut := tws1.readMessage(500)
+	rr, timedOut := tws.readMessage(500)
 	if timedOut {
 		t.Fatal("Timed out reading, but should have got an immediate close")
 	}
@@ -553,6 +553,6 @@ func TestClient_ExcessiveMessageWillCloseConnection(t *testing.T) {
 	}
 
 	// Tidy up, and check everything in the main app finishes
-	ws1.Close()
+	ws.Close()
 	wg.Wait()
 }
