@@ -271,6 +271,10 @@ func TestClient_SendsWelcome(t *testing.T) {
 			env.To,
 		)
 	}
+
+	// Tidy up, and check everything in the main app finishes
+	ws.Close()
+	wg.Wait()
 }
 
 func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
