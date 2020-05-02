@@ -154,10 +154,8 @@ func (c *tConn) readMessage(timeout int) (readRes, bool) {
 	if c.readRes == nil {
 		// We're not already running a read, so let's start one
 		c.readRes = make(chan readRes)
-		tLog.Debug("testutils.readMessage, adding for read")
 		wg.Add(1)
 		go func() {
-			defer tLog.Debug("testutils.readMessage, goroutine done")
 			defer wg.Done()
 			mType, msg, err := c.ws.ReadMessage()
 			c.readRes <- readRes{mType, msg, err}

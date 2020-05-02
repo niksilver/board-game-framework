@@ -188,6 +188,11 @@ func TestClient_SendsPings(t *testing.T) {
 	}
 
 	w.Wait()
+
+	// Tidy up, and check everything in the main app finishes
+	ws.Close()
+	tLog.Debug("TestClient_SendsPings: Waiting for wait groups....")
+	wg.Wait()
 }
 
 func TestClient_DisconnectsIfNoPongs(t *testing.T) {
