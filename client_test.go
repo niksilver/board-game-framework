@@ -80,6 +80,11 @@ func TestClient_ReusesOldId(t *testing.T) {
 			clientID,
 			initialClientID)
 	}
+
+	// Tidy up, and check everything in the main app finishes
+	ws.Close()
+	tLog.Debug("TestClient_CreatesNewID, waiting on application")
+	wg.Wait()
 }
 
 func TestClient_NewIDsAreDifferent(t *testing.T) {
