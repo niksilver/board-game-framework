@@ -54,6 +54,11 @@ func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
 			maxAge,
 		)
 	}
+
+	// Tidy up, and check everything in the main app finishes
+	ws.Close()
+	tLog.Debug("TestClient_CreatesNewID, waiting on application")
+	wg.Wait()
 }
 
 func TestClient_ReusesOldId(t *testing.T) {
