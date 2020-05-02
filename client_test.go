@@ -551,4 +551,8 @@ func TestClient_ExcessiveMessageWillCloseConnection(t *testing.T) {
 			rr.err.Error(),
 		)
 	}
+
+	// Tidy up, and check everything in the main app finishes
+	ws1.Close()
+	wg.Wait()
 }
