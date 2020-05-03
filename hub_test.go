@@ -7,16 +7,16 @@ package main
 import (
 	"encoding/json"
 	//"math/rand"
-	//"sort"
-	//"strconv"
-	//"sync"
+	"sort"
+	"strconv"
+	"sync"
 	"testing"
 	//"time"
 
 	"github.com/gorilla/websocket"
 )
 
-/*func TestHub_CanAddAndGetClients(t *testing.T) {
+func TestHub_CanAddAndGetClients(t *testing.T) {
 	hub := NewHub()
 
 	// A new Hub should have no clients
@@ -152,7 +152,7 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 	// Check everything in this test and the main app finishes
 	w.Wait()
 	wg.Wait()
-}*/
+}
 
 func TestHub_BouncesToOtherClients(t *testing.T) {
 	serv := newTestServer(bounceHandler)

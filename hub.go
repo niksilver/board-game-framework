@@ -94,10 +94,7 @@ func (h *Hub) NumClients() int {
 
 // Clients returns a new slice with all the Hub's Clients.
 func (h *Hub) Clients() []*Client {
-	tLog.Debug("hub.Clients, entering")
-	defer tLog.Debug("hub.Clients, exiting")
 	h.cMux.RLock()
-	tLog.Debug("hub.Clients, got read lock")
 	defer h.cMux.RUnlock()
 
 	cs := make([]*Client, 0, len(h.clients))
