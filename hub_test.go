@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"sync"
 	"testing"
-	//"time"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -284,7 +284,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	wg.Wait()
 }
 
-/*func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
+func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -305,7 +305,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws1 := newTConn(ws1)
+	tws1 := newTConn(ws1, "EN1")
 	if err := tws1.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws1: %s", err)
 	}
@@ -317,7 +317,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws2 := newTConn(ws2)
+	tws2 := newTConn(ws2, "EN2")
 	if err = swallowMany(
 		intentExp{"EN2 joining, ws2", tws2, "Welcome"},
 		intentExp{"EN2 joining, ws1", tws1, "Joiner"},
@@ -332,7 +332,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws3 := newTConn(ws3)
+	tws3 := newTConn(ws3, "EN3")
 	if err = swallowMany(
 		intentExp{"EN3 joining, ws3", tws3, "Welcome"},
 		intentExp{"EN3 joining, ws1", tws1, "Joiner"},
@@ -402,11 +402,19 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	if string(env.Intent) != "Peer" {
 		t.Errorf("Envelope intent not as expected, got '%s', expected 'Peer", env.Intent)
 	}
+
+	// Tidy up and heck everything in the main app finishes
+	tLog.Debug("TestHub_BasicMessageEnvelopeIsCorrect, closing off")
+	tws1.close()
+	tws2.close()
+	tws3.close()
+	tLog.Debug("TestHub_BasicMessageEnvelopeIsCorrect, waiting on group")
+	wg.Wait()
 }
 
 // A test for general connecting, disconnecting and message sending...
 // This just needs to run and not deadlock.
-func TestHub_GeneralChaos(t *testing.T) {
+/*func TestHub_GeneralChaos(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	cMap := make(map[string]*websocket.Conn)
 	cSlice := make([]string, 0)
