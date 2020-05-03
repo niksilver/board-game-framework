@@ -5,14 +5,15 @@
 package main
 
 import (
-	//"encoding/json"
+	"encoding/json"
 	//"math/rand"
 	//"sort"
 	//"strconv"
 	//"sync"
 	"testing"
 	//"time"
-	//"github.com/gorilla/websocket"
+
+	"github.com/gorilla/websocket"
 )
 
 /*func TestHub_CanAddAndGetClients(t *testing.T) {
@@ -181,7 +182,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 
 	// Client 2 joins, and client 1 gets a joiner message
 
-	/*ws2, _, err := dial(serv, game, "CL2")
+	ws2, _, err := dial(serv, game, "CL2")
 	defer ws2.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -217,7 +218,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 
 	// Send 10 messages from client 1
 
-	/*for i := 0; i < 10; i++ {
+	for i := 0; i < 10; i++ {
 		msg := []byte(msgs[i])
 		if err := ws1.WriteMessage(websocket.BinaryMessage, msg); err != nil {
 			t.Fatalf("Write error for message %d: %s", i, err)
@@ -264,7 +265,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 				i, env.Body, msgs[i],
 			)
 		}
-	}*/
+	}
 
 	// We expect no messages from client 1. It should timeout while waiting
 
@@ -273,13 +274,12 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Got something while expecting no message: %s", err.Error())
 	}
-	//_, _ = tws1.readMessage(1000)
 
 	// Tidy up and heck everything in the main app finishes
 	tLog.Debug("TestHub_BouncesToOtherClients, closing off")
 	tws1.close()
-	//ws2.Close()
-	//ws3.Close()
+	tws2.close()
+	tws3.close()
 	tLog.Debug("TestHub_BouncesToOtherClients, waiting on group")
 	wg.Wait()
 }
