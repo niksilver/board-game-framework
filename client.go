@@ -153,6 +153,7 @@ func (c *Client) Start() {
 func (c *Client) receiveExt() {
 	defer tLog.Debug("client.receiveExt, goroutine done", "id", c.ID)
 	defer wg.Done()
+	// NB: Move this to after error reading
 	defer c.Websocket.Close()
 
 	// Read messages until we can no more

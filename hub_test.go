@@ -6,7 +6,7 @@ package main
 
 import (
 	"encoding/json"
-	//"math/rand"
+	"math/rand"
 	"sort"
 	"strconv"
 	"sync"
@@ -275,7 +275,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 		t.Fatalf("Got something while expecting no message: %s", err.Error())
 	}
 
-	// Tidy up and heck everything in the main app finishes
+	// Tidy up and check everything in the main app finishes
 	tLog.Debug("TestHub_BouncesToOtherClients, closing off")
 	tws1.close()
 	tws2.close()
@@ -403,7 +403,7 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 		t.Errorf("Envelope intent not as expected, got '%s', expected 'Peer", env.Intent)
 	}
 
-	// Tidy up and heck everything in the main app finishes
+	// Tidy up and check everything in the main app finishes
 	tLog.Debug("TestHub_BasicMessageEnvelopeIsCorrect, closing off")
 	tws1.close()
 	tws2.close()
@@ -414,7 +414,7 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 
 // A test for general connecting, disconnecting and message sending...
 // This just needs to run and not deadlock.
-/*func TestHub_GeneralChaos(t *testing.T) {
+func TestHub_GeneralChaos(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	cMap := make(map[string]*websocket.Conn)
 	cSlice := make([]string, 0)
@@ -439,7 +439,7 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 		ws.Close()
 	}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100; i++ {
 		action := rand.Float32()
 		cCount := len(cSlice)
 		switch {
@@ -483,14 +483,18 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 		}
 	}
 
-	// Close remaining connections and wait for goroutines
+	// Close remaining connections and wait for test goroutines
 	for _, ws := range cMap {
 		ws.Close()
 	}
 	w.Wait()
+
+	// Check everything in the main app finishes
+	tLog.Debug("TestHub_GeneralChaos, waiting on group")
+	wg.Wait()
 }
 
-func TestHub_JoinerMessagesHappen(t *testing.T) {
+/*func TestHub_JoinerMessagesHappen(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
