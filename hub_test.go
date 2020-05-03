@@ -5,18 +5,17 @@
 package main
 
 import (
-	"encoding/json"
-	"math/rand"
-	"sort"
-	"strconv"
-	"sync"
+	//"encoding/json"
+	//"math/rand"
+	//"sort"
+	//"strconv"
+	//"sync"
 	"testing"
-	"time"
-
-	"github.com/gorilla/websocket"
+	//"time"
+	//"github.com/gorilla/websocket"
 )
 
-func TestHub_CanAddAndGetClients(t *testing.T) {
+/*func TestHub_CanAddAndGetClients(t *testing.T) {
 	hub := NewHub()
 
 	// A new Hub should have no clients
@@ -152,7 +151,7 @@ func TestHub_ClientReadWriteIsConcurrencySafe(t *testing.T) {
 	// Check everything in this test and the main app finishes
 	w.Wait()
 	wg.Wait()
-}
+}*/
 
 func TestHub_BouncesToOtherClients(t *testing.T) {
 	serv := newTestServer(bounceHandler)
@@ -175,19 +174,19 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws1 := newTConn(ws1)
+	tws1 := newTConn(ws1, "CL1")
 	if err := tws1.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws1: %s", err)
 	}
 
 	// Client 2 joins, and client 1 gets a joiner message
 
-	ws2, _, err := dial(serv, game, "CL2")
+	/*ws2, _, err := dial(serv, game, "CL2")
 	defer ws2.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws2 := newTConn(ws2)
+	tws2 := newTConn(ws2, "CL2")
 	if err = swallowMany(
 		intentExp{"CL2 joining, ws2", tws2, "Welcome"},
 		intentExp{"CL2 joining, ws1", tws1, "Joiner"},
@@ -202,7 +201,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws3 := newTConn(ws3)
+	tws3 := newTConn(ws3, "CL3")
 	if err = swallowMany(
 		intentExp{"CL3 joining, ws2", tws3, "Welcome"},
 		intentExp{"CL3 joining, ws1", tws1, "Joiner"},
@@ -218,7 +217,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 
 	// Send 10 messages from client 1
 
-	for i := 0; i < 10; i++ {
+	/*for i := 0; i < 10; i++ {
 		msg := []byte(msgs[i])
 		if err := ws1.WriteMessage(websocket.BinaryMessage, msg); err != nil {
 			t.Fatalf("Write error for message %d: %s", i, err)
@@ -265,25 +264,27 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 				i, env.Body, msgs[i],
 			)
 		}
-	}
+	}*/
 
 	// We expect no messages from client 1. It should timeout while waiting
 
+	tLog.Debug("TestHub_BouncesToOtherClients, expecting no message")
 	err = tws1.expectNoMessage(1000)
 	if err != nil {
 		t.Fatalf("Got something while expecting no message: %s", err.Error())
 	}
+	//_, _ = tws1.readMessage(1000)
 
 	// Tidy up and heck everything in the main app finishes
 	tLog.Debug("TestHub_BouncesToOtherClients, closing off")
-	ws1.Close()
-	ws2.Close()
-	ws3.Close()
+	tws1.close()
+	//ws2.Close()
+	//ws3.Close()
 	tLog.Debug("TestHub_BouncesToOtherClients, waiting on group")
 	wg.Wait()
 }
 
-func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
+/*func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -619,4 +620,4 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
+}*/

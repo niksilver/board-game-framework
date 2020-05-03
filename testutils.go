@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -20,8 +21,10 @@ import (
 
 // tConn is a websocket.Conn whose ReadMessage can time out safely
 type tConn struct {
-	ws      *websocket.Conn
-	readRes chan readRes
+	ws       *websocket.Conn
+	readRes  chan readRes
+	id       string
+	chReadMx sync.Mutex // Ensure only one func reads from readRes at a time
 }
 
 // A combined ReadMessage result that can be put into a channel.
@@ -135,11 +138,13 @@ func waitForClient(hubName string, id string) {
 }
 
 // newTConn creates a new timeoutable connection from the given one.
-func newTConn(ws *websocket.Conn) *tConn {
+func newTConn(ws *websocket.Conn, id string) *tConn {
 	return &tConn{
 		ws: ws,
 		// If this is not nil it means a readMessage call is in flight
-		readRes: nil,
+		readRes:  nil,
+		id:       id,
+		chReadMx: sync.Mutex{},
 	}
 }
 
@@ -149,20 +154,29 @@ func newTConn(ws *websocket.Conn) *tConn {
 // The result of the read may still include a read error.
 // If using a `tConn` to read and if it times out, then the next
 // read should also be using the `tConn`, not the usual `websocket.Conn`,
-// because behind the scenes the read operation will still be in progress.
+// and it should be closed using `tConn.close()`. This is
+// because behind the scenes the read operation will still be in progress,
+// and needs to be reused or tidied up.
 func (c *tConn) readMessage(timeout int) (readRes, bool) {
 	if c.readRes == nil {
 		// We're not already running a read, so let's start one
 		c.readRes = make(chan readRes)
 		wg.Add(1)
+		tLog.Debug("tConn.readMessage, entering goroutine", "id", c.id)
 		go func() {
+			defer tLog.Debug("tConn.readMessage, exited goroutine", "id", c.id)
 			defer wg.Done()
+			tLog.Debug("tConn.readMessage, reading", "id", c.id)
 			mType, msg, err := c.ws.ReadMessage()
+			tLog.Debug("tConn.readMessage, sending result", "msg", msg, "error", err, "id", c.id)
 			c.readRes <- readRes{mType, msg, err}
+			tLog.Debug("tConn.readMessage, sent result", "id", c.id)
 		}()
 	}
 	// Now wait for a result or a timeout
 	timeoutC := time.After(time.Duration(timeout) * time.Millisecond)
+	c.chReadMx.Lock()
+	defer c.chReadMx.Unlock()
 	select {
 	case rr := <-c.readRes:
 		// We've got a result from the readMessage operation
@@ -172,6 +186,39 @@ func (c *tConn) readMessage(timeout int) (readRes, bool) {
 		// We timed out
 		return readRes{}, true
 	}
+}
+
+// close the `tConn`. Always use this to close the connection, instead
+// of the `Conn.Close()`.
+func (c *tConn) close() {
+	tLog.Debug("tConn.close, entering", "id", c.id)
+	tLog.Debug("tConn.close, closing conn", "id", c.id)
+	c.ws.Close()
+	// If tConn.readMessage is running we want to ensure sending to
+	// c.readRes doesn't block.
+	// We want to ensure readMessage won't block while sending to c.readRes.
+	// That won't happen if c.readRes is nil.
+	// But if c.readRes isn't nil it's because either
+	// (i) readMessage is going to consume it and pass it back, or
+	// (ii) it's sitting there waiting for the next readMessage call.
+	// In the first case readMessage will have the lock, and release the
+	// lock only after consuming it.
+	// In the second case we can grab the lock then consume it.
+	if c.readRes != nil {
+		tLog.Debug("tConn.close, locking channel read", "id", c.id)
+		c.chReadMx.Lock()
+		// Now either the message has been consumed and the channel is nil,
+		// or there is a message waiting to be consumed.
+		if c.readRes != nil {
+			tLog.Debug("tConn.close, consuming from channel", "id", c.id)
+			<-c.readRes
+			tLog.Debug("tConn.close, consumed from channel", "id", c.id)
+			c.readRes = nil
+		}
+		tLog.Debug("tConn.close, unlocking channel read", "id", c.id)
+		c.chReadMx.Unlock()
+	}
+	tLog.Debug("tConn.close, exiting", "id", c.id)
 }
 
 // swallowIntentMessage expects the next message to be of the given intent.
