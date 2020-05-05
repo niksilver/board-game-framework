@@ -154,9 +154,7 @@ func TestClient_SendsPings(t *testing.T) {
 	// Set a timer for 3 seconds
 	timeout := time.After(3 * time.Second)
 
-	// Wait for the client to have connected
-	// We'll assume we don't need this, and the client connects quickly
-	//waitForClient("/cl.sends.pings", "pingtester")
+	// We'll assume the client connects reasonably quickly
 
 	// In the background loop until we get three pings, an error, or a timeout
 	w := sync.WaitGroup{}

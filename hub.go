@@ -55,68 +55,6 @@ func NewHub() *Hub {
 	}
 }
 
-/*// Add adds a new Client into the Hub and triggers a joiner message.
-func (h *Hub) add(c *Client) {
-	h.cMux.Lock()
-	h.clients[c] = true
-	h.cMux.Unlock()
-
-	if c.Websocket != nil {
-		// Only do this if we've got a real client
-		h.Joiners <- c
-	}
-}*/
-
-/*// Remove removed a client from the hub.
-func (h *Hub) remove(c *Client) {
-	h.cMux.Lock()
-	defer h.cMux.Unlock()
-
-	delete(h.clients, c)
-}*/
-
-/*// HasClient checks if the client is known to the hub.
-func (h *Hub) hasClient(c *Client) bool {
-    h.cMux.RLock()
-    defer h.cMux.RUnlock()
-
-    return h.clients[c]
-}*/
-
-/*// NumClients returns the number of clients in the hub.
-func (h *Hub) NumClients() int {
-	h.cMux.RLock()
-	defer h.cMux.RUnlock()
-
-	return len(h.clients)
-}*/
-
-/*// Clients returns a new slice with all the Hub's Clients.
-func (h *Hub) Clients() []*Client {
-	h.cMux.RLock()
-	defer h.cMux.RUnlock()
-
-	cs := make([]*Client, 0, len(h.clients))
-	for c := range h.clients {
-		cs = append(cs, c)
-	}
-
-	return cs
-}*/
-
-/*// ClientIDs returns a new slice with all the Hub's client IDs.
-func (h *Hub) ClientIDs() []string {
-	h.cMux.RLock()
-	defer h.cMux.RUnlock()
-
-	cs := make([]string, 0, len(h.clients))
-	for c := range h.clients {
-		cs = append(cs, c.ID)
-	}
-
-	return cs
-}*/
-
 // Start starts goroutines running that process the messages.
 func (h *Hub) Start() {
 	tLog.Debug("hub.Start, adding for receiveInt")
