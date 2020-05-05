@@ -5,18 +5,18 @@
 package main
 
 import (
-//"encoding/json"
-//"math/rand"
-//"sort"
-//"strconv"
-//"sync"
-//"testing"
-//"time"
+	"encoding/json"
+	//"math/rand"
+	//"sort"
+	//"strconv"
+	//"sync"
+	"testing"
+	//"time"
 
-//"github.com/gorilla/websocket"
+	"github.com/gorilla/websocket"
 )
 
-/*func TestHub_BouncesToOtherClients(t *testing.T) {
+func TestHub_BouncesToOtherClients(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -146,7 +146,7 @@ import (
 	wg.Wait()
 }
 
-func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
+/*func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
