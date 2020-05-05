@@ -15,6 +15,128 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func TestHub_SendsWelcome(t *testing.T) {
+	serv := newTestServer(bounceHandler)
+	defer serv.Close()
+
+	// Connect to the server
+	ws, _, err := dial(serv, "/hub.sends.welcome", "WTESTER")
+	defer ws.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws := newTConn(ws, "WTESTER")
+
+	// Read the next message, expected within 500ms
+	rr, timedOut := tws.readMessage(500)
+	if timedOut {
+		t.Fatal("Timed out waiting for welcome message")
+	}
+	if rr.err != nil {
+		t.Fatalf("Error waiting for welcome message: %s", rr.err.Error())
+	}
+
+	// Unwrap the message and check it
+
+	env := Envelope{}
+	err = json.Unmarshal(rr.msg, &env)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if env.Intent != "Welcome" {
+		t.Errorf("Message intent was '%s' but expected 'Welcome'", env.Intent)
+	}
+	if !sameElements(env.To, []string{"WTESTER"}) {
+		t.Errorf(
+			"Message To field was %v but expected [\"WTESTER\"]",
+			env.To,
+		)
+	}
+
+	// Tidy up, and check everything in the main app finishes
+	ws.Close()
+	wg.Wait()
+}
+
+func TestHub_WelcomeIsFromExistingClients(t *testing.T) {
+	serv := newTestServer(bounceHandler)
+	defer serv.Close()
+
+	// Connect 3 clients in turn. Each existing client should
+	// receive a joiner message about each new client.
+
+	game := "/hub.welcome.from.existing"
+
+	// Connect the first client, and consume the welcome message
+	ws1, _, err := dial(serv, game, "WF1")
+	defer ws1.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws1 := newTConn(ws1, "WF1")
+	if err = swallowMany(
+		intentExp{"WF1 joining, ws1", tws1, "Welcome"},
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Connect the second client, and consume intro messages
+	ws2, _, err := dial(serv, game, "WF2")
+	defer ws2.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws2 := newTConn(ws2, "WF2")
+	if err = swallowMany(
+		intentExp{"WF2 joining, ws2", tws2, "Welcome"},
+		intentExp{"WF2 joining, ws1", tws1, "Joiner"},
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Connect the third client
+	ws3, _, err := dial(serv, game, "WF3")
+	defer ws3.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws3 := newTConn(ws3, "WF3")
+
+	// Get what we expect to be the the welcome message
+	rr, timedOut := tws3.readMessage(500)
+	if timedOut {
+		t.Fatal("Timed out reading message from ws3")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Unwrap the message and check it
+
+	env := Envelope{}
+	err = json.Unmarshal(rr.msg, &env)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if env.Intent != "Welcome" {
+		t.Errorf("Message intent was '%s' but expected 'Welcome'", env.Intent)
+	}
+	if !sameElements(env.From, []string{"WF1", "WF2"}) {
+		t.Errorf(
+			"Message From field was %v but expected it to be [WF1, WF2]",
+			env.From,
+		)
+	}
+
+	// Tidy up, and check everything in the main app finishes
+	ws1.Close()
+	ws2.Close()
+	ws3.Close()
+	wg.Wait()
+}
+
 func TestHub_BouncesToOtherClients(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()

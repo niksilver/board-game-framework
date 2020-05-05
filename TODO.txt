@@ -1,4 +1,5 @@
 - Allow a maximum number of clients in one game.
+- Add a message count to the envelope.
 - Ensure App Engine runs with only one instance.
 - Store game state locally.
 - Send a server message to sender if message to be sent is too large
