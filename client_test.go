@@ -6,13 +6,13 @@ package main
 
 import (
 	//"encoding/json"
-	//"sync"
+	"sync"
 	"testing"
-	//"time"
+	"time"
 	//"github.com/gorilla/websocket"
 )
 
-func TestClient_CreatesNewID(t *testing.T) {
+/*func TestClient_CreatesNewID(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -33,7 +33,7 @@ func TestClient_CreatesNewID(t *testing.T) {
 	wg.Wait()
 }
 
-/*func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
+func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -84,8 +84,8 @@ func TestClient_ReusesOldId(t *testing.T) {
 
 func TestClient_NewIDsAreDifferent(t *testing.T) {
 	usedIDs := make(map[string]bool)
-	cIDs := make([]string, 100)
-	wss := make([]*websocket.Conn, 100)
+	cIDs := make([]string, 2)
+	wss := make([]*websocket.Conn, 2)
 
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
@@ -122,7 +122,7 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 		ws.Close()
 	}
 	wg.Wait()
-}
+}*/
 
 func TestClient_SendsPings(t *testing.T) {
 	// We'll send pings every 500ms, and wait for 3 seconds to receive
@@ -142,7 +142,7 @@ func TestClient_SendsPings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws := newTConn(ws)
+	tws := newTConn(ws, "ws")
 
 	// Signal pings
 	pingC := make(chan bool)
@@ -155,7 +155,7 @@ func TestClient_SendsPings(t *testing.T) {
 	timeout := time.After(3 * time.Second)
 
 	// Wait for the client to have connected
-	waitForClient("/cl.sends.pings", "pingtester")
+	//waitForClient("/cl.sends.pings", "pingtester")
 
 	// In the background loop until we get three pings, an error, or a timeout
 	w := sync.WaitGroup{}
@@ -193,7 +193,7 @@ func TestClient_SendsPings(t *testing.T) {
 	wg.Wait()
 }
 
-func TestClient_DisconnectsIfNoPongs(t *testing.T) {
+/*func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 	// Give the bounceHandler a very short pong timeout (just for this test)
 	oldPongTimeout := pongTimeout
 	pongTimeout = 500 * time.Millisecond

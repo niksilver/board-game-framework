@@ -42,7 +42,7 @@ func (sh *Superhub) Hub(name string) *Hub {
 	tLog.Debug("superhub.Hub, new hub", "name", name)
 	h := NewHub()
 	sh.hubs[name] = h
-	sh.counts[h] = 0
+	sh.counts[h] = 1
 	sh.names[h] = name
 	tLog.Debug("superhub.Hub, starting hub", "name", name)
 	h.Start()

@@ -1,19 +1,19 @@
 package main
 
 import (
-	"math/rand"
-	"strconv"
-	"sync"
-	"testing"
-	"time"
+/*"math/rand"
+"strconv"
+"sync"
+"testing"
+"time"
 
-	"github.com/gorilla/websocket"
+"github.com/gorilla/websocket"*/
 )
 
 // A test for general connecting, disconnecting and message sending,
 // but ensuring the superhub removes all clients.
 // This just needs to run and not deadlock.
-func TestSuperhub_LotsOfActivityEndsWithEmptySuperHub(t *testing.T) {
+/*func TestSuperhub_LotsOfActivityEndsWithEmptySuperHub(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	cMap := make(map[string]*websocket.Conn)
 	cSlice := make([]string, 0)
@@ -99,4 +99,4 @@ func TestSuperhub_LotsOfActivityEndsWithEmptySuperHub(t *testing.T) {
 		"TestSuperhub_LotsOfActivity, exiting",
 		"superhub count", shub.Count(),
 	)
-}
+}*/

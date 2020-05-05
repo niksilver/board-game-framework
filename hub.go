@@ -127,6 +127,7 @@ func (h *Hub) Start() {
 func (h *Hub) receiveInt() {
 	defer tLog.Debug("hub.receiveInt, goroutine done")
 	defer wg.Done()
+	tLog.Debug("hub.receiveInt, entering")
 
 	for !h.Detached {
 		tLog.Debug("hub.receiveInt, selecting")
