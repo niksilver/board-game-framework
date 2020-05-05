@@ -5,9 +5,8 @@
 package main
 
 import (
-	//"encoding/json"
+	"encoding/json"
 	"math/rand"
-	//"sort"
 	"strconv"
 	"sync"
 	"testing"
@@ -16,7 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-/*func TestHub_BouncesToOtherClients(t *testing.T) {
+func TestHub_BouncesToOtherClients(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -272,7 +271,7 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	tws3.close()
 	tLog.Debug("TestHub_BasicMessageEnvelopeIsCorrect, waiting on group")
 	wg.Wait()
-}*/
+}
 
 // A test for general connecting, disconnecting and message sending...
 // This just needs to run and not deadlock.
@@ -356,7 +355,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 	wg.Wait()
 }
 
-/*func TestHub_JoinerMessagesHappen(t *testing.T) {
+func TestHub_JoinerMessagesHappen(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -371,7 +370,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws1 := newTConn(ws1)
+	tws1 := newTConn(ws1, "JM1")
 	if err := tws1.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws1: %s", err)
 	}
@@ -382,7 +381,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws2 := newTConn(ws2)
+	tws2 := newTConn(ws2, "JM2")
 	if err := tws2.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for ws2: %s", err)
 	}
@@ -428,7 +427,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws3 := newTConn(ws3)
+	tws3 := newTConn(ws3, "JM3")
 	if err := tws3.swallowIntentMessage("Welcome"); err != nil {
 		t.Fatalf("Welcome error for tws3: %s", err)
 	}
@@ -494,4 +493,4 @@ func TestHub_GeneralChaos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}*/
+}
