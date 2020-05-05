@@ -115,28 +115,6 @@ func cookieRequestHeader(name string, value string) http.Header {
 	return header
 }
 
-/* // waitForEmptyHub wait for up to 2 seconds for the hub to be emptied
-// or reports an test failure.
-func waitForEmptyHub(desc string, h *Hub, t *testing.T) {
-	deadline := time.Now().Add(2 * time.Second)
-	for h.NumClients() > 0 {
-		if time.Now().After(deadline) {
-			t.Errorf("%s: Timeout waiting for hub to empty", desc)
-			break
-		}
-	}
-}*/
-
-/*// waitForClient waits for the named client to be added to the given hub.
-func waitForClient(hubName string, id string) {
-	for !shub.hasHub(hubName) {
-		// Keep waiting for the hub to be added to the superhub
-	}
-	for !shub.hub(hubName).HasClient(id) {
-		// Keep waiting for the client to be added to the hub
-	}
-}*/
-
 // newTConn creates a new timeoutable connection from the given one.
 func newTConn(ws *websocket.Conn, id string) *tConn {
 	return &tConn{
