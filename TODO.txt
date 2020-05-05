@@ -1,10 +1,4 @@
-- Check a client leaver message can't get there before its joiner message.
-- Explore wait groups to check the superhub really does empty
-  when it should.
 - Allow a maximum number of clients in one game.
-- Send a server message when a client leaves (intent "Leaver").
-- Server to detect which game a client wants.
-- Server to reject a client request with no game/group specified.
 - Ensure App Engine runs with only one instance.
 - Store game state locally.
 - Send a server message to sender if message to be sent is too large
@@ -45,3 +39,8 @@ DONE:
 - The connection closes if a client sends a message over 60 kilobytes.
 - Put clients into a hub per group/game.
 - Hub to remove itself from superhub when it has no clients.
+- Explore wait groups to check the superhub really does empty
+  when it should.
+- Send a server message when a client leaves (intent "Leaver").
+- Server to detect which game a client wants.
+- Server to reject a client request with no game/group specified.

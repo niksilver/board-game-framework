@@ -48,7 +48,7 @@ func main() {
 // bounceHandler sets up a websocket to bounce whatever it receives to
 // other clients in the same game.
 func bounceHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "" {
+	if r.URL.Path == "" || r.URL.Path == "/" {
 		http.NotFound(w, r)
 		return
 	}
