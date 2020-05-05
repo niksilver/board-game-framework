@@ -5,18 +5,18 @@
 package main
 
 import (
-	"encoding/json"
-	//"math/rand"
+	//"encoding/json"
+	"math/rand"
 	//"sort"
-	//"strconv"
-	//"sync"
+	"strconv"
+	"sync"
 	"testing"
-	//"time"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-func TestHub_BouncesToOtherClients(t *testing.T) {
+/*func TestHub_BouncesToOtherClients(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -146,7 +146,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	wg.Wait()
 }
 
-/*func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
+func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -272,7 +272,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	tws3.close()
 	tLog.Debug("TestHub_BasicMessageEnvelopeIsCorrect, waiting on group")
 	wg.Wait()
-}
+}*/
 
 // A test for general connecting, disconnecting and message sending...
 // This just needs to run and not deadlock.
@@ -356,7 +356,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 	wg.Wait()
 }
 
-func TestHub_JoinerMessagesHappen(t *testing.T) {
+/*func TestHub_JoinerMessagesHappen(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
