@@ -6,7 +6,7 @@ package main
 
 import (
 	//"encoding/json"
-	"sync"
+	//"sync"
 	"testing"
 	"time"
 	//"github.com/gorilla/websocket"
@@ -122,7 +122,7 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 		ws.Close()
 	}
 	wg.Wait()
-}*/
+}
 
 func TestClient_SendsPings(t *testing.T) {
 	// We'll send pings every 500ms, and wait for 3 seconds to receive
@@ -142,7 +142,7 @@ func TestClient_SendsPings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws := newTConn(ws, "ws")
+	tws := newTConn(ws, "pingtester")
 
 	// Signal pings
 	pingC := make(chan bool)
@@ -192,9 +192,9 @@ func TestClient_SendsPings(t *testing.T) {
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
 	wg.Wait()
-}
+}*/
 
-/*func TestClient_DisconnectsIfNoPongs(t *testing.T) {
+func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 	// Give the bounceHandler a very short pong timeout (just for this test)
 	oldPongTimeout := pongTimeout
 	pongTimeout = 500 * time.Millisecond
@@ -205,12 +205,12 @@ func TestClient_SendsPings(t *testing.T) {
 		serv.Close()
 	}()
 
-	ws, _, err := dial(serv, "/cl.if.no.pongs", "pingtester")
+	ws, _, err := dial(serv, "/cl.if.no.pongs", "pongtester")
 	defer ws.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws := newTConn(ws)
+	tws := newTConn(ws, "pongtester")
 
 	// Wait for the client to have connected, and swallow the "Welcome"
 	// message
@@ -233,7 +233,7 @@ func TestClient_SendsPings(t *testing.T) {
 	wg.Wait()
 }
 
-func TestClient_SendsWelcome(t *testing.T) {
+/*func TestClient_SendsWelcome(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
