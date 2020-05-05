@@ -194,16 +194,19 @@ sendLoop:
 			tLog.Debug("client.sendExt, got pending", "id", c.ID)
 			if !ok {
 				// Channel closed, we need to shut down
+				tLog.Debug("client.sendExt, channel not okay", "id", c.ID)
 				break sendLoop
 			}
 			if err := c.WS.SetWriteDeadline(
 				time.Now().Add(writeTimeout)); err != nil {
 				// Write error, shut down
+				tLog.Debug("client.sendExt, deadline1 error", "id", c.ID, "err", err)
 				break sendLoop
 			}
 			envBytes, err := json.Marshal(m.Env)
 			if err != nil {
 				// This means some internal coding mistake
+				tLog.Debug("client.sendExt, marshalling error", "id", c.ID)
 				c.log.Error(
 					"Envelope marshalling error",
 					"ID", c.ID, "envelope", m.Env, "error", err,
@@ -211,6 +214,7 @@ sendLoop:
 			}
 			if err := c.WS.WriteMessage(m.MType, envBytes); err != nil {
 				// Write error, shut down
+				tLog.Debug("client.sendExt, write1 error", "id", c.ID, "err", err)
 				break sendLoop
 			}
 		case <-c.pinger.C:
@@ -218,11 +222,13 @@ sendLoop:
 			if err := c.WS.SetWriteDeadline(
 				time.Now().Add(writeTimeout)); err != nil {
 				// Write error, shut down
+				tLog.Debug("client.sendExt, deadline2 error", "id", c.ID, "err", err)
 				break sendLoop
 			}
 			if err := c.WS.WriteMessage(
 				websocket.PingMessage, nil); err != nil {
 				// Ping write error, shut down
+				tLog.Debug("client.sendExt, write2 error", "id", c.ID, "err", err)
 				break sendLoop
 			}
 		}

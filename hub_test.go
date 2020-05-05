@@ -294,13 +294,16 @@ func TestHub_GeneralChaos(t *testing.T) {
 			if err == nil {
 				consumed += 1
 			} else {
+				tLog.Debug("Chaos.consume, error reading", "id", id)
 				break
 			}
 		}
+		tLog.Debug("Chaos.consume, closing", "id", id)
 		ws.Close()
+		tLog.Debug("Chaos.consume, closed", "id", id)
 	}
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 1000; i++ {
 		action := rand.Float32()
 		cCount := len(cSlice)
 		switch {
@@ -311,6 +314,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 			defer func() {
 				ws.Close()
 			}()
+			tLog.Debug("Chaos, adding", "id", id)
 			if err != nil {
 				t.Fatalf("Couldn't dial, i=%d, error '%s'", i, err.Error())
 			}
@@ -318,18 +322,22 @@ func TestHub_GeneralChaos(t *testing.T) {
 			cSlice = append(cSlice, id)
 			w.Add(1)
 			go consume(ws, id)
+			tLog.Debug("Chaos, added", "id", id)
 		case cCount > 0 && action >= 0.25 && action < 0.35:
 			// Some client leaves
 			idx := rand.Intn(len(cSlice))
 			id := cSlice[idx]
+			tLog.Debug("Chaos, leaving", "id", id)
 			ws := cMap[id]
 			ws.Close()
 			delete(cMap, id)
 			cSlice = append(cSlice[:idx], cSlice[idx+1:]...)
+			tLog.Debug("Chaos, left", "id", id)
 		case cCount > 0:
 			// Some client sends a message
 			idx := rand.Intn(len(cSlice))
 			id := cSlice[idx]
+			tLog.Debug("Chaos, sending", "id", id)
 			ws := cMap[id]
 			msg := "Message " + strconv.Itoa(i)
 			err := ws.WriteMessage(websocket.BinaryMessage, []byte(msg))
@@ -339,6 +347,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 					i, id, err.Error(),
 				)
 			}
+			tLog.Debug("Chaos, sent", "id", id)
 		default:
 			// Can't take any action
 		}
@@ -493,4 +502,119 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestHub_LeaverMessagesHappen(t *testing.T) {
+	serv := newTestServer(bounceHandler)
+	defer serv.Close()
+
+	// Connect 3 clients in turn. When one leaves the remaining
+	// ones should get leaver messages.
+
+	game := "/hub.joiner.messages"
+
+	// Connect the first client
+	ws1, _, err := dial(serv, game, "LV1")
+	defer ws1.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws1 := newTConn(ws1, "LV1")
+	if err := tws1.swallowIntentMessage("Welcome"); err != nil {
+		t.Fatalf("Welcome error for ws1: %s", err)
+	}
+
+	// Connect the second client
+	ws2, _, err := dial(serv, game, "LV2")
+	defer ws2.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws2 := newTConn(ws2, "LV2")
+	if err = swallowMany(
+		intentExp{"LV2 joining, ws2", tws2, "Welcome"},
+		intentExp{"LV2 joining, ws1", tws1, "Joiner"},
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Connect the third client
+	ws3, _, err := dial(serv, game, "LV3")
+	defer ws3.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tws3 := newTConn(ws3, "JM3")
+	if err = swallowMany(
+		intentExp{"LV3 joining, ws3", tws3, "Welcome"},
+		intentExp{"LV3 joining, ws1", tws1, "Joiner"},
+		intentExp{"LV3 joining, ws2", tws2, "Joiner"},
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Now ws1 will leave, and the others should get leaver messages
+	tws1.close()
+
+	// Let's check the ws2 first
+	rr, timedOut := tws2.readMessage(500)
+	if timedOut {
+		t.Fatal("Timed out reading tws1")
+	}
+	if rr.err != nil {
+		t.Fatal(rr.err)
+	}
+	var env Envelope
+	err = json.Unmarshal(rr.msg, &env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env.Intent != "Leaver" {
+		t.Fatalf("ws2 message isn't a leaver message. env is %#v", env)
+	}
+	if !sameElements(env.From, []string{"LV1"}) {
+		t.Fatalf("ws2 got From field not with just LV1. env is %#v", env)
+	}
+	if !sameElements(env.To, []string{"LV2", "LV3"}) {
+		t.Fatalf("ws2 To field didn't contain LV2 and LV3. env is %#v", env)
+	}
+	if env.Time > time.Now().Unix() {
+		t.Fatalf("ws2 got Time field in the future. env is %#v", env)
+	}
+	if env.Body != nil {
+		t.Fatalf("ws2 got unexpected Body field. env is %#v", env)
+	}
+
+	// Now check the leaver message to ws3
+	rr, timedOut = tws3.readMessage(500)
+	if timedOut {
+		t.Fatal("Timed out reading tws1")
+	}
+	if rr.err != nil {
+		t.Fatal(rr.err)
+	}
+	err = json.Unmarshal(rr.msg, &env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env.Intent != "Leaver" {
+		t.Fatalf("ws3 message isn't a leaver message. env is %#v", env)
+	}
+	if !sameElements(env.From, []string{"LV1"}) {
+		t.Fatalf("ws3 got From field not with just LV1. env is %#v", env)
+	}
+	if !sameElements(env.To, []string{"LV2", "LV3"}) {
+		t.Fatalf("ws3 To field didn't contain LV2 and LV3. env is %#v", env)
+	}
+	if env.Time > time.Now().Unix() {
+		t.Fatalf("ws3 got Time field in the future. env is %#v", env)
+	}
+	if env.Body != nil {
+		t.Fatalf("ws3 got unexpected Body field. env is %#v", env)
+	}
+
+	// Close the remaining connections and wait for all goroutines to finish
+	tws2.close()
+	tws3.close()
+	wg.Wait()
 }

@@ -198,11 +198,19 @@ func (h *Hub) receiveInt() {
 				delete(h.clients, c)
 
 				// Send a leaver message to all other clients
-				msg.Env.To = h.allIDs()
-				msg.Env.Time = time.Now().Unix()
+				msg := &Message{
+					From:  c,
+					MType: websocket.BinaryMessage,
+					Env: &Envelope{
+						From:   []string{c.ID},
+						To:     h.allIDs(),
+						Time:   time.Now().Unix(),
+						Intent: "Leaver",
+					},
+				}
 				tLog.Debug("hub.receiveInt, sending leaver messages")
 				for cl, _ := range h.clients {
-					tLog.Debug("hub.receiveInt, sending msg",
+					tLog.Debug("hub.receiveInt, sending leaver msg",
 						"fromcid", c.ID, "tocid", cl.ID)
 					cl.Pending <- msg
 				}
