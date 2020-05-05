@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"math/rand"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -744,5 +745,76 @@ func TestHub_LeaverMessagesHappen(t *testing.T) {
 	// Close the remaining connections and wait for all goroutines to finish
 	tws2.close()
 	tws3.close()
+	wg.Wait()
+}
+
+func TestHub_SendsErrorOverMaximumClients(t *testing.T) {
+	// Our expected maximum clients
+	twss := make([]*tConn, MaxClients)
+
+	// Start a web server
+	serv := newTestServer(bounceHandler)
+	defer serv.Close()
+
+	// A client should consume messages until done
+	w := sync.WaitGroup{}
+	consume := func(tws *tConn, id string) {
+		defer w.Done()
+		for {
+			rr, timedOut := tws.readMessage(500)
+			if timedOut {
+				tLog.Debug("Max.consume, timed out reading", "id", id)
+				break
+			}
+			if rr.err == nil {
+				// Got a message
+			} else {
+				tLog.Debug("Max.consume, error reading", "id", id)
+				break
+			}
+		}
+		tLog.Debug("Max.consume, closing", "id", id)
+		tws.close()
+		tLog.Debug("Max.consume, closed", "id", id)
+	}
+
+	// Let 50 clients join the game
+	for i := 0; i < MaxClients; i++ {
+		id := "MAX" + strconv.Itoa(i)
+		tLog.Debug("Max, connecting", "id", id)
+		ws, _, err := dial(serv, "/hub.max", id)
+		tws := newTConn(ws, id)
+		defer tws.close()
+		if err != nil {
+			t.Fatalf("Couldn't dial, i=%d, error '%s'", i, err.Error())
+		}
+		twss[i] = tws
+		w.Add(1)
+		go consume(tws, id)
+		tLog.Debug("Max, added", "id", id)
+	}
+
+	// This should produce an error
+	ws, _, err := dial(serv, "/hub.max", "MAXOVER")
+	defer ws.Close()
+	if err == nil {
+		t.Error("Should have got an error on latest client, but didn't")
+	}
+	if err != nil {
+		em := err.Error()
+		if !strings.Contains(em, "Too many clients") {
+			t.Errorf("Got error but with wrong message: %s", em)
+		}
+	}
+
+	// Close connections and wait for test goroutines
+	for _, tws := range twss {
+		tws.close()
+	}
+	w.Wait()
+	ws.Close()
+
+	// Check everything in the main app finishes
+	tLog.Debug("TestHub_...MaximumClients, waiting on group")
 	wg.Wait()
 }

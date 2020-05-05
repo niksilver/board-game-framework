@@ -5,8 +5,11 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 )
+
+const MaxClients = 50
 
 // Superhub gives a hub to a client. The client needs to
 // release the hub when it's done with it.
@@ -29,16 +32,20 @@ func NewSuperhub() *Superhub {
 
 // Hub gets the hub for the given game name. If necessary a new hub
 // will be created and start processing messages.
-func (sh *Superhub) Hub(name string) *Hub {
+// Will return an error if there are too many clients in the game.
+func (sh *Superhub) Hub(name string) (*Hub, error) {
 	sh.mux.Lock()
 	defer sh.mux.Unlock()
 	tLog.Debug("superhub.Hub, giving hub", "name", name)
 
 	if h, okay := sh.hubs[name]; okay {
+		if sh.counts[h] >= MaxClients {
+			return nil, fmt.Errorf("Maximum number of clients in game")
+		}
 		sh.counts[h]++
 		tLog.Debug("superhub.Hub, existing hub",
 			"name", name, "count", sh.counts[h])
-		return h
+		return h, nil
 	}
 
 	tLog.Debug("superhub.Hub, new hub", "name", name)
@@ -50,7 +57,7 @@ func (sh *Superhub) Hub(name string) *Hub {
 	h.Start()
 	tLog.Debug("superhub.Hub, exiting", "name", name)
 
-	return h
+	return h, nil
 }
 
 // Release allows a client to say it is no longer using the given hub.

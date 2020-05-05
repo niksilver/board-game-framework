@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/gorilla/websocket"
 	"github.com/inconshreveable/log15"
 	"github.com/niksilver/board-game-framework/log"
 )
@@ -60,10 +61,29 @@ func bounceHandler(w http.ResponseWriter, r *http.Request) {
 		log.Log.Warn("Upgrade", "error", err)
 		return
 	}
+
+	// Make sure we can get a hub
+	hub, err := shub.Hub(r.URL.Path)
+	tLog.Debug("main, got hub", "id", clientID, "hub", hub, "err", err)
+	if err != nil {
+		tLog.Debug("main, got hub error", "id", clientID, "err", err)
+		msg := websocket.FormatCloseMessage(
+			websocket.CloseNormalClosure, err.Error())
+		if err := ws.WriteMessage(websocket.CloseMessage, msg); err != nil {
+			tLog.Debug("main, got write error", "id", clientID, "err", err)
+			// Ignore write error, we're exiting anyway
+		}
+		if err := ws.Close(); err != nil {
+			tLog.Debug("main, got close error", "id", clientID, "err", err)
+		}
+		//w.WriteHeader(http.StatusServiceUnavailable)
+		//w.Write([]byte(err.Error()))
+		return
+	}
 	c := &Client{
 		ID:      clientID,
 		WS:      ws,
-		Hub:     shub.Hub(r.URL.Path),
+		Hub:     hub,
 		Pending: make(chan *Message),
 	}
 	c.Start()
