@@ -5,7 +5,7 @@
 package main
 
 import (
-	"sync"
+	"fmt"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -13,14 +13,14 @@ import (
 
 // Hub collects all related clients
 type Hub struct {
-	cMux    sync.RWMutex // For reading and writing clients
+	//cMux    sync.RWMutex // For reading and writing clients
 	clients map[*Client]bool
 	// Messages from clients that need to be bounced out.
 	Pending chan *Message
-	// Joiner clients, to trigger joiner messages
-	Joiners chan *Client
-	// The client will send true when it wants the hub to stop using it
-	stopReq chan *Client
+	// For the superhub to say there will be no more joiners
+	Detached bool
+	// For the hub to note to itself it's acknowledged the detachement
+	detachedAck bool
 }
 
 // Message is something that the Hub needs to bounce out to clients
@@ -48,13 +48,13 @@ func NewHub() *Hub {
 	return &Hub{
 		clients: make(map[*Client]bool),
 		Pending: make(chan *Message),
-		Joiners: make(chan *Client),
-		stopReq: make(chan *Client),
+		// The superhub will tell the hub when it has been detached
+		Detached: false,
 	}
 }
 
-// Add adds a new Client into the Hub and triggers a joiner message.
-func (h *Hub) Add(c *Client) {
+/*// Add adds a new Client into the Hub and triggers a joiner message.
+func (h *Hub) add(c *Client) {
 	h.cMux.Lock()
 	h.clients[c] = true
 	h.cMux.Unlock()
@@ -63,36 +63,33 @@ func (h *Hub) Add(c *Client) {
 		// Only do this if we've got a real client
 		h.Joiners <- c
 	}
-}
+}*/
 
-// Remove removed a client from the hub.
-func (h *Hub) Remove(c *Client) {
+/*// Remove removed a client from the hub.
+func (h *Hub) remove(c *Client) {
 	h.cMux.Lock()
 	defer h.cMux.Unlock()
 
 	delete(h.clients, c)
-}
+}*/
 
-// HasClient checks if the client is known to the hub.
-func (h *Hub) HasClient(id string) bool {
-	cs := h.Clients()
-	for _, c := range cs {
-		if c.ID == id {
-			return true
-		}
-	}
-	return false
-}
+/*// HasClient checks if the client is known to the hub.
+func (h *Hub) hasClient(c *Client) bool {
+    h.cMux.RLock()
+    defer h.cMux.RUnlock()
 
-// NumClients returns the number of clients in the hub.
+    return h.clients[c]
+}*/
+
+/*// NumClients returns the number of clients in the hub.
 func (h *Hub) NumClients() int {
 	h.cMux.RLock()
 	defer h.cMux.RUnlock()
 
 	return len(h.clients)
-}
+}*/
 
-// Clients returns a new slice with all the Hub's Clients.
+/*// Clients returns a new slice with all the Hub's Clients.
 func (h *Hub) Clients() []*Client {
 	h.cMux.RLock()
 	defer h.cMux.RUnlock()
@@ -103,9 +100,9 @@ func (h *Hub) Clients() []*Client {
 	}
 
 	return cs
-}
+}*/
 
-// ClientIDs returns a new slice with all the Hub's client IDs.
+/*// ClientIDs returns a new slice with all the Hub's client IDs.
 func (h *Hub) ClientIDs() []string {
 	h.cMux.RLock()
 	defer h.cMux.RUnlock()
@@ -116,7 +113,7 @@ func (h *Hub) ClientIDs() []string {
 	}
 
 	return cs
-}
+}*/
 
 // Start starts goroutines running that process the messages.
 func (h *Hub) Start() {
@@ -130,74 +127,125 @@ func (h *Hub) Start() {
 func (h *Hub) receiveInt() {
 	defer tLog.Debug("hub.receiveInt, goroutine done")
 	defer wg.Done()
-	for {
+
+	for !h.Detached {
 		tLog.Debug("hub.receiveInt, selecting")
-		select {
-		case c := <-h.stopReq:
-			tLog.Debug("hub.receiveInt, got stopReq", "cid", c.ID)
-			// Defend against getting a stop request twice for the same
-			// client. We're not allowed to close a channel twice.
-			if h.clients[c] {
-				tLog.Debug("hub.receiveInt, removing client", "cid", c.ID)
-				h.Remove(c)
-				tLog.Debug("hub.receiveInt, closing c.pending", "cid", c.ID)
-				close(c.Pending)
-				tLog.Debug("hub.receiveInt, closed c.pending", "cid", c.ID)
+		msg := <-h.Pending
+		tLog.Debug("hub.receiveInt, received pending message")
+
+		switch {
+		case !h.clients[msg.From]:
+			// New joiner
+			c := msg.From
+
+			// Send welcome message to joiner
+			tLog.Debug("hub.receiveInt, sending welcome message",
+				"fromcid", c.ID)
+			c.Pending <- &Message{
+				From:  c,
+				MType: websocket.BinaryMessage,
+				Env: &Envelope{
+					To:     []string{c.ID},
+					From:   h.allIDs(),
+					Time:   time.Now().Unix(),
+					Intent: "Welcome",
+				},
 			}
-			if len(h.Clients()) == 0 {
-				// No clients left in the hub
-				tLog.Debug("hub.receiveInt, removing hub", "cid", c.ID)
-				shub.remove(h)
-				tLog.Debug("hub.receiveInt, removed, returning", "cid", c.ID)
-				return
-			}
-			tLog.Debug("hub.receiveInt, processed stop request", "cid", c.ID)
-		case c := <-h.Joiners:
-			tLog.Debug("hub.receiveInt, got joiner", "cid", c.ID)
-			toCls := exclude(h.Clients(), c)
-			tLog.Debug("hub.receiveInt, got toCls")
+
+			// Send joiner message to other clients
 			msg := &Message{
 				From:  c,
 				MType: websocket.BinaryMessage,
 				Env: &Envelope{
 					From:   []string{c.ID},
-					To:     ids(toCls),
+					To:     h.allIDs(),
 					Time:   time.Now().Unix(),
 					Intent: "Joiner",
 				},
 			}
-			tLog.Debug("hub.receiveInt, sending msg toCls")
-			for _, cl := range toCls {
-				tLog.Debug("hub.receiveInt, sending msg", "fromcid", c.ID, "tocid", cl.ID)
+
+			tLog.Debug("hub.receiveInt, sending joiner messages",
+				"fromcid", c.ID)
+			for cl, _ := range h.clients {
+				tLog.Debug("hub.receiveInt, sending msg",
+					"fromcid", c.ID, "tocid", cl.ID)
 				cl.Pending <- msg
 			}
-			tLog.Debug("hub.receiveInt, sent msg toCls")
-		case msg := <-h.Pending:
-			tLog.Debug("hub.receiveInt, got pending msg", "cid", msg.From.ID)
-			toCls := exclude(h.Clients(), msg.From)
-			msg.Env.From = []string{msg.From.ID}
+			tLog.Debug("hub.receiveInt, sent joiner messages",
+				"fromcid", c.ID)
+
+			// Add the client to our list
+			h.clients[c] = true
+
+		case msg.Env != nil && msg.Env.Intent == "Leaver":
+			// We have a leaver
+			c := msg.From
+			tLog.Debug("hub.receiveInt, got a leaver", "fromcid", c.ID)
+
+			// Tell the client it will receive no more messages and
+			// forget about it
+			tLog.Debug("hub.receiveInt, closing cl channel", "fromcid", c.ID)
+			close(c.Pending)
+			delete(h.clients, c)
+
+			// Send a leaver message to all other clients
+			msg.Env.To = h.allIDs()
+			msg.Env.Time = time.Now().Unix()
+			tLog.Debug("hub.receiveInt, sending leaver messages")
+			for cl, _ := range h.clients {
+				tLog.Debug("hub.receiveInt, sending msg",
+					"fromcid", c.ID, "tocid", cl.ID)
+				cl.Pending <- msg
+			}
+			tLog.Debug("hub.receiveInt, sent leaver messages")
+
+		case msg.Env != nil && msg.Env.Body != nil:
+			// We have a peer message
+			c := msg.From
+			tLog.Debug("hub.receiveInt, got peer msg", "fromcid", c.ID)
+
+			toCls := h.exclude(c)
+			msg.Env.From = []string{c.ID}
 			msg.Env.To = ids(toCls)
 			msg.Env.Time = time.Now().Unix()
 			msg.Env.Intent = "Peer"
-			for _, c := range toCls {
-				c.Pending <- msg
+
+			tLog.Debug("hub.receiveInt, sending peer messages")
+			for _, cl := range toCls {
+				tLog.Debug("hub.receiveInt, sending peer msg",
+					"fromcid", c.ID, "tocid", cl.ID)
+				cl.Pending <- msg
 			}
+			tLog.Debug("hub.receiveInt, sent peer messages")
+
+		default:
+			// Should never get here
+			panic(fmt.Sprintf("Got inexplicable msg: %#v", msg))
 		}
 	}
 }
 
-// exclude finds all clients from a list which don't match the given one.
+// exclude finds all clients which aren't the given one.
 // Matching is done on pointers.
-func exclude(cs []*Client, cx *Client) []*Client {
+func (h *Hub) exclude(cx *Client) []*Client {
 	tLog.Debug("hub.exclude, entering")
 	cOut := make([]*Client, 0)
-	for _, c := range cs {
+	for c, _ := range h.clients {
 		if c != cx {
 			cOut = append(cOut, c)
 		}
 	}
 	tLog.Debug("hub.exclude, exiting")
 	return cOut
+}
+
+// allIDs returns all the IDs known to the hub
+func (h *Hub) allIDs() []string {
+	out := make([]string, len(h.clients))
+	for c, _ := range h.clients {
+		out = append(out, c.ID)
+	}
+	return out
 }
 
 // ids returns just the IDs of the clients

@@ -127,7 +127,7 @@ func waitForEmptyHub(desc string, h *Hub, t *testing.T) {
 	}
 }*/
 
-// waitForClient waits for the named client to be added to the given hub.
+/*// waitForClient waits for the named client to be added to the given hub.
 func waitForClient(hubName string, id string) {
 	for !shub.hasHub(hubName) {
 		// Keep waiting for the hub to be added to the superhub
@@ -135,7 +135,7 @@ func waitForClient(hubName string, id string) {
 	for !shub.hub(hubName).HasClient(id) {
 		// Keep waiting for the client to be added to the hub
 	}
-}
+}*/
 
 // newTConn creates a new timeoutable connection from the given one.
 func newTConn(ws *websocket.Conn, id string) *tConn {

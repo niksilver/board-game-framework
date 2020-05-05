@@ -5,18 +5,18 @@
 package main
 
 import (
-	"encoding/json"
-	"math/rand"
-	"sort"
-	"strconv"
-	"sync"
-	"testing"
-	"time"
+/*"encoding/json"
+"math/rand"
+"sort"
+"strconv"
+"sync"
+"testing"
+"time"
 
-	"github.com/gorilla/websocket"
+"github.com/gorilla/websocket"*/
 )
 
-func TestHub_CanAddAndGetClients(t *testing.T) {
+/*func TestHub_CanAddAndGetClients(t *testing.T) {
 	hub := NewHub()
 
 	// A new Hub should have no clients
@@ -494,7 +494,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 	wg.Wait()
 }
 
-/*func TestHub_JoinerMessagesHappen(t *testing.T) {
+func TestHub_JoinerMessagesHappen(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 

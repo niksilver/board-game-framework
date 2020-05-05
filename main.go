@@ -15,7 +15,7 @@ import (
 )
 
 // Global superhub that holds all the hubs
-var shub = newSuperhub()
+var shub = NewSuperhub()
 
 // A global wait group, not used in the normal course of things,
 // but useful to wait on when debuggging.
@@ -61,10 +61,10 @@ func bounceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := &Client{
-		ID:        clientID,
-		Websocket: ws,
-		Hub:       shub.hub(r.URL.Path),
-		Pending:   make(chan *Message),
+		ID:      clientID,
+		WS:      ws,
+		Hub:     shub.Hub(r.URL.Path),
+		Pending: make(chan *Message),
 	}
 	c.Start()
 }

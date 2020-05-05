@@ -97,6 +97,6 @@ func TestSuperhub_LotsOfActivityEndsWithEmptySuperHub(t *testing.T) {
 	time.Sleep(5 * time.Second)
 	tLog.Debug(
 		"TestSuperhub_LotsOfActivity, exiting",
-		"superhub count", shub.count(),
+		"superhub count", shub.Count(),
 	)
 }

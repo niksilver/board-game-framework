@@ -1,3 +1,4 @@
+- Check a client leaver message can't get there before its joiner message.
 - Explore wait groups to check the superhub really does empty
   when it should.
 - Allow a maximum number of clients in one game.

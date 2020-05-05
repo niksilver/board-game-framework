@@ -28,9 +28,9 @@ var writeTimeout = 10 * time.Second
 
 type Client struct {
 	ID string
-	// Don't close the websocket directly. Use the Stop() method.
-	Websocket *websocket.Conn
-	Hub       *Hub
+	// Don't close the websocket directly. That's managed internally.
+	WS  *websocket.Conn
+	Hub *Hub
 	// To receive internal message from the hub. The hub will close it
 	// once it knows the client wants to stop.
 	Pending chan *Message
@@ -118,32 +118,22 @@ func (c *Client) Start() {
 	}
 
 	// Immediate termination for an excessive message
-	c.Websocket.SetReadLimit(60 * 1024)
+	c.WS.SetReadLimit(60 * 1024)
 
 	// Set up pinging
 	c.pinger = time.NewTicker(pingFreq)
-	c.Websocket.SetReadDeadline(time.Now().Add(pongTimeout))
-	c.Websocket.SetPongHandler(func(string) error {
-		c.Websocket.SetReadDeadline(time.Now().Add(pongTimeout))
+	c.WS.SetReadDeadline(time.Now().Add(pongTimeout))
+	c.WS.SetPongHandler(func(string) error {
+		c.WS.SetReadDeadline(time.Now().Add(pongTimeout))
 		return nil
 	})
 
-	// Start processing messages from the inside
-	tLog.Debug("client.start, adding for receiveInt", "id", c.ID)
+	// Start sending messages externally
+	tLog.Debug("client.start, adding for sendExt", "id", c.ID)
 	wg.Add(1)
-	go c.receiveInt()
-	// Post a welcome message
-	c.Pending <- &Message{
-		MType: websocket.BinaryMessage,
-		Env: &Envelope{
-			From:   ids(c.Hub.Clients()),
-			To:     []string{c.ID},
-			Time:   time.Now().Unix(),
-			Intent: "Welcome",
-		}}
-	// Add ourselves to our hub
-	c.Hub.Add(c)
-	// Start processing messages from the outside
+	go c.sendExt()
+
+	// Start receiving messages from the outside
 	tLog.Debug("client.start, adding for receiveExt", "id", c.ID)
 	wg.Add(1)
 	go c.receiveExt()
@@ -153,18 +143,19 @@ func (c *Client) Start() {
 func (c *Client) receiveExt() {
 	defer tLog.Debug("client.receiveExt, goroutine done", "id", c.ID)
 	defer wg.Done()
-	// NB: Move this to after error reading
-	defer c.Websocket.Close()
+
+	// First send a joiner message
+	c.Hub.Pending <- &Message{
+		From: c,
+	}
 
 	// Read messages until we can no more
 	for {
 		tLog.Debug("client.receiveExt, reading", "id", c.ID)
-		mType, msg, err := c.Websocket.ReadMessage()
+		mType, msg, err := c.WS.ReadMessage()
 		if err != nil {
-			tLog.Debug("client.receiveExt, read error", "error", err, "id", c.ID)
-			c.log.Warn(
-				"ReadMessage",
-				"error", err,
+			tLog.Debug(
+				"client.receiveExt, read error", "error", err, "id", c.ID,
 			)
 			break
 		}
@@ -177,120 +168,80 @@ func (c *Client) receiveExt() {
 		}
 	}
 
-	c.stop("receiveExt")
+	// We've done reading, so shut down and send a leaver message
+	c.WS.Close()
+	c.Hub.Pending <- &Message{
+		From: c,
+		Env: &Envelope{
+			Intent: "Leaver",
+		},
+	}
 }
 
-// receiveInt is a goroutine that acts on messages that have come from
-// a hub (internally), and sends them out.
-func (c *Client) receiveInt() {
-	defer tLog.Debug("client.receiveInt, goroutine done", "id", c.ID)
+// sendExt is a goroutine that sends network messages out. These are
+// pings and messages that have come from the hub. It will stop
+// if its channel is closed or it can no longer write to the network.
+func (c *Client) sendExt() {
+	defer tLog.Debug("client.sendExt, goroutine done", "id", c.ID)
 	defer wg.Done()
 
 	// Keep receiving internal messages
-intLoop:
+sendLoop:
 	for {
-		tLog.Debug("client.receiveInt, entering select", "id", c.ID)
+		tLog.Debug("client.sendExt, entering select", "id", c.ID)
 		select {
 		case m, ok := <-c.Pending:
-			tLog.Debug("client.receiveInt, got pending", "id", c.ID)
+			tLog.Debug("client.sendExt, got pending", "id", c.ID)
 			if !ok {
-				// Stop request received, acknowledged and acted on
-				break intLoop
+				// Channel closed, we need to shut down
+				break sendLoop
 			}
-			if err := c.Websocket.SetWriteDeadline(
-				time.Now().Add(writeTimeout),
-			); err != nil {
-				c.log.Warn(
-					"SetWriteDeadline error",
-					"ID", c.ID,
-					"error", err,
-				)
-				break intLoop
+			if err := c.WS.SetWriteDeadline(
+				time.Now().Add(writeTimeout)); err != nil {
+				// Write error, shut down
+				break sendLoop
 			}
 			envBytes, err := json.Marshal(m.Env)
 			if err != nil {
 				// This means some internal coding mistake
 				c.log.Error(
 					"Envelope marshalling error",
-					"ID", c.ID,
-					"envelope", m.Env,
-					"error", err,
+					"ID", c.ID, "envelope", m.Env, "error", err,
 				)
 			}
-			if err := c.Websocket.WriteMessage(m.MType, envBytes); err != nil {
-				c.log.Warn(
-					"WriteMessage error",
-					"ID", c.ID,
-					"error", err,
-				)
-				break intLoop
+			if err := c.WS.WriteMessage(m.MType, envBytes); err != nil {
+				// Write error, shut down
+				break sendLoop
 			}
 		case <-c.pinger.C:
-			tLog.Debug("client.receiveInt, got ping", "id", c.ID)
-			if err := c.Websocket.SetWriteDeadline(
-				time.Now().Add(writeTimeout),
-			); err != nil {
-				c.log.Warn(
-					"WriteMessage msg",
-					"ID", c.ID,
-					"error", err,
-				)
-				break intLoop
+			tLog.Debug("client.sendExt, got ping", "id", c.ID)
+			if err := c.WS.SetWriteDeadline(
+				time.Now().Add(writeTimeout)); err != nil {
+				// Write error, shut down
+				break sendLoop
 			}
-			if err := c.Websocket.WriteMessage(
-				websocket.PingMessage, nil,
-			); err != nil {
-				c.log.Warn(
-					"WriteMessage ping",
-					"ID", c.ID,
-					"error", err,
-				)
-				break intLoop
+			if err := c.WS.WriteMessage(
+				websocket.PingMessage, nil); err != nil {
+				// Ping write error, shut down
+				break sendLoop
 			}
 		}
 	}
 
-	c.stop("receiveInt")
-}
-
-// stop will stop the client without blocking any other goroutines, either
-// in the client or the hub.
-func (c *Client) stop(from string) {
-	tLog.Debug("client.stop, entering", "from", from, "id", c.ID)
+	// We are here due to either the channel being closed or the
+	// network connection being closed. We need to make sure both are
+	// true before continuing the shut down.
+	tLog.Debug("client.sendExt, shutting down", "id", c.ID)
+	c.WS.Close()
 	c.pinger.Stop()
-
-	// Make a stop request in a non-blocking way
-makeRequest:
-	for {
-		tLog.Debug("client.stop, selecting", "from", from, "id", c.ID)
-		select {
-		case _, ok := <-c.Pending:
-			tLog.Debug("client.stop, got from pending", "from", from, "id", c.ID)
-			// We're not interested in incoming message, so just swallow them.
-			// But perhaps the channel is closed, meaning an earlier stop
-			// has been acknowoledged.
-			if !ok {
-				tLog.Debug("client.stop, got close from pending", "from", from, "id", c.ID)
-				break makeRequest
-			}
-			tLog.Debug("client.stop, got msg from pending", "from", from, "id", c.ID)
-		case c.Hub.stopReq <- c:
-			tLog.Debug("client.stop, make step request", "from", from, "id", c.ID)
-			// We've successfully sent a stop request to the hub.
-			break makeRequest
-		}
-	}
-
-	// Stop request has been made, maybe acknowledged
-	tLog.Debug("client.stop, clearing pending", "from", from, "id", c.ID)
+	tLog.Debug("client.sendExt, waiting for channel close", "id", c.ID)
 	for {
 		if _, ok := <-c.Pending; !ok {
 			break
 		}
 	}
 
-	// Stop request acknowledged and acted on
-	tLog.Debug("client.stop, closing", "from", from, "id", c.ID)
-	c.Websocket.Close()
-	tLog.Debug("client.stop, done", "from", from, "id", c.ID)
+	// We're done. Tell the superhub we're done with the hub
+	tLog.Debug("client.sendExt, releasing hub", "id", c.ID)
+	shub.Release(c.Hub)
 }

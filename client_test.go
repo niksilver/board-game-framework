@@ -4,14 +4,12 @@
 
 package main
 
-/*
 import (
-	"encoding/json"
-	"sync"
+	//"encoding/json"
+	//"sync"
 	"testing"
-	"time"
-
-	"github.com/gorilla/websocket"
+	//"time"
+	//"github.com/gorilla/websocket"
 )
 
 func TestClient_CreatesNewID(t *testing.T) {
@@ -35,7 +33,7 @@ func TestClient_CreatesNewID(t *testing.T) {
 	wg.Wait()
 }
 
-func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
+/*func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
