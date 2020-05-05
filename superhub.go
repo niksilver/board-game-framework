@@ -73,7 +73,9 @@ func (sh *Superhub) Release(h *Hub) {
 		tLog.Debug("superhub.Release, deleting hub", "name", sh.names[h])
 		delete(sh.hubs, sh.names[h])
 		delete(sh.names, h)
-		h.Detached = true
+		tLog.Debug("superhub.Release, sending detached flag", "name", sh.names[h])
+		h.Detached <- true
+		tLog.Debug("superhub.Release, sent detached flag", "name", sh.names[h])
 	}
 	tLog.Debug("superhub.Release, exiting",
 		"name", sh.names[h], "count", sh.counts[h])

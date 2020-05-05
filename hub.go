@@ -18,7 +18,7 @@ type Hub struct {
 	// Messages from clients that need to be bounced out.
 	Pending chan *Message
 	// For the superhub to say there will be no more joiners
-	Detached bool
+	Detached chan bool
 	// For the hub to note to itself it's acknowledged the detachement
 	detachedAck bool
 }
@@ -48,8 +48,10 @@ func NewHub() *Hub {
 	return &Hub{
 		clients: make(map[*Client]bool),
 		Pending: make(chan *Message),
-		// The superhub will tell the hub when it has been detached
-		Detached: false,
+		// Channel size 1 so the superhub doesn't block
+		Detached: make(chan bool, 1),
+		// For the hub to note to itself it's acknowledged the detachement
+		detachedAck: false,
 	}
 }
 
@@ -129,100 +131,108 @@ func (h *Hub) receiveInt() {
 	defer wg.Done()
 	tLog.Debug("hub.receiveInt, entering")
 
-	for !h.Detached {
+	for !h.detachedAck {
 		tLog.Debug("hub.receiveInt, selecting")
-		msg := <-h.Pending
-		tLog.Debug("hub.receiveInt, received pending message")
 
-		switch {
-		case !h.clients[msg.From]:
-			// New joiner
-			c := msg.From
+		select {
+		case <-h.Detached:
+			tLog.Debug("hub.receiveInt, received detached flag")
+			h.detachedAck = true
 
-			// Send welcome message to joiner
-			tLog.Debug("hub.receiveInt, sending welcome message",
-				"fromcid", c.ID)
-			c.Pending <- &Message{
-				From:  c,
-				MType: websocket.BinaryMessage,
-				Env: &Envelope{
-					To:     []string{c.ID},
-					From:   h.allIDs(),
-					Time:   time.Now().Unix(),
-					Intent: "Welcome",
-				},
+		case msg := <-h.Pending:
+			tLog.Debug("hub.receiveInt, received pending message")
+
+			switch {
+			case !h.clients[msg.From]:
+				// New joiner
+				c := msg.From
+
+				// Send welcome message to joiner
+				tLog.Debug("hub.receiveInt, sending welcome message",
+					"fromcid", c.ID)
+				c.Pending <- &Message{
+					From:  c,
+					MType: websocket.BinaryMessage,
+					Env: &Envelope{
+						To:     []string{c.ID},
+						From:   h.allIDs(),
+						Time:   time.Now().Unix(),
+						Intent: "Welcome",
+					},
+				}
+
+				// Send joiner message to other clients
+				msg := &Message{
+					From:  c,
+					MType: websocket.BinaryMessage,
+					Env: &Envelope{
+						From:   []string{c.ID},
+						To:     h.allIDs(),
+						Time:   time.Now().Unix(),
+						Intent: "Joiner",
+					},
+				}
+
+				tLog.Debug("hub.receiveInt, sending joiner messages",
+					"fromcid", c.ID)
+				for cl, _ := range h.clients {
+					tLog.Debug("hub.receiveInt, sending msg",
+						"fromcid", c.ID, "tocid", cl.ID)
+					cl.Pending <- msg
+				}
+				tLog.Debug("hub.receiveInt, sent joiner messages",
+					"fromcid", c.ID)
+
+				// Add the client to our list
+				h.clients[c] = true
+
+			case msg.Env != nil && msg.Env.Intent == "Leaver":
+				// We have a leaver
+				c := msg.From
+				tLog.Debug("hub.receiveInt, got a leaver", "fromcid", c.ID)
+
+				// Tell the client it will receive no more messages and
+				// forget about it
+				tLog.Debug("hub.receiveInt, closing cl channel", "fromcid", c.ID)
+				close(c.Pending)
+				delete(h.clients, c)
+
+				// Send a leaver message to all other clients
+				msg.Env.To = h.allIDs()
+				msg.Env.Time = time.Now().Unix()
+				tLog.Debug("hub.receiveInt, sending leaver messages")
+				for cl, _ := range h.clients {
+					tLog.Debug("hub.receiveInt, sending msg",
+						"fromcid", c.ID, "tocid", cl.ID)
+					cl.Pending <- msg
+				}
+				tLog.Debug("hub.receiveInt, sent leaver messages")
+
+			case msg.Env != nil && msg.Env.Body != nil:
+				// We have a peer message
+				c := msg.From
+				tLog.Debug("hub.receiveInt, got peer msg", "fromcid", c.ID)
+
+				toCls := h.exclude(c)
+				msg.Env.From = []string{c.ID}
+				msg.Env.To = ids(toCls)
+				msg.Env.Time = time.Now().Unix()
+				msg.Env.Intent = "Peer"
+
+				tLog.Debug("hub.receiveInt, sending peer messages")
+				for _, cl := range toCls {
+					tLog.Debug("hub.receiveInt, sending peer msg",
+						"fromcid", c.ID, "tocid", cl.ID)
+					cl.Pending <- msg
+				}
+				tLog.Debug("hub.receiveInt, sent peer messages")
+
+			default:
+				// Should never get here
+				panic(fmt.Sprintf("Got inexplicable msg: %#v", msg))
 			}
-
-			// Send joiner message to other clients
-			msg := &Message{
-				From:  c,
-				MType: websocket.BinaryMessage,
-				Env: &Envelope{
-					From:   []string{c.ID},
-					To:     h.allIDs(),
-					Time:   time.Now().Unix(),
-					Intent: "Joiner",
-				},
-			}
-
-			tLog.Debug("hub.receiveInt, sending joiner messages",
-				"fromcid", c.ID)
-			for cl, _ := range h.clients {
-				tLog.Debug("hub.receiveInt, sending msg",
-					"fromcid", c.ID, "tocid", cl.ID)
-				cl.Pending <- msg
-			}
-			tLog.Debug("hub.receiveInt, sent joiner messages",
-				"fromcid", c.ID)
-
-			// Add the client to our list
-			h.clients[c] = true
-
-		case msg.Env != nil && msg.Env.Intent == "Leaver":
-			// We have a leaver
-			c := msg.From
-			tLog.Debug("hub.receiveInt, got a leaver", "fromcid", c.ID)
-
-			// Tell the client it will receive no more messages and
-			// forget about it
-			tLog.Debug("hub.receiveInt, closing cl channel", "fromcid", c.ID)
-			close(c.Pending)
-			delete(h.clients, c)
-
-			// Send a leaver message to all other clients
-			msg.Env.To = h.allIDs()
-			msg.Env.Time = time.Now().Unix()
-			tLog.Debug("hub.receiveInt, sending leaver messages")
-			for cl, _ := range h.clients {
-				tLog.Debug("hub.receiveInt, sending msg",
-					"fromcid", c.ID, "tocid", cl.ID)
-				cl.Pending <- msg
-			}
-			tLog.Debug("hub.receiveInt, sent leaver messages")
-
-		case msg.Env != nil && msg.Env.Body != nil:
-			// We have a peer message
-			c := msg.From
-			tLog.Debug("hub.receiveInt, got peer msg", "fromcid", c.ID)
-
-			toCls := h.exclude(c)
-			msg.Env.From = []string{c.ID}
-			msg.Env.To = ids(toCls)
-			msg.Env.Time = time.Now().Unix()
-			msg.Env.Intent = "Peer"
-
-			tLog.Debug("hub.receiveInt, sending peer messages")
-			for _, cl := range toCls {
-				tLog.Debug("hub.receiveInt, sending peer msg",
-					"fromcid", c.ID, "tocid", cl.ID)
-				cl.Pending <- msg
-			}
-			tLog.Debug("hub.receiveInt, sent peer messages")
-
-		default:
-			// Should never get here
-			panic(fmt.Sprintf("Got inexplicable msg: %#v", msg))
 		}
+
 	}
 }
 

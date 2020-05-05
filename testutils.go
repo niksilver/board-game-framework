@@ -168,7 +168,7 @@ func (c *tConn) readMessage(timeout int) (readRes, bool) {
 			defer wg.Done()
 			tLog.Debug("tConn.readMessage, reading", "id", c.id)
 			mType, msg, err := c.ws.ReadMessage()
-			tLog.Debug("tConn.readMessage, sending result", "msg", msg, "error", err, "id", c.id)
+			tLog.Debug("tConn.readMessage, sending result", "msg", string(msg), "error", err, "id", c.id)
 			c.readRes <- readRes{mType, msg, err}
 			tLog.Debug("tConn.readMessage, sent result", "id", c.id)
 		}()
