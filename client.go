@@ -211,6 +211,7 @@ sendLoop:
 					"Envelope marshalling error",
 					"ID", c.ID, "envelope", m.Env, "error", err,
 				)
+				break sendLoop
 			}
 			if err := c.WS.WriteMessage(m.MType, envBytes); err != nil {
 				// Write error, shut down
