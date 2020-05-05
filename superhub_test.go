@@ -1,19 +1,23 @@
+// Copyright 2020 Nik Silver
+//
+// Licensed under the GPL v3.0. See file LICENCE.txt for details.
+
 package main
 
 import (
-/*"math/rand"
-"strconv"
-"sync"
-"testing"
-"time"
+	"math/rand"
+	"strconv"
+	"sync"
+	"testing"
+	"time"
 
-"github.com/gorilla/websocket"*/
+	"github.com/gorilla/websocket"
 )
 
 // A test for general connecting, disconnecting and message sending,
 // but ensuring the superhub removes all clients.
 // This just needs to run and not deadlock.
-/*func TestSuperhub_LotsOfActivityEndsWithEmptySuperHub(t *testing.T) {
+func TestSuperhub_LotsOfActivityEndsWithEmptySuperHub(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	cMap := make(map[string]*websocket.Conn)
 	cSlice := make([]string, 0)
@@ -44,7 +48,7 @@ import (
 		switch {
 		case i < 10 || action < 0.25:
 			// New client join
-			id := "CHAOS" + strconv.Itoa(i)
+			id := "SHUB" + strconv.Itoa(i)
 			game := "/game" + strconv.Itoa(rand.Intn(10))
 			ws, _, err := dial(serv, game, id)
 			defer func() {
@@ -99,4 +103,4 @@ import (
 		"TestSuperhub_LotsOfActivity, exiting",
 		"superhub count", shub.Count(),
 	)
-}*/
+}
