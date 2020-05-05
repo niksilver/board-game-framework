@@ -502,6 +502,12 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Close the remaining connections and wait for all goroutines to finish
+	tws1.close()
+	tws2.close()
+	tws3.close()
+	wg.Wait()
 }
 
 func TestHub_LeaverMessagesHappen(t *testing.T) {
