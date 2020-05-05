@@ -67,13 +67,15 @@ the envelope `Body`. The intent of such an envelope is `"Peer"`.
 There are other intents, too.
 
 A `"Welcome"` envelope is received by a client immediately after it
-connects. This enables the client to find out what its ID is.
+connects. This enables the client to find out what its ID is and the
+IDs of the other clients connected.
 The `From` field is a list with the IDs of all the other clients.
 The `To` field is a singleton list with the client's own ID.
 Together, the `To` and `From` fields contain the IDs of all clients
 currently connected.
 There is no `Body`.
-This is the format of the envelope sent to client `123.456` after it joins:
+If a client is given ID `123.456` when it joins a game with `222.234`
+and `333.345` then the envelope it receives looks like this:
 
 
 ```
@@ -106,6 +108,29 @@ clients receive:
 }
 ```
 
+A `"Leaver"` envelope is received by all existing clients when one
+disconnects.
+It helps all existing clients update their record of current clients, if
+they want to do that.
+The `From` field is a singleton list with ID of the client that's left.
+The `To` field is a list of all remaining clients.
+This means that, unlike the `"Welcome"` and `"Joiner"` envelopes,
+the up to date client list is in just the `To` field, not `To` and `From`
+combined.
+There is no `Body` field.
+If client `123.456` leaves a game with clients `222.234`
+and `333.345` then this is the format of the envelope those last two
+clients receive:
+
+
+```
+{ From: ["123.456"]
+  To: ["222.234", "333.345"]
+  Time: 76487293
+  Intent: "Leaver"
+}
+```
+
 ## Duplicate IDs
 
 It's possible for a two clients to join a game with the same ID.
@@ -122,5 +147,5 @@ private browser window for the second and subsequent connections.
 
 ## Limits
 
-There is a 60k limit on messages. The connection will terminate if this
-is breached.
+There is a 60k limit on messages. The client connection will
+terminate if this limit is breached.
