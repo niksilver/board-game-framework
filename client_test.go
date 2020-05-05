@@ -6,13 +6,13 @@ package main
 
 import (
 	"encoding/json"
-	//"sync"
+	"github.com/gorilla/websocket"
+	"sync"
 	"testing"
-	//"time"
-	//"github.com/gorilla/websocket"
+	"time"
 )
 
-/*func TestClient_CreatesNewID(t *testing.T) {
+func TestClient_CreatesNewID(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -84,8 +84,8 @@ func TestClient_ReusesOldId(t *testing.T) {
 
 func TestClient_NewIDsAreDifferent(t *testing.T) {
 	usedIDs := make(map[string]bool)
-	cIDs := make([]string, 2)
-	wss := make([]*websocket.Conn, 2)
+	cIDs := make([]string, 100)
+	wss := make([]*websocket.Conn, 100)
 
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
@@ -275,7 +275,7 @@ func TestClient_SendsWelcome(t *testing.T) {
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
 	wg.Wait()
-}*/
+}
 
 func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 	serv := newTestServer(bounceHandler)
@@ -360,7 +360,7 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 // browser to the same game, and hence reuses the ID cookie.
 // In this case the From and To fields in both welcome and joiner envelopes
 // will contain duplicates.
-/*func TestClient_DuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
+func TestClient_DuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -375,7 +375,7 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws1 := newTConn(ws1)
+	tws1 := newTConn(ws1, "DUP1")
 	if err = swallowMany(
 		intentExp{"WF1 joining, ws1", tws1, "Welcome"},
 	); err != nil {
@@ -388,7 +388,7 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws2a := newTConn(ws2a)
+	tws2a := newTConn(ws2a, "DUP2(a)")
 	if err = swallowMany(
 		intentExp{"DUP2 joining (a), ws2a", tws2a, "Welcome"},
 		intentExp{"DUP2 joining (a), ws1", tws1, "Joiner"},
@@ -402,7 +402,7 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws2b := newTConn(ws2b)
+	tws2b := newTConn(ws2b, "DUP2(b)")
 
 	// The first client should get a joiner message from the second
 	// client (again). It should see the ID in the To and From fields.
@@ -520,7 +520,7 @@ func TestClient_ExcessiveMessageWillCloseConnection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws := newTConn(ws)
+	tws := newTConn(ws, "EXCESS1")
 	if err = swallowMany(
 		intentExp{"WF1 joining", tws, "Welcome"},
 	); err != nil {
@@ -555,4 +555,4 @@ func TestClient_ExcessiveMessageWillCloseConnection(t *testing.T) {
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
 	wg.Wait()
-}*/
+}
