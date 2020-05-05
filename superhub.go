@@ -8,6 +8,8 @@ import (
 	"sync"
 )
 
+// Superhub gives a hub to a client. The client needs to
+// release the hub when it's done with it.
 type Superhub struct {
 	hubs   map[string]*Hub // From game name (path) to hub
 	counts map[*Hub]int    // Count of clients using each hub
@@ -25,8 +27,8 @@ func NewSuperhub() *Superhub {
 	}
 }
 
-// hub gets the hub for the given game name. If necessary it will create
-// a new hub and start it processing.
+// Hub gets the hub for the given game name. If necessary a new hub
+// will be created and start processing messages.
 func (sh *Superhub) Hub(name string) *Hub {
 	sh.mux.Lock()
 	defer sh.mux.Unlock()
@@ -51,15 +53,6 @@ func (sh *Superhub) Hub(name string) *Hub {
 	return h
 }
 
-/*// hasHub check if the superhub has registered a hub for the named game.
-func (sh *Superhub) hasHub(name string) bool {
-	sh.mux.RLock()
-	defer sh.mux.RUnlock()
-
-	_, okay := sh.hubs[name]
-	return okay
-}*/
-
 // Release allows a client to say it is no longer using the given hub.
 // If that means no clients are using the hub then the hub will be told
 // it is detached.
@@ -81,7 +74,7 @@ func (sh *Superhub) Release(h *Hub) {
 		"name", sh.names[h], "count", sh.counts[h])
 }
 
-// count returns the number of hubs in the superhub
+// Count returns the number of hubs in the superhub
 func (sh *Superhub) Count() int {
 	sh.mux.RLock()
 	defer sh.mux.RUnlock()
