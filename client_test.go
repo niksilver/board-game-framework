@@ -4,7 +4,6 @@
 
 package main
 
-/*
 import (
 	"encoding/json"
 	"github.com/gorilla/websocket"
@@ -557,4 +556,3 @@ func TestClient_ExcessiveMessageWillCloseConnection(t *testing.T) {
 	ws.Close()
 	wg.Wait()
 }
-*/
