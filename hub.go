@@ -252,7 +252,7 @@ func (h *Hub) exclude(cx *Client) []*Client {
 
 // allIDs returns all the IDs known to the hub
 func (h *Hub) allIDs() []string {
-	out := make([]string, len(h.clients))
+	out := make([]string, 0)
 	for c, _ := range h.clients {
 		out = append(out, c.ID)
 	}

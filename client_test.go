@@ -5,10 +5,10 @@
 package main
 
 import (
-	//"encoding/json"
+	"encoding/json"
 	//"sync"
 	"testing"
-	"time"
+	//"time"
 	//"github.com/gorilla/websocket"
 )
 
@@ -192,7 +192,7 @@ func TestClient_SendsPings(t *testing.T) {
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
 	wg.Wait()
-}*/
+}
 
 func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 	// Give the bounceHandler a very short pong timeout (just for this test)
@@ -233,7 +233,7 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 	wg.Wait()
 }
 
-/*func TestClient_SendsWelcome(t *testing.T) {
+func TestClient_SendsWelcome(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
@@ -243,7 +243,7 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws := newTConn(ws)
+	tws := newTConn(ws, "WTESTER")
 
 	// Read the next message, expected within 500ms
 	rr, timedOut := tws.readMessage(500)
@@ -275,7 +275,7 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
 	wg.Wait()
-}
+}*/
 
 func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 	serv := newTestServer(bounceHandler)
@@ -292,7 +292,7 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws1 := newTConn(ws1)
+	tws1 := newTConn(ws1, "WF1")
 	if err = swallowMany(
 		intentExp{"WF1 joining, ws1", tws1, "Welcome"},
 	); err != nil {
@@ -305,7 +305,7 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws2 := newTConn(ws2)
+	tws2 := newTConn(ws2, "WF2")
 	if err = swallowMany(
 		intentExp{"WF2 joining, ws2", tws2, "Welcome"},
 		intentExp{"WF2 joining, ws1", tws1, "Joiner"},
@@ -319,7 +319,7 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tws3 := newTConn(ws3)
+	tws3 := newTConn(ws3, "WF3")
 
 	// Get what we expect to be the the welcome message
 	rr, timedOut := tws3.readMessage(500)
@@ -360,7 +360,7 @@ func TestClient_WelcomeIsFromExistingClients(t *testing.T) {
 // browser to the same game, and hence reuses the ID cookie.
 // In this case the From and To fields in both welcome and joiner envelopes
 // will contain duplicates.
-func TestClient_DuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
+/*func TestClient_DuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 	serv := newTestServer(bounceHandler)
 	defer serv.Close()
 
