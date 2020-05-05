@@ -94,13 +94,10 @@ func TestSuperhub_LotsOfActivityEndsWithEmptySuperHub(t *testing.T) {
 
 	w.Wait()
 
-	// At this point we could test there are no hubs in the
-	// superhub, using shub.count(), but it will take a while
-	// for all the go routines to complete, so we don't do it.
-	// However, a manual test shows it generally empties out okay.
-	time.Sleep(5 * time.Second)
-	tLog.Debug(
-		"TestSuperhub_LotsOfActivity, exiting",
-		"superhub count", shub.Count(),
-	)
+	// Tidy up, and check everything in the main app finishes
+	wg.Wait()
+
+	if count := shub.Count(); count != 0 {
+		t.Errorf("Expected no hubs in superhub, got %d", count)
+	}
 }
