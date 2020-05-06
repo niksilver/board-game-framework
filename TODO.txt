@@ -1,4 +1,3 @@
-- Investigate why we can't seem to send lots of 50k messages.
 - Add a message count to the envelope.
 - Ensure App Engine runs with only one instance.
 - Store game state locally.
@@ -47,3 +46,5 @@ DONE:
 - Server to reject a client request with no game/group specified.
 - Allow a maximum number of clients in one game.
 - Ensure a client which doesn't read doesn't block other comms.
+- Investigate why we can't seem to send lots of 50k messages. (We can -
+  we just need to make sure we don't time anything out too early.)

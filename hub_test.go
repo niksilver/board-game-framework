@@ -901,7 +901,7 @@ func TestHub_NonReadingClientsDontBlock(t *testing.T) {
 			tLog.Debug("Test, Error writing message", "i", i, "err", err)
 			t.Fatalf("tws0: Write error for message %d: %s", i, err)
 		}
-		time.Sleep(10 * time.Millisecond)
+		//time.Sleep(10 * time.Millisecond)
 		if err := twss[max-1].ws.WriteMessage(
 			websocket.BinaryMessage, msg); err != nil {
 			t.Fatalf("twsN: Write error for message %d: %s", i, err)
