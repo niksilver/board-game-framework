@@ -836,16 +836,20 @@ func TestHub_NonReadingClientsDontBlock(t *testing.T) {
 	consume := func(tws *tConn, id string) {
 		defer w.Done()
 		for {
-			rr, timedOut := tws.readMessage(500)
+			rr, timedOut := tws.readMessage(30000)
 			if timedOut {
+				tLog.Debug("Test.consume, timed out")
 				break
 			}
 			if rr.err == nil {
 				// Got a message
+				tLog.Debug("Test.consume, got a message")
 			} else {
+				tLog.Debug("Test.consume, got error", "error", rr.err)
 				break
 			}
 		}
+		tLog.Debug("Test.consume, closing")
 		tws.close()
 	}
 
@@ -868,17 +872,20 @@ func TestHub_NonReadingClientsDontBlock(t *testing.T) {
 	// Avoid blocking for any length of time. We'll time this all
 	// out after 3 seconds.
 	allDone := make(chan bool)
-	timeOut := time.After(3 * time.Second)
+	timeOut := time.After(300 * time.Second)
 	w.Add(1)
 	go func() {
 		defer w.Done()
 		select {
 		case <-allDone:
 			// All is good
+			tLog.Debug("Test.timer, all good")
 		case <-timeOut:
 			// Timed out - exit
+			tLog.Debug("Test.timer, timed out")
 			t.Errorf("Timed out")
 			for _, tws := range twss {
+				tLog.Debug("Test.timer, closing conn")
 				tws.close()
 			}
 		}
@@ -886,11 +893,15 @@ func TestHub_NonReadingClientsDontBlock(t *testing.T) {
 
 	// Have the first and last clients send lots of messages
 	for i := 0; i < 5000; i++ {
-		msg := []byte("BLOCK-MSG-" + strconv.Itoa(i))
+		//msg := []byte("BLOCK-MSG-" + strconv.Itoa(i))
+		msg := make([]byte, 50*1000)
+		tLog.Debug("Test, writing", "i", i)
 		if err := twss[0].ws.WriteMessage(
 			websocket.BinaryMessage, msg); err != nil {
+			tLog.Debug("Test, Error writing message", "i", i, "err", err)
 			t.Fatalf("tws0: Write error for message %d: %s", i, err)
 		}
+		time.Sleep(10 * time.Millisecond)
 		if err := twss[max-1].ws.WriteMessage(
 			websocket.BinaryMessage, msg); err != nil {
 			t.Fatalf("twsN: Write error for message %d: %s", i, err)
@@ -902,6 +913,7 @@ func TestHub_NonReadingClientsDontBlock(t *testing.T) {
 
 	// Close connections and wait for test goroutines
 	for _, tws := range twss {
+		tLog.Debug("Test.final, closing conn")
 		tws.close()
 	}
 	w.Wait()

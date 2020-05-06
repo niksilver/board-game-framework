@@ -1,3 +1,4 @@
+- Investigate why we can't seem to send lots of 50k messages.
 - Add a message count to the envelope.
 - Ensure App Engine runs with only one instance.
 - Store game state locally.

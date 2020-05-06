@@ -169,6 +169,7 @@ func (c *Client) receiveExt() {
 	}
 
 	// We've done reading, so shut down and send a leaver message
+	tLog.Debug("client.receiveExt, closing conn", "id", c.ID)
 	c.WS.Close()
 	c.Hub.Pending <- &Message{
 		From: c,
@@ -238,7 +239,7 @@ sendLoop:
 	// We are here due to either the channel being closed or the
 	// network connection being closed. We need to make sure both are
 	// true before continuing the shut down.
-	tLog.Debug("client.sendExt, shutting down", "id", c.ID)
+	tLog.Debug("client.sendExt, closing conn", "id", c.ID)
 	c.WS.Close()
 	c.pinger.Stop()
 	tLog.Debug("client.sendExt, waiting for channel close", "id", c.ID)
