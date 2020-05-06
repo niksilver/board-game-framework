@@ -426,7 +426,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 		tLog.Debug("Chaos.consume, closed", "id", id)
 	}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100; i++ {
 		action := rand.Float32()
 		cCount := len(cSlice)
 		switch {

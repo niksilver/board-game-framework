@@ -60,6 +60,16 @@ it will be wrapped and sent to the other clients like this:
    a client peer.
 * `Body` is the original message from the client.
 
+## Message ordering
+
+The first message received by a client is its welcome message.
+After that, any messages will be received in the order in which
+the server receives them. However, that order is not certain.
+For example, if client C1 sends message M1 at roughly the same time
+as client C2 sends message M2, then it's not certain which message
+the server picks up first. Whichever it is, though, is the one
+it will send out first.
+
 ## Intents
 
 Most envelopes carry a message from another client, which is found in
@@ -149,3 +159,7 @@ private browser window for the second and subsequent connections.
 
 There is a 60k limit on messages. The client connection will
 terminate if this limit is breached.
+
+Each game instance can have only 50 connected clients. Any more will
+get a websocket connection that closes immediately with an appropriate
+message.
