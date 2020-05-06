@@ -794,17 +794,26 @@ func TestHub_SendsErrorOverMaximumClients(t *testing.T) {
 		tLog.Debug("Max, added", "id", id)
 	}
 
-	// This should produce an error
+	// Trying to connect should get a response, but an error response
+	// from the upgraded websocket connection.
+
 	ws, _, err := dial(serv, "/hub.max", "MAXOVER")
-	defer ws.Close()
-	if err == nil {
-		t.Error("Should have got an error on latest client, but didn't")
-	}
 	if err != nil {
-		em := err.Error()
-		if !strings.Contains(em, "Too many clients") {
-			t.Errorf("Got error but with wrong message: %s", em)
-		}
+		t.Fatalf("Failed network connection: %s", err)
+	}
+	tws := newTConn(ws, "MAXOVER")
+	defer tws.close()
+
+	// Should not be able to read now
+	rr, timedOut := tws.readMessage(500)
+	if timedOut {
+		t.Fatal("Timed out reading connection that should have given error")
+	}
+	if rr.err == nil {
+		t.Fatalf("No error reading message")
+	}
+	if !strings.Contains(rr.err.Error(), "Maximum number of clients") {
+		t.Errorf("Got error, but the wrong one: %s", rr.err.Error())
 	}
 
 	// Close connections and wait for test goroutines
@@ -812,9 +821,8 @@ func TestHub_SendsErrorOverMaximumClients(t *testing.T) {
 		tws.close()
 	}
 	w.Wait()
-	ws.Close()
+	tws.close()
 
 	// Check everything in the main app finishes
-	tLog.Debug("TestHub_...MaximumClients, waiting on group")
 	wg.Wait()
 }

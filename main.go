@@ -76,10 +76,9 @@ func bounceHandler(w http.ResponseWriter, r *http.Request) {
 		if err := ws.Close(); err != nil {
 			tLog.Debug("main, got close error", "id", clientID, "err", err)
 		}
-		//w.WriteHeader(http.StatusServiceUnavailable)
-		//w.Write([]byte(err.Error()))
 		return
 	}
+
 	c := &Client{
 		ID:      clientID,
 		WS:      ws,
