@@ -820,3 +820,92 @@ func TestHub_SendsErrorOverMaximumClients(t *testing.T) {
 	// Check everything in the main app finishes
 	wg.Wait()
 }
+
+func TestHub_NonReadingClientsDontBlock(t *testing.T) {
+	// We'll have 10 clients, of which only the first and
+	// last are polite. The others will just not read anything
+	max := 10
+	twss := make([]*tConn, max)
+
+	// Start a web server
+	serv := newTestServer(bounceHandler)
+	defer serv.Close()
+
+	// A polite client should consume messages until done
+	w := sync.WaitGroup{}
+	consume := func(tws *tConn, id string) {
+		defer w.Done()
+		for {
+			rr, timedOut := tws.readMessage(500)
+			if timedOut {
+				break
+			}
+			if rr.err == nil {
+				// Got a message
+			} else {
+				break
+			}
+		}
+		tws.close()
+	}
+
+	// Let the clients join the game
+	for i := 0; i < max; i++ {
+		id := "BL" + strconv.Itoa(i)
+		ws, _, err := dial(serv, "/hub.max", id)
+		tws := newTConn(ws, id)
+		defer tws.close()
+		if err != nil {
+			t.Fatalf("Couldn't dial, i=%d, error '%s'", i, err.Error())
+		}
+		twss[i] = tws
+		if i == 0 || i == max-1 {
+			w.Add(1)
+			go consume(tws, id)
+		}
+	}
+
+	// Avoid blocking for any length of time. We'll time this all
+	// out after 3 seconds.
+	allDone := make(chan bool)
+	timeOut := time.After(3 * time.Second)
+	w.Add(1)
+	go func() {
+		defer w.Done()
+		select {
+		case <-allDone:
+			// All is good
+		case <-timeOut:
+			// Timed out - exit
+			t.Errorf("Timed out")
+			for _, tws := range twss {
+				tws.close()
+			}
+		}
+	}()
+
+	// Have the first and last clients send lots of messages
+	for i := 0; i < 5000; i++ {
+		msg := []byte("BLOCK-MSG-" + strconv.Itoa(i))
+		if err := twss[0].ws.WriteMessage(
+			websocket.BinaryMessage, msg); err != nil {
+			t.Fatalf("tws0: Write error for message %d: %s", i, err)
+		}
+		if err := twss[max-1].ws.WriteMessage(
+			websocket.BinaryMessage, msg); err != nil {
+			t.Fatalf("twsN: Write error for message %d: %s", i, err)
+		}
+	}
+
+	// Tell the timeout goroutine to stop
+	allDone <- true
+
+	// Close connections and wait for test goroutines
+	for _, tws := range twss {
+		tws.close()
+	}
+	w.Wait()
+
+	// Check everything in the main app finishes
+	wg.Wait()
+}
