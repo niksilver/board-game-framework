@@ -130,19 +130,19 @@ func (c *Client) Start() {
 
 	// Start sending messages externally
 	tLog.Debug("client.start, adding for sendExt", "id", c.ID)
-	wg.Add(1)
+	WG.Add(1)
 	go c.sendExt()
 
 	// Start receiving messages from the outside
 	tLog.Debug("client.start, adding for receiveExt", "id", c.ID)
-	wg.Add(1)
+	WG.Add(1)
 	go c.receiveExt()
 }
 
 // receiveExt is a goroutine that acts on external messages coming in.
 func (c *Client) receiveExt() {
 	defer tLog.Debug("client.receiveExt, goroutine done", "id", c.ID)
-	defer wg.Done()
+	defer WG.Done()
 
 	// First send a joiner message
 	c.Hub.Pending <- &Message{
@@ -183,7 +183,7 @@ func (c *Client) receiveExt() {
 // if its channel is closed or it can no longer write to the network.
 func (c *Client) sendExt() {
 	defer tLog.Debug("client.sendExt, goroutine done", "id", c.ID)
-	defer wg.Done()
+	defer WG.Done()
 
 	// Keep receiving internal messages
 sendLoop:
@@ -250,5 +250,5 @@ sendLoop:
 
 	// We're done. Tell the superhub we're done with the hub
 	tLog.Debug("client.sendExt, releasing hub", "id", c.ID)
-	shub.Release(c.Hub)
+	Shub.Release(c.Hub)
 }

@@ -30,7 +30,7 @@ func TestClient_CreatesNewID(t *testing.T) {
 
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
@@ -54,7 +54,7 @@ func TestClient_ClientIDCookieIsPersistent(t *testing.T) {
 
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestClient_ReusesOldId(t *testing.T) {
@@ -79,7 +79,7 @@ func TestClient_ReusesOldId(t *testing.T) {
 
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestClient_NewIDsAreDifferent(t *testing.T) {
@@ -121,7 +121,7 @@ func TestClient_NewIDsAreDifferent(t *testing.T) {
 	for _, ws := range wss {
 		ws.Close()
 	}
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestClient_SendsPings(t *testing.T) {
@@ -189,7 +189,7 @@ func TestClient_SendsPings(t *testing.T) {
 
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestClient_DisconnectsIfNoPongs(t *testing.T) {
@@ -228,7 +228,7 @@ func TestClient_DisconnectsIfNoPongs(t *testing.T) {
 
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
-	wg.Wait()
+	WG.Wait()
 }
 
 // It might be that when a client joins there is already a client with
@@ -383,7 +383,7 @@ func TestClient_DuplicateIDsInFromAndToIfClientJoinsTwice(t *testing.T) {
 	ws1.Close()
 	ws2a.Close()
 	ws2b.Close()
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestClient_ExcessiveMessageWillCloseConnection(t *testing.T) {
@@ -430,5 +430,5 @@ func TestClient_ExcessiveMessageWillCloseConnection(t *testing.T) {
 
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
-	wg.Wait()
+	WG.Wait()
 }

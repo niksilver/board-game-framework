@@ -139,11 +139,11 @@ func (c *tConn) readMessage(timeout int) (readRes, bool) {
 	if c.readRes == nil {
 		// We're not already running a read, so let's start one
 		c.readRes = make(chan readRes)
-		wg.Add(1)
+		WG.Add(1)
 		tLog.Debug("tConn.readMessage, entering goroutine", "id", c.id)
 		go func() {
 			defer tLog.Debug("tConn.readMessage, exited goroutine", "id", c.id)
-			defer wg.Done()
+			defer WG.Done()
 			tLog.Debug("tConn.readMessage, reading", "id", c.id)
 			mType, msg, err := c.ws.ReadMessage()
 			tLog.Debug("tConn.readMessage, sending result", "msg", string(msg), "error", err, "id", c.id)

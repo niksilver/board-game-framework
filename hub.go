@@ -58,7 +58,7 @@ func NewHub() *Hub {
 // Start starts goroutines running that process the messages.
 func (h *Hub) Start() {
 	tLog.Debug("hub.Start, adding for receiveInt")
-	wg.Add(1)
+	WG.Add(1)
 	go h.receiveInt()
 }
 
@@ -66,7 +66,7 @@ func (h *Hub) Start() {
 // them out to the relevant clients.
 func (h *Hub) receiveInt() {
 	defer tLog.Debug("hub.receiveInt, goroutine done")
-	defer wg.Done()
+	defer WG.Done()
 	tLog.Debug("hub.receiveInt, entering")
 
 	for !h.detachedAck {

@@ -16,11 +16,11 @@ import (
 )
 
 // Global superhub that holds all the hubs
-var shub = NewSuperhub()
+var Shub = NewSuperhub()
 
 // A global wait group, not used in the normal course of things,
 // but useful to wait on when debuggging.
-var wg = sync.WaitGroup{}
+var WG = sync.WaitGroup{}
 
 func init() {
 	// Output application logs
@@ -63,7 +63,7 @@ func bounceHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make sure we can get a hub
-	hub, err := shub.Hub(r.URL.Path)
+	hub, err := Shub.Hub(r.URL.Path)
 	if err != nil {
 		msg := websocket.FormatCloseMessage(
 			websocket.CloseNormalClosure, err.Error())

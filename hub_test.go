@@ -57,7 +57,7 @@ func TestHub_SendsWelcome(t *testing.T) {
 
 	// Tidy up, and check everything in the main app finishes
 	ws.Close()
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestHub_WelcomeIsFromExistingClients(t *testing.T) {
@@ -135,7 +135,7 @@ func TestHub_WelcomeIsFromExistingClients(t *testing.T) {
 	ws1.Close()
 	ws2.Close()
 	ws3.Close()
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestHub_BouncesToOtherClients(t *testing.T) {
@@ -265,7 +265,7 @@ func TestHub_BouncesToOtherClients(t *testing.T) {
 	tws2.close()
 	tws3.close()
 	tLog.Debug("TestHub_BouncesToOtherClients, waiting on group")
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
@@ -393,7 +393,7 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 	tws2.close()
 	tws3.close()
 	tLog.Debug("TestHub_BasicMessageEnvelopeIsCorrect, waiting on group")
-	wg.Wait()
+	WG.Wait()
 }
 
 // A test for general connecting, disconnecting and message sending...
@@ -484,7 +484,7 @@ func TestHub_GeneralChaos(t *testing.T) {
 
 	// Check everything in the main app finishes
 	tLog.Debug("TestHub_GeneralChaos, waiting on group")
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestHub_JoinerMessagesHappen(t *testing.T) {
@@ -630,7 +630,7 @@ func TestHub_JoinerMessagesHappen(t *testing.T) {
 	tws1.close()
 	tws2.close()
 	tws3.close()
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestHub_LeaverMessagesHappen(t *testing.T) {
@@ -745,7 +745,7 @@ func TestHub_LeaverMessagesHappen(t *testing.T) {
 	// Close the remaining connections and wait for all goroutines to finish
 	tws2.close()
 	tws3.close()
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestHub_SendsErrorOverMaximumClients(t *testing.T) {
@@ -818,7 +818,7 @@ func TestHub_SendsErrorOverMaximumClients(t *testing.T) {
 	tws.close()
 
 	// Check everything in the main app finishes
-	wg.Wait()
+	WG.Wait()
 }
 
 func TestHub_NonReadingClientsDontBlock(t *testing.T) {
@@ -907,5 +907,5 @@ func TestHub_NonReadingClientsDontBlock(t *testing.T) {
 	w.Wait()
 
 	// Check everything in the main app finishes
-	wg.Wait()
+	WG.Wait()
 }

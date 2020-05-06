@@ -95,9 +95,9 @@ func TestSuperhub_LotsOfActivityEndsWithEmptySuperHub(t *testing.T) {
 	w.Wait()
 
 	// Tidy up, and check everything in the main app finishes
-	wg.Wait()
+	WG.Wait()
 
-	if count := shub.Count(); count != 0 {
+	if count := Shub.Count(); count != 0 {
 		t.Errorf("Expected no hubs in superhub, got %d", count)
 	}
 }
