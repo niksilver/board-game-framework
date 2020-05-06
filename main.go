@@ -54,7 +54,7 @@ func bounceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a websocket connection, and a client for it
+	// Create a websocket connection
 	clientID := ClientIDOrNew(r.Cookies())
 	ws, err := Upgrade(w, r, clientID)
 	if err != nil {
@@ -64,21 +64,16 @@ func bounceHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Make sure we can get a hub
 	hub, err := shub.Hub(r.URL.Path)
-	tLog.Debug("main, got hub", "id", clientID, "hub", hub, "err", err)
 	if err != nil {
-		tLog.Debug("main, got hub error", "id", clientID, "err", err)
 		msg := websocket.FormatCloseMessage(
 			websocket.CloseNormalClosure, err.Error())
-		if err := ws.WriteMessage(websocket.CloseMessage, msg); err != nil {
-			tLog.Debug("main, got write error", "id", clientID, "err", err)
-			// Ignore write error, we're exiting anyway
-		}
-		if err := ws.Close(); err != nil {
-			tLog.Debug("main, got close error", "id", clientID, "err", err)
-		}
+		// The following calls may error, but we're exiting, so will ignore
+		ws.WriteMessage(websocket.CloseMessage, msg)
+		ws.Close()
 		return
 	}
 
+	// Start the client handler running
 	c := &Client{
 		ID:      clientID,
 		WS:      ws,

@@ -763,25 +763,20 @@ func TestHub_SendsErrorOverMaximumClients(t *testing.T) {
 		for {
 			rr, timedOut := tws.readMessage(500)
 			if timedOut {
-				tLog.Debug("Max.consume, timed out reading", "id", id)
 				break
 			}
 			if rr.err == nil {
 				// Got a message
 			} else {
-				tLog.Debug("Max.consume, error reading", "id", id)
 				break
 			}
 		}
-		tLog.Debug("Max.consume, closing", "id", id)
 		tws.close()
-		tLog.Debug("Max.consume, closed", "id", id)
 	}
 
 	// Let 50 clients join the game
 	for i := 0; i < MaxClients; i++ {
 		id := "MAX" + strconv.Itoa(i)
-		tLog.Debug("Max, connecting", "id", id)
 		ws, _, err := dial(serv, "/hub.max", id)
 		tws := newTConn(ws, id)
 		defer tws.close()
@@ -791,7 +786,6 @@ func TestHub_SendsErrorOverMaximumClients(t *testing.T) {
 		twss[i] = tws
 		w.Add(1)
 		go consume(tws, id)
-		tLog.Debug("Max, added", "id", id)
 	}
 
 	// Trying to connect should get a response, but an error response
