@@ -16,7 +16,7 @@
                     if (ws) {
                         return false;
                     }
-                    ws = new WebSocket("ws://localhost:8080/");
+                    ws = new WebSocket("ws://localhost:8080/sample-game");
                     ws.onopen = function(evt) {
                         print("OPEN");
                     }
@@ -53,10 +53,13 @@
     <body>
         <table>
             <tr><td valign="top" width="50%">
-                <p>Click "Open" to create a connection to the server, 
-                "Send" to send a message to the server and "Close" to close the connection. 
+                <p>Click "Open" to connect to the server.
+                "Send" to send a message to the server.
+                "Close" to close the connection. 
                 You can change the message and send multiple times.
-                <p>
+                </p>
+                <p>This code assumes the server is at
+                http://localhost:8080</p>
                 <form>
                     <button id="open">Open</button>
                     <button id="close">Close</button>
