@@ -25,7 +25,13 @@
                         ws = null;
                     }
                     ws.onmessage = function(evt) {
-                        print("RESPONSE: " + evt.data);
+                        // Get the received envelope as structured data
+                        env = JSON.parse(evt.data);
+                        // If there's a body (base64 encoded) decode it
+                        if (env.Body) {
+                            env.Body = atob(env.Body)
+                        }
+                        print("RESPONSE parsed: " + JSON.stringify(env));
                     }
                     ws.onerror = function(evt) {
                         print("ERROR: " + evt.data);

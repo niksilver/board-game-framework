@@ -158,7 +158,7 @@ func (c *Client) receiveExt() {
 			)
 			break
 		}
-		// Currently ignores message type
+		// Currently just passes on the message type
 		tLog.Debug("client.receiveExt, read is good", "id", c.ID)
 		c.Hub.Pending <- &Message{
 			From:  c,
