@@ -5,7 +5,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -204,17 +203,7 @@ sendLoop:
 				tLog.Debug("client.sendExt, deadline1 error", "id", c.ID, "err", err)
 				break sendLoop
 			}
-			envBytes, err := json.Marshal(m.Env)
-			if err != nil {
-				// This means some internal coding mistake
-				tLog.Debug("client.sendExt, marshalling error", "id", c.ID)
-				c.log.Error(
-					"Envelope marshalling error",
-					"ID", c.ID, "envelope", m.Env, "error", err,
-				)
-				break sendLoop
-			}
-			if err := c.WS.WriteMessage(m.MType, envBytes); err != nil {
+			if err := c.WS.WriteJSON(m.Env); err != nil {
 				// Write error, shut down
 				tLog.Debug("client.sendExt, write1 error", "id", c.ID, "err", err)
 				break sendLoop
