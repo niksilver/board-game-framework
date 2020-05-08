@@ -4,55 +4,75 @@
         <meta charset="utf-8">
     <script>  
         window.addEventListener("load", function(evt) {
-                var output = document.getElementById("output");
-                var input = document.getElementById("input");
-                var ws;
-                var print = function(message) {
-                    var d = document.createElement("div");
-                    d.textContent = message;
-                    output.appendChild(d);
-                };
-                document.getElementById("open").onclick = function(evt) {
-                    if (ws) {
-                        return false;
-                    }
-                    ws = new WebSocket("ws://localhost:8080/sample-game");
-                    ws.onopen = function(evt) {
-                        print("OPEN");
-                    }
-                    ws.onclose = function(evt) {
-                        print("CLOSE");
-                        ws = null;
-                    }
-                    ws.onmessage = function(evt) {
-                        // Get the received envelope as structured data
-                        env = JSON.parse(evt.data);
-                        // If there's a body (base64 encoded) decode it
-                        if (env.Body) {
-                            env.Body = atob(env.Body)
-                        }
-                        print("RESPONSE parsed: " + JSON.stringify(env));
-                    }
-                    ws.onerror = function(evt) {
-                        print("ERROR: " + evt.data);
-                    }
+            var output = document.getElementById("output");
+            var ws;
+
+            // Our inputs 
+            var words = document.getElementById("words");
+            var truth = document.getElementById("truth");
+            var numeric = document.getElementById("numeric");
+
+            var print = function(message) {
+                var d = document.createElement("div");
+                d.textContent = message;
+                output.appendChild(d);
+            };
+            document.getElementById("open").onclick = function(evt) {
+                if (ws) {
                     return false;
-                };
-                document.getElementById("send").onclick = function(evt) {
-                    if (!ws) {
-                        return false;
+                }
+                ws = new WebSocket("ws://localhost:8080/sample-game");
+                ws.onopen = function(evt) {
+                    print("OPEN");
+                }
+                ws.onclose = function(evt) {
+                    print("CLOSE");
+                    ws = null;
+                }
+                ws.onmessage = function(evt) {
+                    // Get the received envelope as structured data
+                    env = JSON.parse(evt.data);
+                    // If there's a body (base64 encoded) decode it
+                    if (env.Body) {
+                        env.Body = JSON.parse(atob(env.Body));
                     }
-                    print("SEND: " + input.value);
-                    ws.send(input.value);
+                    print("RESPONSE: " + JSON.stringify(env));
+                }
+                ws.onerror = function(evt) {
+                    print("ERROR: " + evt.data);
+                }
+                return false;
+            };
+            document.getElementById("send").onclick = function(evt) {
+                if (!ws) {
                     return false;
+                }
+                var n;
+                if (document.getElementById('n1').checked) {
+                    n = document.getElementById('n1').value;
+                }
+                if (document.getElementById('n2').checked) {
+                    n = document.getElementById('n2').value;
+                }
+                if (document.getElementById('n3').checked) {
+                    n = document.getElementById('n3').value;
+                }
+                msg = {
+                    words: words.value,
+                    truth: truth.checked,
+                    numeric: parseFloat(n)
                 };
-                document.getElementById("close").onclick = function(evt) {
-                    if (!ws) {
-                        return false;
-                    }
-                    ws.close();
+                print("SEND: " + JSON.stringify(msg));
+                ws.send(JSON.stringify(msg));
+                return false;
+            };
+            document.getElementById("close").onclick = function(evt) {
+                if (!ws) {
                     return false;
-                };
+                }
+                ws.close();
+                return false;
+            };
         });
     </script>
     </head>
@@ -69,7 +89,20 @@
                 <form>
                     <button id="open">Open</button>
                     <button id="close">Close</button>
-                    <p><input id="input" type="text" value="Hello world!">
+                    <p>
+                    {<br/>
+                    Words: <input id="words" type="text" value="Hello world!"><br/>
+                    Truth: <input id="truth" type="checkbox" value="true"><br/>
+                    Numeric:
+                    <input name="numeric" id="n1" type="radio" value="3.1415" checked>
+                    <label for="n1">3.1415</label>
+                    <input name="numeric" id="n2" type="radio" value="42">
+                    <label for="n2">42</label>
+                    <input name="numeric" id="n3" type="radio" value="100">
+                    <label for="n3">100</label>
+                    <br/>
+                    }
+                    </p>
                     <button id="send">Send</button>
                 </form>
             </td><td valign="top" width="50%">
