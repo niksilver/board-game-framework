@@ -2,82 +2,11 @@
 <html>
     <head>
         <meta charset="utf-8">
+    // Load the Javascript library for our board game framework
+    <script type="text/javascript" src="../../boardgameframework.js"></script>
     <script>  
+        // Application-specific code
         window.addEventListener("load", function(evt) {
-
-            // The bridge layer from our application to the plumbing
-            var bridge = {
-                // Our websocket
-                ws: null,
-
-                // Send an envelope of data to the main application.
-                // Replace this default implementation in your app.
-                toapp: function(env) {
-                    console.log("toapp(env). Replace this with your own implementation");
-                },
-
-                // Act on an instruction from the main app: Open, Close, Send
-                act: function(data) {
-                    switch (data.instruction) {
-                        case 'Open':
-                            this.open(data.url);
-                            return;
-                        case 'Close':
-                            if (!this.ws) {
-                                // Closing non-existent websocket. Odd, but okay
-                                return;
-                            }
-                            this.ws.close();
-                            return;
-                        case 'Send':
-                            if (!this.ws) {
-                                this.toapp({error: "Send: Websocket not configured"});
-                                return;
-                            }
-                            this.ws.send(JSON.stringify(data.body));
-                            return;
-                        default:
-                            this.toapp({error: "Unrecognised instruction"});
-                            return;
-                    }
-                },
-
-                // Open a websocket and set up the event handlers
-                open: function(url) {
-                    parent = this;
-                    if (this.ws) {
-                        // Already have a websocket connection
-                        return false;
-                    }
-                    this.ws = new WebSocket(url);
-                    this.ws.onopen = function(evt) {
-                        // No action
-                    }
-                    this.ws.onclose = function(evt) {
-                        parent.toapp({close: true});
-                        parent.ws = null;
-                    }
-                    this.ws.onmessage = function(evt) {
-                        // Get the received envelope as structured data
-                        env = JSON.parse(evt.data);
-                        // If there's a body (base64 encoded) decode it
-                        if (env.Body) {
-                            env.Body = JSON.parse(atob(env.Body));
-                        }
-                        parent.toapp(env);
-                    }
-                    this.ws.onerror = function(evt) {
-                        // Error details can't be determined by design. See
-                        // https://stackoverflow.com/a/31003057/1830955
-                        // The browser will also close the websocket
-                        parent.toapp({error: "Websocket error"});
-                    }
-                },
-
-            };
-
-            // ------------------------------------------------------
-
             // Elements of our page
             var output = document.getElementById("output");
             var words = document.getElementById("words");
@@ -94,14 +23,14 @@
                 output.insertBefore(d, second);
             };
 
-            // This is what we'll do when the bridge sends data to our app
-            bridge.toapp = function(env) {
+            // This is what we'll do when the framework sends data to our app
+            boardgameframework.toapp = function(env) {
                 print(JSON.stringify(env));
             }
 
             // Event for our application
             document.getElementById("open").onclick = function(evt) {
-                bridge.act({
+                boardgameframework.act({
                     instruction: "Open",
                     url: "ws://localhost:8080/sample-game"
                 });
@@ -114,11 +43,11 @@
                     wholenumber: parseInt(wholenumber.value)
 
                 };
-                bridge.act({instruction: "Send", body: msg});
+                boardgameframework.act({instruction: "Send", body: msg});
                 return false;
             };
             document.getElementById("close").onclick = function(evt) {
-                bridge.act({instruction: "Close" });
+                boardgameframework.act({instruction: "Close" });
                 return false;
             };
         });

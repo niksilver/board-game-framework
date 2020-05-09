@@ -3,8 +3,6 @@
   (Open, Close, Send).
 - Switch To/From/etc to to/from/etc for consistency with Elm conventions.
 - Pass Javascript errors into envelope for Elm app.
-- Complete Javascript "structured data" demo.
-- Put Javascript functions into their own script file.
 - Create an Elm version of the Javascript "structured data" demo.
 - Ensure App Engine runs with only one instance.
 - Store game state locally.
@@ -54,3 +52,5 @@ DONE:
   we just need to make sure we don't time anything out too early.)
 - Have Javascript client unpack server response with envelope+contents.
 - Show Javascript errors in console. (These are handled by the browser.)
+- Complete Javascript "structured data" demo.
+- Put Javascript functions into their own script file.
