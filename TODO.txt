@@ -1,6 +1,8 @@
-- Add a server command to delete cookies.
+- Have demo app choose its game ID.
 - Update documentation to talk about application data structures
   (Open, Close, Send).
+- Update documentation to include behind-the-scenes connectivity:
+  game name, annul cookie command.
 - Switch To/From/etc to to/from/etc for consistency with Elm conventions.
 - Pass Javascript errors into envelope for Elm app.
 - Create an Elm version of the Javascript "structured data" demo.
@@ -54,3 +56,4 @@ DONE:
 - Show Javascript errors in console. (These are handled by the browser.)
 - Complete Javascript "structured data" demo.
 - Put Javascript functions into their own script file.
+- Add a server command to delete cookies.

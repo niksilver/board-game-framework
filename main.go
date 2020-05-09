@@ -34,6 +34,9 @@ func main() {
 	// Handle game requests
 	http.HandleFunc("/g/", bounceHandler)
 
+	// Handle command for cookie annulment
+	http.HandleFunc("/cmd/annul-cookie", annulCookieHandler)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -50,11 +53,6 @@ func main() {
 // bounceHandler sets up a websocket to bounce whatever it receives to
 // other clients in the same game.
 func bounceHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "" || r.URL.Path == "/" {
-		http.NotFound(w, r)
-		return
-	}
-
 	// Create a websocket connection
 	clientID := ClientIDOrNew(r.Cookies())
 	ws, err := Upgrade(w, r, clientID)
@@ -82,4 +80,16 @@ func bounceHandler(w http.ResponseWriter, r *http.Request) {
 		Pending: make(chan *Message),
 	}
 	c.Start()
+}
+
+// annulCookieHandler sets up a websocket, annuls the client ID cookie,
+// and closes.
+func annulCookieHandler(w http.ResponseWriter, r *http.Request) {
+	// Create a websocket connection with an empty cookie
+	ws, err := Upgrade(w, r, "")
+	if err != nil {
+		log.Log.Warn("Upgrade", "error", err)
+		return
+	}
+	ws.Close()
 }

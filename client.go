@@ -25,6 +25,11 @@ var pongTimeout = (pingFreq * 5) / 4
 // How long to allow to write to the websocket.
 var writeTimeout = 10 * time.Second
 
+func init() {
+	// Let's not generate near-identical client IDs on every restart
+	rand.Seed(time.Now().UnixNano())
+}
+
 type Client struct {
 	ID string
 	// Don't close the websocket directly. That's managed internally.
@@ -54,10 +59,16 @@ func Upgrade(
 	r *http.Request,
 	clientID string,
 ) (*websocket.Conn, error) {
+	maxAge := 60 * 60 * 24 * 365 * 100 // 100 years, default expiration
+	if clientID == "" {
+		// Annul the cookie
+		maxAge = -1
+	}
 	cookie := &http.Cookie{
 		Name:   "clientID",
 		Value:  clientID,
-		MaxAge: 60 * 60 * 24 * 365 * 100, // 100 years
+		Path:   "/",
+		MaxAge: maxAge,
 	}
 	cookieStr := cookie.String()
 	header := http.Header(make(map[string][]string))

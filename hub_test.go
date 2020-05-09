@@ -399,7 +399,6 @@ func TestHub_BasicMessageEnvelopeIsCorrect(t *testing.T) {
 // A test for general connecting, disconnecting and message sending...
 // This just needs to run and not deadlock.
 func TestHub_GeneralChaos(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
 	cMap := make(map[string]*websocket.Conn)
 	cSlice := make([]string, 0)
 	consumed := 0
