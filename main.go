@@ -31,7 +31,8 @@ func main() {
 	// Set the logger -only for when the application runs, as this is in main
 	log.Log.SetHandler(log15.StdoutHandler)
 
-	http.HandleFunc("/", bounceHandler)
+	// Handle game requests
+	http.HandleFunc("/g/", bounceHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
