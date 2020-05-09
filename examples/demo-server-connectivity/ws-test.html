@@ -10,7 +10,7 @@
             // Our inputs 
             var words = document.getElementById("words");
             var truth = document.getElementById("truth");
-            var numeric = document.getElementById("numeric");
+            var wholenumber = document.getElementById("wholenumber");
 
             var print = function(message) {
                 var d = document.createElement("div");
@@ -47,20 +47,11 @@
                 if (!ws) {
                     return false;
                 }
-                var n;
-                if (document.getElementById('n1').checked) {
-                    n = document.getElementById('n1').value;
-                }
-                if (document.getElementById('n2').checked) {
-                    n = document.getElementById('n2').value;
-                }
-                if (document.getElementById('n3').checked) {
-                    n = document.getElementById('n3').value;
-                }
                 msg = {
                     words: words.value,
                     truth: truth.checked,
-                    numeric: parseFloat(n)
+                    wholenumber: parseInt(wholenumber.value)
+
                 };
                 print("SEND: " + JSON.stringify(msg));
                 ws.send(JSON.stringify(msg));
@@ -91,16 +82,12 @@
                     <button id="close">Close</button>
                     <p>
                     {<br/>
-                    Words: <input id="words" type="text" value="Hello world!"><br/>
-                    Truth: <input id="truth" type="checkbox" value="true"><br/>
-                    Numeric:
-                    <input name="numeric" id="n1" type="radio" value="3.1415" checked>
-                    <label for="n1">3.1415</label>
-                    <input name="numeric" id="n2" type="radio" value="42">
-                    <label for="n2">42</label>
-                    <input name="numeric" id="n3" type="radio" value="100">
-                    <label for="n3">100</label>
-                    <br/>
+                    Words:
+                    <input id="words" type="text" value="Hello world!"><br/>
+                    Truth
+                    <input id="truth" type="checkbox" value="true"><br/>
+                    Whole number:
+                    <input id="wholenumber" type="text" value="27"><br/>
                     }
                     </p>
                     <button id="send">Send</button>

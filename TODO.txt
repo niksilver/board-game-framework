@@ -1,9 +1,10 @@
-- Add a message count to the envelope.
+- Show Javascript errors in console.
+- Pass Javascript errors into envelope for Elm app.
+- Complete Javascript "structured data" demo.
+- Put Javascript functions into their own script file.
+- Create an Elm version of the Javascript "structured data" demo.
 - Ensure App Engine runs with only one instance.
 - Store game state locally.
-- Send a server message to sender if message to be sent is too large
-  (intent "Error").
-- Have Javascript client unpack server response with envelope+contents.
 
 DONE:
 
@@ -48,3 +49,4 @@ DONE:
 - Ensure a client which doesn't read doesn't block other comms.
 - Investigate why we can't seem to send lots of 50k messages. (We can -
   we just need to make sure we don't time anything out too early.)
+- Have Javascript client unpack server response with envelope+contents.
