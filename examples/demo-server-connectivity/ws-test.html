@@ -12,7 +12,6 @@
             var truth = document.getElementById("truth");
             var wholenumber = document.getElementById("wholenumber");
 
-            // Add content to the end of the output div
             // Add content to the top of the output div
             var printtop = function(message) {
                 var d = document.createElement("p");
@@ -20,8 +19,15 @@
                 first = output.firstChild;
                 output.insertBefore(d, first);
             };
+            // Send an envelope of data to the main application
+            var respond = function(env) {
+                printtop("To app: " + JSON.stringify(env));
+            }
+
+            // Functions for websocket i/o
             document.getElementById("open").onclick = function(evt) {
                 if (ws) {
+                    // Already have a websocket connection
                     return false;
                 }
                 ws = new WebSocket("ws://localhost:8080/sample-game");
@@ -30,6 +36,7 @@
                 }
                 ws.onclose = function(evt) {
                     printtop("CLOSE");
+                    respond({Error: "Connection closed"});
                     ws = null;
                 }
                 ws.onmessage = function(evt) {
@@ -40,9 +47,13 @@
                         env.Body = JSON.parse(atob(env.Body));
                     }
                     printtop("RESPONSE: " + JSON.stringify(env));
+                    respond(env);
                 }
                 ws.onerror = function(evt) {
-                    printtop("ERROR: " + evt.data);
+                    // Error details can't be determined by design. See
+                    // https://stackoverflow.com/a/31003057/1830955
+                    printtop("ERROR of some kind");
+                    respond({Error: "Websocket error"});
                 }
                 return false;
             };
