@@ -1,4 +1,3 @@
-- Show Javascript errors in console.
 - Pass Javascript errors into envelope for Elm app.
 - Complete Javascript "structured data" demo.
 - Put Javascript functions into their own script file.
@@ -50,3 +49,4 @@ DONE:
 - Investigate why we can't seem to send lots of 50k messages. (We can -
   we just need to make sure we don't time anything out too early.)
 - Have Javascript client unpack server response with envelope+contents.
+- Show Javascript errors in console. (These are handled by the browser.)
