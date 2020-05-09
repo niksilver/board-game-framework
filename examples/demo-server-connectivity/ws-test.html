@@ -34,19 +34,24 @@
                 switch (data.instruction) {
                     case 'Open':
                         open(data.url);
-                        break;
+                        return;
                     case 'Close':
-                        break;
+                        if (!ws) {
+                            // Closing non-existent websocket. Odd, but okay
+                            return;
+                        }
+                        ws.close();
+                        return;
                     case 'Send':
                         if (!ws) {
                             toapp({Error: "Send: Websocket not configured"});
                             return;
                         }
                         ws.send(JSON.stringify(data.body));
-                        break;
+                        return;
                     default:
                         toapp({Error: "Unrecognised instruction"});
-                        break;
+                        return;
                 }
             }
 
@@ -104,10 +109,7 @@
                 return false;
             };
             document.getElementById("close").onclick = function(evt) {
-                if (!ws) {
-                    return false;
-                }
-                ws.close();
+                act({instruction: "Close" });
                 return false;
             };
         });
