@@ -1,3 +1,4 @@
+- Add a server command to delete cookies.
 - Update documentation to talk about application data structures
   (Open, Close, Send).
 - Switch To/From/etc to to/from/etc for consistency with Elm conventions.
