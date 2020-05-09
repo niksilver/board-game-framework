@@ -23,8 +23,8 @@
             // Send an envelope of data to the main application.
             // An error will also be logged to the console.
             var toapp = function(env) {
-                if (env.Error) {
-                    console.log(env.Error);
+                if (env.error) {
+                    console.log(env.error);
                 }
                 printtop("To app: " + JSON.stringify(env));
             }
@@ -44,13 +44,13 @@
                         return;
                     case 'Send':
                         if (!ws) {
-                            toapp({Error: "Send: Websocket not configured"});
+                            toapp({error: "Send: Websocket not configured"});
                             return;
                         }
                         ws.send(JSON.stringify(data.body));
                         return;
                     default:
-                        toapp({Error: "Unrecognised instruction"});
+                        toapp({error: "Unrecognised instruction"});
                         return;
                 }
             }
@@ -67,7 +67,7 @@
                 }
                 ws.onclose = function(evt) {
                     printtop("CLOSE");
-                    toapp({Error: "Connection closed"});
+                    toapp({close: true});
                     ws = null;
                 }
                 ws.onmessage = function(evt) {
@@ -85,11 +85,11 @@
                     // https://stackoverflow.com/a/31003057/1830955
                     // The browser will also close the websocket
                     printtop("ERROR of some kind");
-                    toapp({Error: "Websocket error"});
+                    toapp({error: "Websocket error"});
                 }
             }
 
-            // Functions for websocket i/o
+            // Functions specific to our simple demo application
             document.getElementById("open").onclick = function(evt) {
                 act({
                     instruction: "Open",

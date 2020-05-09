@@ -1,3 +1,6 @@
+- Update documentation to talk about application data structures
+  (Open, Close, Send).
+- Switch To/From/etc to to/from/etc for consistency with Elm conventions.
 - Pass Javascript errors into envelope for Elm app.
 - Complete Javascript "structured data" demo.
 - Put Javascript functions into their own script file.
