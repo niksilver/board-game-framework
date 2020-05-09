@@ -12,10 +12,13 @@
             var truth = document.getElementById("truth");
             var wholenumber = document.getElementById("wholenumber");
 
-            var print = function(message) {
-                var d = document.createElement("div");
+            // Add content to the end of the output div
+            // Add content to the top of the output div
+            var printtop = function(message) {
+                var d = document.createElement("p");
                 d.textContent = message;
-                output.appendChild(d);
+                first = output.firstChild;
+                output.insertBefore(d, first);
             };
             document.getElementById("open").onclick = function(evt) {
                 if (ws) {
@@ -23,10 +26,10 @@
                 }
                 ws = new WebSocket("ws://localhost:8080/sample-game");
                 ws.onopen = function(evt) {
-                    print("OPEN");
+                    printtop("OPEN");
                 }
                 ws.onclose = function(evt) {
-                    print("CLOSE");
+                    printtop("CLOSE");
                     ws = null;
                 }
                 ws.onmessage = function(evt) {
@@ -36,10 +39,10 @@
                     if (env.Body) {
                         env.Body = JSON.parse(atob(env.Body));
                     }
-                    print("RESPONSE: " + JSON.stringify(env));
+                    printtop("RESPONSE: " + JSON.stringify(env));
                 }
                 ws.onerror = function(evt) {
-                    print("ERROR: " + evt.data);
+                    printtop("ERROR: " + evt.data);
                 }
                 return false;
             };
@@ -53,7 +56,7 @@
                     wholenumber: parseInt(wholenumber.value)
 
                 };
-                print("SEND: " + JSON.stringify(msg));
+                printtop("SEND: " + JSON.stringify(msg));
                 ws.send(JSON.stringify(msg));
                 return false;
             };
