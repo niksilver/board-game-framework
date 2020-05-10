@@ -43,6 +43,7 @@ init _ =
 type Msg =
   GameID String
   | OpenClick
+  | Received String
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -56,24 +57,31 @@ update msg model =
     OpenClick ->
       (model, Open model.draftGameID |> encode |> outgoing)
 
+    Received _ ->
+      (model, Cmd.none)
+
 
 -- Subscriptions
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+  incoming toMessage
 
 
 -- Ports to communicate with the framework
 
 
 port outgoing : Enc.Value -> Cmd msg
+port incoming : (Enc.Value -> msg) -> Sub msg
 
 
 type Request =
   Open String
 
+
+-- Turn an application request into something that can be sent out
+-- through a port
 
 encode : Request -> Enc.Value
 encode req =
@@ -83,6 +91,16 @@ encode req =
         [ ("instruction", Enc.string "Open")
         , ("url", "ws://localhost:8080/g/" ++ gameID |> Enc.string)
         ]
+
+
+-- Turn something that's come in from a port into a message we can
+-- do something about.
+
+toMessage : Enc.Value -> Msg
+toMessage v =
+  Enc.encode 0 v
+  |> Debug.log "Incoming message"
+  |> Received
 
 
 -- View
