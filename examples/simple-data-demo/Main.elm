@@ -3,13 +3,14 @@
 -- Licensed under the GPL v3.0. See file LICENCE.txt for details.
 
 
-module Main exposing (..)
+port module Main exposing (..)
 
 
 import Browser
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
+import Json.Encode as Enc
 
 
 main =
@@ -41,6 +42,7 @@ init _ =
 
 type Msg =
   GameID String
+  | Open
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -51,6 +53,9 @@ update msg model =
       , Cmd.none
       )
 
+    Open ->
+      (model, instruct <| Enc.string model.draftGameID)
+
 
 -- Subscriptions
 
@@ -58,6 +63,12 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.none
+
+
+-- Ports to communicate with the framework
+
+
+port instruct : Enc.Value -> Cmd msg
 
 
 -- View
@@ -83,7 +94,10 @@ view model =
         , Attr.value model.draftGameID
         , Events.onInput GameID
         ] []
-      , br [][]
+      , button
+        [ Attr.id "open"
+        , Events.onClick Open
+        ] [ text "Open" ]
       ]
     ]
   ]
