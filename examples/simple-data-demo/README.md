@@ -6,3 +6,24 @@ This is a simple demo to show:
 * We can disconnect from the server.
 
 There are two versions of the application: in JavaScript, and in Elm.
+
+## JavaScript demo
+
+* *data-demo-js.html*. Run this to see the JavaScript version.
+* *lib/boardgameframework.js*. A copy of the framework library it uses.
+
+## Elm demo
+
+* *Main.elm*. The main Elm app which needs compiling.
+* *data-demo-elm.html*. The shell page that the Elm app drops
+  into. It sets up the JavaScript side of the ports integration.
+* *lib/boardgameframework.js*. A copy of the JavaScript framework library
+  used by the shell page.
+
+Compile the Elm app with something like
+
+```
+elm make Main.elm --output=data-demo-elm.js
+```
+
+and then go to data-demo-elm.html to see it running.
