@@ -14,8 +14,9 @@
         var app = Elm.Main.init({
             node: document.getElementById('app'),
         });
-        app.ports.instruct.subscribe(function(data) {
+        app.ports.outgoing.subscribe(function(data) {
             console.log("Received: " + JSON.stringify(data));
+            boardgameframework.act(data);
         });
     </script>
 </html>

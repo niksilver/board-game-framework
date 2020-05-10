@@ -5156,8 +5156,37 @@ var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $author$project$Main$subscriptions = function (model) {
 	return $elm$core$Platform$Sub$none;
 };
-var $author$project$Main$instruct = _Platform_outgoingPort('instruct', $elm$core$Basics$identity);
+var $author$project$Main$Open = function (a) {
+	return {$: 'Open', a: a};
+};
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
 var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Main$encode = function (req) {
+	var gameID = req.a;
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'instruction',
+				$elm$json$Json$Encode$string('Open')),
+				_Utils_Tuple2(
+				'url',
+				$elm$json$Json$Encode$string('ws://localhost:8080/g/' + gameID))
+			]));
+};
+var $author$project$Main$outgoing = _Platform_outgoingPort('outgoing', $elm$core$Basics$identity);
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		if (msg.$ === 'GameID') {
@@ -5170,14 +5199,15 @@ var $author$project$Main$update = F2(
 		} else {
 			return _Utils_Tuple2(
 				model,
-				$author$project$Main$instruct(
-					$elm$json$Json$Encode$string(model.draftGameID)));
+				$author$project$Main$outgoing(
+					$author$project$Main$encode(
+						$author$project$Main$Open(model.draftGameID))));
 		}
 	});
 var $author$project$Main$GameID = function (a) {
 	return {$: 'GameID', a: a};
 };
-var $author$project$Main$Open = {$: 'Open'};
+var $author$project$Main$OpenClick = {$: 'OpenClick'};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$form = _VirtualDom_node('form');
@@ -5291,7 +5321,7 @@ var $author$project$Main$view = function (model) {
 								_List_fromArray(
 									[
 										$elm$html$Html$Attributes$id('open'),
-										$elm$html$Html$Events$onClick($author$project$Main$Open)
+										$elm$html$Html$Events$onClick($author$project$Main$OpenClick)
 									]),
 								_List_fromArray(
 									[

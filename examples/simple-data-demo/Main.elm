@@ -42,7 +42,7 @@ init _ =
 
 type Msg =
   GameID String
-  | Open
+  | OpenClick
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -53,8 +53,8 @@ update msg model =
       , Cmd.none
       )
 
-    Open ->
-      (model, instruct <| Enc.string model.draftGameID)
+    OpenClick ->
+      (model, Open model.draftGameID |> encode |> outgoing)
 
 
 -- Subscriptions
@@ -68,7 +68,21 @@ subscriptions model =
 -- Ports to communicate with the framework
 
 
-port instruct : Enc.Value -> Cmd msg
+port outgoing : Enc.Value -> Cmd msg
+
+
+type Request =
+  Open String
+
+
+encode : Request -> Enc.Value
+encode req =
+  case req of
+    Open gameID ->
+      Enc.object
+        [ ("instruction", Enc.string "Open")
+        , ("url", "ws://localhost:8080/g/" ++ gameID |> Enc.string)
+        ]
 
 
 -- View
@@ -96,7 +110,7 @@ view model =
         ] []
       , button
         [ Attr.id "open"
-        , Events.onClick Open
+        , Events.onClick OpenClick
         ] [ text "Open" ]
       ]
     ]
