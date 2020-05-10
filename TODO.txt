@@ -1,4 +1,3 @@
-- Have demo app choose its game ID.
 - Update documentation to talk about application data structures
   (Open, Close, Send).
 - Update documentation to include behind-the-scenes connectivity:
@@ -57,3 +56,4 @@ DONE:
 - Complete Javascript "structured data" demo.
 - Put Javascript functions into their own script file.
 - Add a server command to delete cookies.
+- Have demo app choose its game ID.

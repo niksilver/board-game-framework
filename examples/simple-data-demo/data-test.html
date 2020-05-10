@@ -3,12 +3,13 @@
     <head>
     <meta charset="utf-8">
     <!-- Load the Javascript library for our board game framework -->
-    <script type="text/javascript" src="../../boardgameframework.js"></script>
+    <script type="text/javascript" src="lib/boardgameframework.js"></script>
     <script>  
         // Application-specific code
         window.addEventListener("load", function(evt) {
             // Elements of our page
             var output = document.getElementById("output");
+            var gameid = document.getElementById("gameid");
             var words = document.getElementById("words");
             var truth = document.getElementById("truth");
             var wholenumber = document.getElementById("wholenumber");
@@ -32,7 +33,7 @@
             document.getElementById("open").onclick = function(evt) {
                 boardgameframework.act({
                     instruction: "Open",
-                    url: "ws://localhost:8080/g/sample-game"
+                    url: "ws://localhost:8080/g/" + gameid.value,
                 });
                 return false;
             };
@@ -56,7 +57,8 @@
     <body>
         <table>
             <tr><td valign="top" width="50%">
-                <p>Click "Open" to connect to the server.
+                <p>Choose a game ID,
+                then click "Open" to connect to the server.
                 "Send" to send a message to the server.
                 "Close" to close the connection. 
                 You can change the message and send multiple times.
@@ -64,19 +66,22 @@
                 <p>This code assumes the server is at
                 http://localhost:8080</p>
                 <form>
-                    <button id="open">Open</button>
-                    <button id="close">Close</button>
+                    <p>
+                    http://localhost:8080/g/<input id="gameid" type="text" value="sample-game-id">
+                    <button id="open">Open</button><br/>
+                    </p>
                     <p>
                     {<br/>
-                    Words:
+                    &nbsp;&nbsp;&nbsp;Words:
                     <input id="words" type="text" value="Hello world!"><br/>
-                    Truth
+                    &nbsp;&nbsp;&nbsp;Truth:
                     <input id="truth" type="checkbox" value="true"><br/>
-                    Whole number:
+                    &nbsp;&nbsp;&nbsp;Whole number:
                     <input id="wholenumber" type="text" value="27"><br/>
-                    }
+                    }<br/>
                     </p>
-                    <button id="send">Send</button>
+                    <p><button id="send">Send</button></p>
+                    <p><button id="close">Close</button></p>
                 </form>
             </td><td valign="top" width="50%">
                 <div id="output"><p>
