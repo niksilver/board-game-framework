@@ -91,16 +91,15 @@ encode req =
 view : Model -> Html Msg
 view model =
   div[]
-  [ p [] [text """
-      Choose a game ID,
-      then click "Open" to connect to the server.
-      "Send" to send a message to the server.
-      "Close" to close the connection. 
-      You can change the message and send multiple times.
-      """]
-  , p [] [text "This code assumes the server is at http://localhost:8080"]
-  , form []
-    [ p []
+    [ p [] [text """
+        Choose a game ID,
+        then click "Open" to connect to the server.
+        "Send" to send a message to the server.
+        "Close" to close the connection. 
+        You can change the message and send multiple times.
+        """]
+    , p [] [text "This code assumes the server is at http://localhost:8080"]
+    , p []
       [ text "http://localhost:8080/g/"
       , input
         [ Attr.id "gameid"
@@ -114,4 +113,3 @@ view model =
         ] [ text "Open" ]
       ]
     ]
-  ]
