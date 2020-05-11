@@ -1,3 +1,7 @@
+- Noughts and crosses demo.
+- Join-in-the-lobby demo - collect names and enter.
+- Generate a game ID demo.
+- Generate a game ID, but check it with the server first.
 - Update documentation to talk about application data structures
   (Open, Close, Send).
 - Update documentation to include behind-the-scenes connectivity:
