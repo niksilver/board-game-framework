@@ -11,6 +11,7 @@ import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
 import Json.Encode as Enc
+import List
 
 
 main =
@@ -22,17 +23,20 @@ main =
     }
 
 
--- Null model and initialisation
+-- Model and its initialisation
 
 
 type alias Model =
   { draftGameID: String
+  , history: List String
   }
 
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ( {draftGameID = "sample-game-id"}
+  ( { draftGameID = "sample-game-id"
+    , history = []
+    }
   , Cmd.none
   )
 
@@ -57,8 +61,12 @@ update msg model =
     OpenClick ->
       (model, Open model.draftGameID |> encode |> outgoing)
 
-    Received _ ->
-      (model, Cmd.none)
+    Received env ->
+      ( { model
+        | history = env :: model.history
+        }
+      , Cmd.none
+      )
 
 
 -- Subscriptions
@@ -98,9 +106,7 @@ encode req =
 
 toMessage : Enc.Value -> Msg
 toMessage v =
-  Enc.encode 0 v
-  |> Debug.log "Incoming message"
-  |> Received
+  Enc.encode 0 v |> Received
 
 
 -- View
@@ -108,6 +114,18 @@ toMessage v =
 
 view : Model -> Html Msg
 view model =
+  table []
+    [ tr []
+        [ td [ Attr.style "width" "50%", Attr.style "vertical-align" "top" ]
+            [ viewControls model ]
+        , td [ Attr.style "width" "50%", Attr.style "vertical-align" "top" ]
+            [ viewHistory model ]
+        ]
+    ]
+
+
+viewControls : Model -> Html Msg
+viewControls model =
   div[]
     [ p [] [text """
         Choose a game ID,
@@ -131,3 +149,11 @@ view model =
         ] [ text "Open" ]
       ]
     ]
+
+
+viewHistory : Model -> Html Msg
+viewHistory model =
+  div [] <|
+    p [] [text "Application messages appear here, latest first:"] ::
+    List.map (\e -> p [] [text e]) model.history
+   

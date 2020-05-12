@@ -20,7 +20,7 @@ There are two versions of the application: in JavaScript, and in Elm.
 * *lib/boardgameframework.js*. A copy of the JavaScript framework library
   used by the shell page.
 
-Compile the Elm app with something like
+Compile the Elm app with this command:
 
 ```
 elm make Main.elm --output=data-demo-elm.js
