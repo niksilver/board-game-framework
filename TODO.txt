@@ -1,4 +1,3 @@
-- Re-organise the files.
 - Create an "actioned data" demo, which uses the structured data.
 - Put some Elm logic into a package.
 - Noughts and crosses demo.
@@ -64,3 +63,4 @@ DONE:
 - Add a server command to delete cookies.
 - Have demo app choose its game ID.
 - Create an Elm version of the Javascript "simple data" demo.
+- Re-organise the files.

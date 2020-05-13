@@ -17,7 +17,7 @@ There are two versions of the application: in JavaScript, and in Elm.
 
 ## Elm version
 
-* *Main.elm*. The main Elm app.
+* *src/Main.elm*. The main Elm app.
 * *data-demo-elm.html*. The shell page that the Elm app drops
   into. It sets up the JavaScript side of the ports integration.
 * *lib/boardgameframework.js*. A copy of the JavaScript framework library
@@ -26,7 +26,7 @@ There are two versions of the application: in JavaScript, and in Elm.
 Compile the Elm app with this command:
 
 ```
-elm make Main.elm --output=data-demo-elm.js
+elm make src/Main.elm --output=data-demo-elm.js
 ```
 
 and then go to data-demo-elm.html to see it running.
