@@ -12,6 +12,8 @@ import Html.Attributes as Attr
 import Html.Events as Events
 import Json.Encode as Enc
 import List
+import Maybe
+import String
 
 
 main =
@@ -36,6 +38,7 @@ type alias Model =
 type alias Body =
   { draftWords: String
   , draftTruth: Bool
+  , draftWholeNumber: Int
   }
 
 
@@ -44,7 +47,8 @@ init _ =
   ( { draftGameID = "sample-game-id"
     , body =
       { draftWords = "Hello world!"
-      , draftTruth = False
+      , draftTruth = True
+      , draftWholeNumber = 27
       }
     , history = []
     }
@@ -60,6 +64,7 @@ type Msg =
   | OpenClick
   | Words String
   | Truth Bool
+  | WholeNumber String
   | SendClick
   | Received String
 
@@ -88,6 +93,15 @@ update msg model =
         body = model.body
       in
       ( { model | body = { body | draftTruth = t }}
+      , Cmd.none
+      )
+
+    WholeNumber nStr ->
+      let
+        body = model.body
+        n = String.toInt nStr |> Maybe.withDefault model.body.draftWholeNumber
+      in
+      ( { model | body = { body | draftWholeNumber = n }}
       , Cmd.none
       )
 
@@ -141,6 +155,7 @@ encode req =
           , Enc.object
             [ ("words", Enc.string body.draftWords)
             , ("truth", Enc.bool body.draftTruth)
+            , ("wholenumber", Enc.int body.draftWholeNumber)
             ]
           )
         ]
@@ -192,10 +207,27 @@ viewControls model =
       ]
     , p []
       [ text "{", br [] []
-      , span [Attr.style "margin-left" "2em"] [text "Words: "]
-      , input [Attr.type_ "text", Events.onInput Words] [], br [] []
-      , span [Attr.style "margin-left" "2em"] [text "Truth: "]
-      , input [Attr.type_ "checkbox", Events.onCheck Truth] [], br [] []
+      , span [Attr.style "margin-left" "1em"] [text "Words: "]
+      , input
+        [ Attr.type_ "text"
+        , Attr.value model.body.draftWords
+        , Events.onInput Words
+        ] []
+      , br [] []
+      , span [Attr.style "margin-left" "1em"] [text "Truth: "]
+      , input
+        [ Attr.type_ "checkbox"
+        , Attr.checked model.body.draftTruth
+        , Events.onCheck Truth
+        ] []
+      , br [] []
+      , span [Attr.style "margin-left" "1em"] [text "Whole number: "]
+      , input
+        [ Attr.type_ "text"
+        , Attr.value (String.fromInt model.body.draftWholeNumber)
+        , Events.onInput WholeNumber
+        ] []
+      , br [] []
       , text "}", br [] []
       ]
     , p [] [ button [ Events.onClick SendClick ] [ text "Send" ] ]
