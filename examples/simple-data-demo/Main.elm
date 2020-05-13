@@ -28,6 +28,9 @@ main =
 
 type alias Model =
   { draftGameID: String
+  , body:
+    { draftWords: String
+    }
   , history: List String
   }
 
@@ -35,6 +38,7 @@ type alias Model =
 init : () -> (Model, Cmd Msg)
 init _ =
   ( { draftGameID = "sample-game-id"
+    , body = {draftWords = ""}
     , history = []
     }
   , Cmd.none
@@ -47,6 +51,8 @@ init _ =
 type Msg =
   GameID String
   | OpenClick
+  | Words String
+  | SendClick
   | Received String
 
 
@@ -60,6 +66,17 @@ update msg model =
 
     OpenClick ->
       (model, Open model.draftGameID |> encode |> outgoing)
+
+    Words w ->
+      let
+        body = model.body
+      in
+      ( { model | body = { body | draftWords = w }}
+      , Cmd.none
+      )
+
+    SendClick ->
+      (model, Send model.body.draftWords |> encode |> outgoing)
 
     Received env ->
       ( { model
@@ -84,20 +101,27 @@ port outgoing : Enc.Value -> Cmd msg
 port incoming : (Enc.Value -> msg) -> Sub msg
 
 
-type Request =
+type Request a =
   Open String
+  | Send String
 
 
 -- Turn an application request into something that can be sent out
 -- through a port
 
-encode : Request -> Enc.Value
+encode : Request String -> Enc.Value
 encode req =
   case req of
     Open gameID ->
       Enc.object
         [ ("instruction", Enc.string "Open")
         , ("url", "ws://localhost:8080/g/" ++ gameID |> Enc.string)
+        ]
+
+    Send words ->
+      Enc.object
+        [ ("instruction", Enc.string "Send")
+        , ("body", Enc.string words)
         ]
 
 
@@ -139,15 +163,19 @@ viewControls model =
       [ text "http://localhost:8080/g/"
       , input
         [ Attr.id "gameid"
-        , Attr.type_ "text"
+      , Attr.type_ "text"
         , Attr.value model.draftGameID
         , Events.onInput GameID
         ] []
-      , button
-        [ Attr.id "open"
-        , Events.onClick OpenClick
-        ] [ text "Open" ]
+      , button [ Events.onClick OpenClick ] [ text "Open" ]
       ]
+    , p []
+      [ text "{", br [] []
+      , span [Attr.style "margin-left" "2em"] [text "Words: "]
+      , input [Attr.type_ "text", Events.onInput Words] [], br [] []
+      , text "}", br [] []
+      ]
+    , p [] [ button [ Events.onClick SendClick ] [ text "Send" ] ]
     ]
 
 
