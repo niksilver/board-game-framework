@@ -1,9 +1,12 @@
-# Data demo
+# Simple data demo
 
 This is a simple demo to show:
 * We can connect to specific game via a server;
 * We can send structured data to other clients;
 * We can disconnect from the server.
+
+The structured data received is a simple JSON object, but it
+is not used or interpreted in any way. It's just displayed as a string.
 
 There are two versions of the application: in JavaScript, and in Elm.
 

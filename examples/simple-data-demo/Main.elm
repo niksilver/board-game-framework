@@ -66,6 +66,7 @@ type Msg =
   | Truth Bool
   | WholeNumber String
   | SendClick
+  | CloseClick
   | Received String
 
 
@@ -108,6 +109,9 @@ update msg model =
     SendClick ->
       (model, Send model.body |> encode |> outgoing)
 
+    CloseClick ->
+      (model, Close |> encode |> outgoing)
+
     Received env ->
       ( { model
         | history = env :: model.history
@@ -134,6 +138,7 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 type Request a =
   Open String
   | Send Body
+  | Close
 
 
 -- Turn an application request into something that can be sent out
@@ -160,6 +165,10 @@ encode req =
           )
         ]
 
+    Close ->
+      Enc.object
+        [ ("instruction", Enc.string "Close")
+        ]
 
 -- Turn something that's come in from a port into a message we can
 -- do something about.
@@ -231,6 +240,7 @@ viewControls model =
       , text "}", br [] []
       ]
     , p [] [ button [ Events.onClick SendClick ] [ text "Send" ] ]
+    , p [] [ button [ Events.onClick CloseClick ] [ text "Close" ] ]
     ]
 
 

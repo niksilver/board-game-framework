@@ -1,3 +1,6 @@
+- Re-organise the files.
+- Create an "actioned data" demo, which uses the structured data.
+- Put some Elm logic into a package.
 - Noughts and crosses demo.
 - Join-in-the-lobby demo - collect names and enter.
 - Generate a game ID demo.
@@ -8,7 +11,6 @@
   game name, annul cookie command.
 - Switch To/From/etc to to/from/etc for consistency with Elm conventions.
 - Pass Javascript errors into envelope for Elm app.
-- Create an Elm version of the Javascript "structured data" demo.
 - Ensure App Engine runs with only one instance.
 - Store game state locally.
 
@@ -61,3 +63,4 @@ DONE:
 - Put Javascript functions into their own script file.
 - Add a server command to delete cookies.
 - Have demo app choose its game ID.
+- Create an Elm version of the Javascript "simple data" demo.

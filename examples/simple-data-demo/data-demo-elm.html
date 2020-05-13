@@ -18,13 +18,11 @@
 
         // Link incoming envelopes to our app
         boardgameframework.toapp = function(env) {
-            console.log("Framework sent: " + JSON.stringify(env));
             app.ports.incoming.send(env);
         };
 
         // List out for data coming out of our Elm app
         app.ports.outgoing.subscribe(function(data) {
-            console.log("Elm sent: " + JSON.stringify(data));
             boardgameframework.act(data);
         });
     </script>
