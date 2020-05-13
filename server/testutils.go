@@ -41,18 +41,9 @@ type readRes struct {
 var tLog = log.Log.New("test", true)
 
 func init() {
-	// tLog should accept only log messages that are from test
-	filter := func(r *log15.Record) bool {
-		for i := 0; i < len(r.Ctx); i += 2 {
-			if r.Ctx[i] == "test" {
-				return r.Ctx[i+1] == true
-			}
-		}
-		return false
-	}
-	tLog.SetHandler(
-		log15.FilterHandler(filter, log15.StdoutHandler),
-	)
+	// Decide if we want to output debug logging
+	tLog.SetHandler(log15.DiscardHandler())
+	// tLog.SetHandler(log15.StdoutHandler)
 }
 
 // sameElements tests if two string slices have the same elements
