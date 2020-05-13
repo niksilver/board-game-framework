@@ -28,17 +28,24 @@ main =
 
 type alias Model =
   { draftGameID: String
-  , body:
-    { draftWords: String
-    }
+  , body: Body
   , history: List String
+  }
+
+
+type alias Body =
+  { draftWords: String
+  , draftTruth: Bool
   }
 
 
 init : () -> (Model, Cmd Msg)
 init _ =
   ( { draftGameID = "sample-game-id"
-    , body = {draftWords = ""}
+    , body =
+      { draftWords = "Hello world!"
+      , draftTruth = False
+      }
     , history = []
     }
   , Cmd.none
@@ -52,6 +59,7 @@ type Msg =
   GameID String
   | OpenClick
   | Words String
+  | Truth Bool
   | SendClick
   | Received String
 
@@ -75,8 +83,16 @@ update msg model =
       , Cmd.none
       )
 
+    Truth t ->
+      let
+        body = model.body
+      in
+      ( { model | body = { body | draftTruth = t }}
+      , Cmd.none
+      )
+
     SendClick ->
-      (model, Send model.body.draftWords |> encode |> outgoing)
+      (model, Send model.body |> encode |> outgoing)
 
     Received env ->
       ( { model
@@ -103,7 +119,7 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 
 type Request a =
   Open String
-  | Send String
+  | Send Body
 
 
 -- Turn an application request into something that can be sent out
@@ -118,10 +134,15 @@ encode req =
         , ("url", "ws://localhost:8080/g/" ++ gameID |> Enc.string)
         ]
 
-    Send words ->
+    Send body ->
       Enc.object
         [ ("instruction", Enc.string "Send")
-        , ("body", Enc.string words)
+        , ("body"
+          , Enc.object
+            [ ("words", Enc.string body.draftWords)
+            , ("truth", Enc.bool body.draftTruth)
+            ]
+          )
         ]
 
 
@@ -173,6 +194,8 @@ viewControls model =
       [ text "{", br [] []
       , span [Attr.style "margin-left" "2em"] [text "Words: "]
       , input [Attr.type_ "text", Events.onInput Words] [], br [] []
+      , span [Attr.style "margin-left" "2em"] [text "Truth: "]
+      , input [Attr.type_ "checkbox", Events.onCheck Truth] [], br [] []
       , text "}", br [] []
       ]
     , p [] [ button [ Events.onClick SendClick ] [ text "Send" ] ]
