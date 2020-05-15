@@ -33,7 +33,7 @@
             document.getElementById("open").onclick = function(evt) {
                 boardgameframework.act({
                     instruction: "Open",
-                    url: "ws://localhost:8080/g/" + gameid.value,
+                    url: "ws://board-game-framework.nw.r.appspot.com/g/" + gameid.value,
                 });
                 return false;
             };
@@ -63,11 +63,9 @@
                 "Close" to close the connection. 
                 You can change the message and send multiple times.
                 </p>
-                <p>This code assumes the server is at
-                http://localhost:8080</p>
                 <form>
                     <p>
-                    http://localhost:8080/g/<input id="gameid" type="text" value="sample-game-id">
+                    ws://<em>server</em>:<em>port</em>/<input id="gameid" type="text" value="sample-game-id">
                     <button id="open">Open</button>
                     </p>
                     <p>

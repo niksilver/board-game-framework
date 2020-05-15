@@ -1,4 +1,4 @@
-module github.com/niksilver/board-game-framework
+module boardgameframework
 
 go 1.13
 

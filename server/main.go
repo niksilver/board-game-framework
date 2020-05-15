@@ -6,13 +6,13 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"sync"
 
 	"github.com/gorilla/websocket"
 	"github.com/inconshreveable/log15"
-	"github.com/niksilver/board-game-framework/log"
 )
 
 // Global superhub that holds all the hubs
@@ -29,7 +29,10 @@ func init() {
 
 func main() {
 	// Set the logger -only for when the application runs, as this is in main
-	log.Log.SetHandler(log15.StdoutHandler)
+	Log.SetHandler(log15.StdoutHandler)
+
+	// Handle proof of running
+	http.HandleFunc("/", helloHandler)
 
 	// Handle game requests
 	http.HandleFunc("/g/", bounceHandler)
@@ -40,12 +43,12 @@ func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
-		log.Log.Info("Using default port", "port", port)
+		Log.Info("Using default port", "port", port)
 	}
 
-	log.Log.Info("Listening", "port", port)
+	Log.Info("Listening", "port", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Log.Crit("ListenAndServe", "error", err)
+		Log.Crit("ListenAndServe", "error", err)
 		os.Exit(1)
 	}
 }
@@ -57,7 +60,7 @@ func bounceHandler(w http.ResponseWriter, r *http.Request) {
 	clientID := ClientIDOrNew(r.Cookies())
 	ws, err := Upgrade(w, r, clientID)
 	if err != nil {
-		log.Log.Warn("Upgrade", "error", err)
+		Log.Warn("Upgrade", "error", err)
 		return
 	}
 
@@ -88,8 +91,17 @@ func annulCookieHandler(w http.ResponseWriter, r *http.Request) {
 	// Create a websocket connection with an empty cookie
 	ws, err := Upgrade(w, r, "")
 	if err != nil {
-		log.Log.Warn("Upgrade", "error", err)
+		Log.Warn("Upgrade", "error", err)
 		return
 	}
 	ws.Close()
+}
+
+// Just say hello
+func helloHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	fmt.Fprint(w, "Hello, there")
 }

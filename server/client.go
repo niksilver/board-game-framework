@@ -12,7 +12,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/inconshreveable/log15"
-	"github.com/niksilver/board-game-framework/log"
 )
 
 // How often we send pings
@@ -124,7 +123,7 @@ func ClientIDMaxAge(cookies []*http.Cookie) int {
 func (c *Client) Start() {
 	// Create a client-specific logger
 	if c.log == nil {
-		c.log = log.Log.New("ID", c.ID)
+		c.log = Log.New("ID", c.ID)
 	}
 
 	// Immediate termination for an excessive message

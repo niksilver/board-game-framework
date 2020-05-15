@@ -3,7 +3,7 @@
 // Licensed under the GPL v3.0. See file LICENCE.txt for details.
 
 // Logging for the board game framework.
-package log
+package main
 
 import (
 	"os"
@@ -28,6 +28,6 @@ func SetLvlDebugStdout() {
 }
 
 // New creates a derived logger from `Log` with the additional context.
-func New(ctx ...interface{}) log15.Logger {
+func NewLog(ctx ...interface{}) log15.Logger {
 	return Log.New(ctx)
 }

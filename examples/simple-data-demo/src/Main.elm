@@ -150,7 +150,7 @@ encode req =
     Open gameID ->
       Enc.object
         [ ("instruction", Enc.string "Open")
-        , ("url", "ws://localhost:8080/g/" ++ gameID |> Enc.string)
+        , ("url", "ws://https://board-game-framework.nw.r.appspot.com/g/" ++ gameID |> Enc.string)
         ]
 
     Send body ->
@@ -203,9 +203,9 @@ viewControls model =
         "Close" to close the connection. 
         You can change the message and send multiple times.
         """]
-    , p [] [text "This code assumes the server is at http://localhost:8080"]
+    , p [] [text "This code assumes the server is at http://https://board-game-framework.nw.r.appspot.com"]
     , p []
-      [ text "http://localhost:8080/g/"
+      [ text "http://https://board-game-framework.nw.r.appspot.com/g/"
       , input
         [ Attr.id "gameid"
       , Attr.type_ "text"

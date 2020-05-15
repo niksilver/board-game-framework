@@ -16,7 +16,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/inconshreveable/log15"
-	"github.com/niksilver/board-game-framework/log"
 )
 
 // tConn is a websocket.Conn whose ReadMessage can time out safely
@@ -38,7 +37,7 @@ type readRes struct {
 //
 // Use it like this:
 //     tLog.Info("This is my message", "key", value,...)
-var tLog = log.Log.New("test", true)
+var tLog = Log.New("test", true)
 
 func init() {
 	// Decide if we want to output debug logging
