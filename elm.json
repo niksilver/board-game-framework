@@ -1,0 +1,18 @@
+{
+    "type": "package",
+    "name": "niksilver/board-game-framework",
+    "summary": "Functions for interacting with board game framework",
+    "license": "GPL-3.0",
+    "version": "1.0.0",
+    "exposed-modules": ["BoardGameFramework"],
+    "elm-version" : "0.19.0 <= v < 0.20.0",
+    "source-directories": [
+        "src"
+    ],
+    "dependencies": {
+        "elm/core": "1.0.5 <= v < 2.0.0",
+        "elm/random": "1.0.0 <= v < 2.0.0"
+    },
+    "test-dependencies": {
+    }
+}
