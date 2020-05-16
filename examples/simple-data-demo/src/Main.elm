@@ -187,13 +187,9 @@ toMessage v =
 
 view : Model -> Html Msg
 view model =
-  table []
-    [ tr []
-        [ td [ Attr.style "width" "50%", Attr.style "vertical-align" "top" ]
-            [ viewControls model ]
-        , td [ Attr.style "width" "50%", Attr.style "vertical-align" "top" ]
-            [ viewHistory model ]
-        ]
+  div []
+    [ viewControls model
+    , viewHistory model
     ]
 
 
@@ -201,11 +197,10 @@ viewControls : Model -> Html Msg
 viewControls model =
   div[]
     [ p [] [text """
-        Choose a game ID,
-        then click "Open" to connect to the server.
-        "Send" to send a message to the server.
+        Choose a game ID, then click "Open" to connect to the server.
+        "Send" to send the structured data to other clients in the same game.
         "Close" to close the connection. 
-        You can change the message and send multiple times.
+        You can edit the structured data and send multiple times.
         """]
     , p []
       [ text serverURL
@@ -215,7 +210,10 @@ viewControls model =
         , Attr.value model.draftGameID
         , Events.onInput GameID
         ] []
+      , text " "
       , button [ Events.onClick OpenClick ] [ text "Open" ]
+      , text " "
+      , button [ Events.onClick CloseClick ] [ text "Close" ]
       ]
     , p []
       [ text "{", br [] []
@@ -243,7 +241,6 @@ viewControls model =
       , text "}", br [] []
       ]
     , p [] [ button [ Events.onClick SendClick ] [ text "Send" ] ]
-    , p [] [ button [ Events.onClick CloseClick ] [ text "Close" ] ]
     ]
 
 

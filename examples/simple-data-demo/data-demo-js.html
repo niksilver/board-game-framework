@@ -61,38 +61,33 @@
     </script>
     </head>
     <body>
-        <table>
-            <tr><td style="width: 50%; vertical-align: top;">
-                <p>Choose a game ID,
-                then click "Open" to connect to the server.
-                "Send" to send a message to the server.
-                "Close" to close the connection. 
-                You can change the message and send multiple times.
-                </p>
-                <form>
-                    <p>
-                    <span id="serverURL"></span>/g/<input id="gameid" type="text" value="sample-game-id">
-                    <button id="open">Open</button>
-                    </p>
-                    <p>
-                    {<br/>
-                    &nbsp;&nbsp;&nbsp;Words:
-                    <input id="words" type="text" value="Hello world!"><br/>
-                    &nbsp;&nbsp;&nbsp;Truth:
-                    <input id="truth" type="checkbox" checked="true"><br/>
-                    &nbsp;&nbsp;&nbsp;Whole number:
-                    <input id="wholenumber" type="text" value="27"><br/>
-                    }<br/>
-                    </p>
-                    <p><button id="send">Send</button></p>
-                    <p><button id="close">Close</button></p>
-                </form>
-            </td>
-            <td style="width: 50%; vertical-align: top;">
-                <div id="output"><p>
-                    Application messages appear here, latest first:
-                </p></div>
-            </td></tr>
-        </table>
+        <p>
+        Choose a game ID, then click "Open" to connect to the server.
+        "Send" to send the structured data to other clients in the same game.
+        "Close" to close the connection. 
+        You can edit the structured data and send multiple times.
+        </p>
+        <form>
+            <p>
+            <span id="serverURL"></span>/g/<input id="gameid" type="text" value="sample-game-id">
+            <button id="open">Open</button>
+            <button id="close">Close</button>
+            </p>
+            <p>
+            {<br/>
+            &nbsp;&nbsp;&nbsp;Words:
+            <input id="words" type="text" value="Hello world!"><br/>
+            &nbsp;&nbsp;&nbsp;Truth:
+            <input id="truth" type="checkbox" checked="true"><br/>
+            &nbsp;&nbsp;&nbsp;Whole number:
+            <input id="wholenumber" type="text" value="27"><br/>
+            }<br/>
+            </p>
+            <p><button id="send">Send</button></p>
+        </form>
+
+        <div id="output"><p>
+            Application messages appear here, latest first:
+        </p></div>
     </body>
 </html>
