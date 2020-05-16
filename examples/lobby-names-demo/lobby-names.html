@@ -8,14 +8,9 @@
     <script type="text/javascript" src="lobby-names.js"></script>
     </head>
     <body>
-        <div id="app"></div>
+        <script>var app = Elm.Main.init();</script>
     </body>
     <script type="text/javascript">
-        // Insert our Elm app into the page
-        var app = Elm.Main.init({
-            node: document.getElementById('app'),
-        });
-
         /*// Link incoming envelopes to our app
         boardgameframework.toapp = function(env) {
             app.ports.incoming.send(env);

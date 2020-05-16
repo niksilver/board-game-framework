@@ -7,6 +7,7 @@ module Main exposing (..)
 
 
 import Browser
+import Browser.Navigation as Nav
 import Html exposing (..)
 -- import Html.Attributes as Attr
 -- import Html.Events as Events
@@ -14,16 +15,19 @@ import Html exposing (..)
 import Array exposing (Array)
 import Maybe
 import Random
+import Url
 
 import BoardGameFramework as BGF
 
 
 main : Program () Model Msg
 main =
-  Browser.element
+  Browser.application
   { init = init
   , update = update
   , subscriptions = subscriptions
+  , onUrlRequest = UrlRequested
+  , onUrlChange = UrlChanged
   , view = view
     }
 
@@ -38,12 +42,16 @@ serverURL = "wss://board-game-framework.nw.r.appspot.com"
 
 type alias Model =
   { gameID: Maybe String
+  , key: Nav.Key
+  , url: Url.Url
   }
 
 
-init : () -> (Model, Cmd Msg)
-init _ =
+init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
+init _ url key =
   ( { gameID = Nothing
+    , key = key
+    , url = url
     }
     , Random.generate GameID BGF.idGenerator
   )
@@ -54,6 +62,8 @@ init _ =
 
 type Msg =
   GameID String
+  | UrlRequested Browser.UrlRequest
+  | UrlChanged Url.Url
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -63,6 +73,12 @@ update msg model =
       ( { model | gameID = Just id }
       , Cmd.none
       )
+
+    UrlRequested req ->
+      (model, Cmd.none)
+
+    UrlChanged url ->
+      (model, Cmd.none)
 
 
 -- Subscriptions
@@ -90,6 +106,10 @@ type Request a =
 -- View
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-  text <| "Game ID is " ++ Maybe.withDefault "[unknown]" model.gameID
+  { title = "Lobby"
+  , body =
+    [ text <| "Game ID is " ++ Maybe.withDefault "[unknown]" model.gameID
+    ]
+  }
