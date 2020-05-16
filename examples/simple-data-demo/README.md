@@ -13,14 +13,14 @@ There are two versions of the application: in JavaScript, and in Elm.
 ## JavaScript version
 
 * *data-demo-js.html*. JavaScript app. Run this to see the JavaScript version.
-* *lib/boardgameframework.js*. A copy of the framework library it uses.
+* *lib/board-game-framework.js*. A copy of the framework library it uses.
 
 ## Elm version
 
 * *src/Main.elm*. The main Elm app.
 * *data-demo-elm.html*. The shell page that the Elm app drops
   into. It sets up the JavaScript side of the ports integration.
-* *lib/boardgameframework.js*. A copy of the JavaScript framework library
+* *lib/board-game-framework.js*. A copy of the JavaScript framework library
   used by the shell page.
 
 Compile the Elm app with this command:

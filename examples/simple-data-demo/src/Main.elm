@@ -150,7 +150,7 @@ encode req =
     Open gameID ->
       Enc.object
         [ ("instruction", Enc.string "Open")
-        , ("url", "ws://https://board-game-framework.nw.r.appspot.com/g/" ++ gameID |> Enc.string)
+        , ("url", "ws://board-game-framework.nw.r.appspot.com/g/" ++ gameID |> Enc.string)
         ]
 
     Send body ->
@@ -205,7 +205,7 @@ viewControls model =
         """]
     , p [] [text "This code assumes the server is at http://https://board-game-framework.nw.r.appspot.com"]
     , p []
-      [ text "http://https://board-game-framework.nw.r.appspot.com/g/"
+      [ text "ws://", em [] [text "server"], text ":", em [] [text "port"], text "/"
       , input
         [ Attr.id "gameid"
       , Attr.type_ "text"
