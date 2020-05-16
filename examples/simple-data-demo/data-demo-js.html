@@ -33,7 +33,7 @@
             document.getElementById("open").onclick = function(evt) {
                 boardgameframework.act({
                     instruction: "Open",
-                    url: "ws://board-game-framework.nw.r.appspot.com/g/" + gameid.value,
+                    url: "wss://board-game-framework.nw.r.appspot.com/g/" + gameid.value,
                 });
                 return false;
             };
@@ -65,7 +65,7 @@
                 </p>
                 <form>
                     <p>
-                    ws://<em>server</em>:<em>port</em>/<input id="gameid" type="text" value="sample-game-id">
+                    wss://<em>server</em>:<em>port</em>/<input id="gameid" type="text" value="sample-game-id">
                     <button id="open">Open</button>
                     </p>
                     <p>
