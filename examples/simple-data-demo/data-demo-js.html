@@ -6,6 +6,9 @@
     <script type="text/javascript" src="lib/board-game-framework.js"></script>
     <script>  
         // Application-specific code
+
+        serverURL = "wss://board-game-framework.nw.r.appspot.com";
+
         window.addEventListener("load", function(evt) {
             // Elements of our page
             var output = document.getElementById("output");
@@ -24,6 +27,9 @@
                 output.insertBefore(d, second);
             };
 
+            // On our page, show the URL we're using
+            document.getElementById("serverURL").textContent = serverURL;
+
             // This is what we'll do when the framework sends data to our app
             boardgameframework.toapp = function(env) {
                 print(JSON.stringify(env));
@@ -33,7 +39,7 @@
             document.getElementById("open").onclick = function(evt) {
                 boardgameframework.act({
                     instruction: "Open",
-                    url: "wss://board-game-framework.nw.r.appspot.com/g/" + gameid.value,
+                    url: serverURL + "/g/" + gameid.value,
                 });
                 return false;
             };
@@ -65,7 +71,7 @@
                 </p>
                 <form>
                     <p>
-                    wss://<em>server</em>:<em>port</em>/<input id="gameid" type="text" value="sample-game-id">
+                    <span id="serverURL"></span>/g/<input id="gameid" type="text" value="sample-game-id">
                     <button id="open">Open</button>
                     </p>
                     <p>

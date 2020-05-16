@@ -25,7 +25,11 @@ main =
     }
 
 
--- Model and its initialisation
+-- Model and basic initialisation
+
+
+serverURL : String
+serverURL = "wss://board-game-framework.nw.r.appspot.com"
 
 
 type alias Model =
@@ -204,7 +208,7 @@ viewControls model =
         You can change the message and send multiple times.
         """]
     , p []
-      [ text "wss://", em [] [text "server"], text ":", em [] [text "port"], text "/"
+      [ text serverURL
       , input
         [ Attr.id "gameid"
       , Attr.type_ "text"
