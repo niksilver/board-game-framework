@@ -15,6 +15,8 @@ import Array exposing (Array)
 import Maybe
 import Random
 
+import BoardGameFramework as BGF
+
 
 main : Program () Model Msg
 main =
@@ -34,22 +36,6 @@ serverURL : String
 serverURL = "wss://board-game-framework.nw.r.appspot.com"
 
 
--- How we pick random numbers for our game ID
-gameIDGenerator = Random.int 0 (Array.length words - 1)
-
-
--- Words for the game ID
-words : Array String
-words =
-  [ "aarvark"
-  , "abbey"
-  , "battle"
-  , "cucumber"
-  , "zebra"
-  ]
-  |> Array.fromList
-
-
 type alias Model =
   { gameID: Maybe String
   }
@@ -59,7 +45,7 @@ init : () -> (Model, Cmd Msg)
 init _ =
   ( { gameID = Nothing
     }
-    , Random.generate GameIDNum gameIDGenerator
+    , Random.generate GameID BGF.idGenerator
   )
 
 
@@ -67,20 +53,13 @@ init _ =
 
 
 type Msg =
-  GameIDNum Int
+  GameID String
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    GameIDNum n ->
-      let
-        -- Get a word from the word list for the game ID
-        id =
-          case Array.get n words of
-            Nothing -> "xxx"
-            Just id0 -> id0
-      in
+    GameID id ->
       ( { model | gameID = Just id }
       , Cmd.none
       )
