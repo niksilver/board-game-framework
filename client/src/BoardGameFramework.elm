@@ -6,6 +6,7 @@
 module BoardGameFramework exposing (idGenerator)
 
 
+import String
 import Random
 
 
@@ -21,10 +22,13 @@ words =
 
 
 -- A random name generator for game IDs
+idGenerator : Random.Generator String
 idGenerator =
   case words of
     head :: tail ->
       Random.uniform head tail
+      |> Random.list 3
+      |> Random.map (\w -> String.join "-" w)
 
     _ ->
       Random.constant "xxx"
