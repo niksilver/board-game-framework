@@ -247,6 +247,6 @@ viewControls model =
 viewHistory : Model -> Html Msg
 viewHistory model =
   div [] <|
-    p [] [text "Application messages appear here, latest first:"] ::
+    p [] [text "Messages appear here, latest first:"] ::
     List.map (\e -> p [] [text e]) model.history
    
