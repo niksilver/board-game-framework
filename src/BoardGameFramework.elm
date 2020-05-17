@@ -3,7 +3,9 @@
 -- Licensed under the GPL v3.0. See file LICENSE for details.
 
 
-module BoardGameFramework exposing (idGenerator)
+module BoardGameFramework exposing (
+  idGenerator, addGameID
+  )
 
 {-| Types and functions help create remote multiplayer board games
 using the related framework. See
@@ -19,6 +21,7 @@ for starting a game.
 
 import String
 import Random
+import Url exposing (Url)
 
 
 -- Words for the game ID
@@ -45,3 +48,26 @@ idGenerator =
 
     _ ->
       Random.constant "xxx"
+
+
+{-| Given a Url, return the same Url but with the given game ID appended.
+
+    -- For Url u "http://example.com/mygame"
+    addGameID u "aa-bb-cc"    ==>    "http://example.com/mygame/aa-bb-cc"
+
+    -- For Url u "http://example.com/mygame/"
+    addGameID u "aa-bb-cc"    ==>    "http://example.com/mygame/aa-bb-cc"
+
+    -- For Url u "http://example.com/"
+    addGameID u "aa-bb-cc"    ==>    "http://example.com/aa-bb-cc"
+-}
+addGameID : Url -> String -> Url
+addGameID url id =
+  let
+    extra =
+      if String.endsWith "/" url.path || String.isEmpty url.path then
+        id
+      else
+        "/" ++ id
+  in
+    { url | path = url.path ++ extra }
