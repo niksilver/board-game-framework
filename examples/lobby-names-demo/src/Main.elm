@@ -79,8 +79,15 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     GameID id ->
-      ( { model | gameID = Just id }
-      , Cmd.none
+      let
+        url = model.url
+        url2 = { url | fragment = Just id }
+      in
+      ( { model
+        | gameID = Just id
+        , url = url2
+        }
+      , Nav.pushUrl model.key (Url.toString url2)
       )
 
     UrlRequested req ->
