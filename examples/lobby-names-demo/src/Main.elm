@@ -50,7 +50,7 @@ type alias Model =
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
   if BGF.isGoodGameIDMaybe url.fragment then
-    ( { gameID = Just url.fragment
+    ( { gameID = url.fragment
       , key = key
       , url = url
       }
