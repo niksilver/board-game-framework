@@ -15,7 +15,7 @@ for detailed documentation and example code.
 # Lobby
 Functions for enabling players gather in a unique lobby in preparation
 for starting a game.
-@docs idGenerator
+@docs idGenerator, addGameID, lastSegment
 -}
 
 
@@ -23,16 +23,7 @@ import String
 import Random
 import Url exposing (Url)
 
-
--- Words for the game ID
-words : List String
-words =
-  [ "aarvark"
-  , "abbey"
-  , "battle"
-  , "cucumber"
-  , "zebra"
-  ]
+import Words
 
 
 {-| A random name generator for game IDs, which will be of the form
@@ -40,7 +31,7 @@ words =
 -}
 idGenerator : Random.Generator String
 idGenerator =
-  case words of
+  case Words.words of
     head :: tail ->
       Random.uniform head tail
       |> Random.list 3
