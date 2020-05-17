@@ -4,7 +4,7 @@
 
 
 module BoardGameFramework exposing (
-  idGenerator, addGameID, lastSegment
+  idGenerator, addGameID, lastSegment, isGoodGameID, isGoodGameIDMaybe
   )
 
 {-| Types and functions help create remote multiplayer board games
@@ -13,8 +13,8 @@ using the related framework. See
 for detailed documentation and example code.
 
 # Lobby
-Functions for enabling players gather in a unique lobby in preparation
-for starting a game.
+Functions for enabling players to gather and find a unique game ID
+in preparation for starting a game.
 @docs idGenerator, addGameID, lastSegment
 -}
 
@@ -99,4 +99,19 @@ lastSegment url =
         if id == "" then
           Nothing
         else
-          Just id
+         Just id
+ 
+
+isGoodGameIDMaybe : Maybe String -> Bool
+isGoodGameIDMaybe mID =
+  case mID of
+    Nothing -> False
+
+    Just id -> isGoodGameID id
+
+
+isGoodGameID : String -> Bool
+isGoodGameID id =
+  (String.length id >= 5) &&
+    String.all (\c -> Char.isAlphaNum c || c == '-' || c == '.') id
+

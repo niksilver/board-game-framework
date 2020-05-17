@@ -49,12 +49,21 @@ type alias Model =
 
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
-  ( { gameID = Nothing
-    , key = key
-    , url = url
-    }
-    , Random.generate GameID BGF.idGenerator
-  )
+  if BGF.isGoodGameIDMaybe url.fragment then
+    ( { gameID = Just url.fragment
+      , key = key
+      , url = url
+      }
+      , Cmd.none
+    )
+
+  else
+    ( { gameID = Nothing
+      , key = key
+      , url = url
+      }
+      , Random.generate GameID BGF.idGenerator
+    )
 
 
 -- Update the model with a message
