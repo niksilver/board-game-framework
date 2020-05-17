@@ -4,7 +4,7 @@
 
 
 module BoardGameFramework exposing (
-  idGenerator, addGameID
+  idGenerator, addGameID, lastSegment
   )
 
 {-| Types and functions help create remote multiplayer board games
@@ -71,3 +71,41 @@ addGameID url id =
         "/" ++ id
   in
     { url | path = url.path ++ extra }
+
+
+{-| Get the last segment of a Url path. Useful if that contains the game ID.
+Will return the last string of the path up to and excluding a `/`.
+
+    -- For Url u "http://example.com/mygame/something"
+    lastSegment u    ==>    Just "something"
+
+    -- For Url u "http://example.com/mygame/something#else"
+    lastSegment u    ==>    Just "something"
+
+    -- For Url u "http://example.com/mygame"
+    lastSegment u    ==>    Just "mygame"
+
+    -- For Url u "http://example.com/mygame/"
+    lastSegment u    ==>    Nothing
+
+    -- For Url u "http://example.com/"
+    lastSegment u    ==>    Nothing
+-}
+lastSegment : Url -> Maybe String
+lastSegment url =
+  let
+    is = String.indexes "/" url.path
+    mIdx = List.reverse is |> List.head
+  in
+  case mIdx of
+    Nothing ->
+      Nothing
+
+    Just idx ->
+      let
+        id = String.dropLeft (idx+1) url.path
+      in
+        if id == "" then
+          Nothing
+        else
+          Just id
