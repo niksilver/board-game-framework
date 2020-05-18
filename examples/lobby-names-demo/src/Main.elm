@@ -9,8 +9,8 @@ module Main exposing (..)
 import Browser
 import Browser.Navigation as Nav
 import Html exposing (..)
--- import Html.Attributes as Attr
--- import Html.Events as Events
+import Html.Attributes as Attr
+import Html.Events as Events
 -- import Json.Encode as Enc
 import Array exposing (Array)
 import Maybe
@@ -42,6 +42,7 @@ serverURL = "wss://board-game-framework.nw.r.appspot.com"
 
 type alias Model =
   { gameID: Maybe String
+  , draftGameID: String
   , key: Nav.Key
   , url: Url.Url
   }
@@ -49,21 +50,24 @@ type alias Model =
 
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
-  if BGF.isGoodGameIDMaybe url.fragment then
-    ( { gameID = url.fragment
-      , key = key
-      , url = url
-      }
-      , Cmd.none
-    )
+  case BGF.goodGameIDMaybe url.fragment of
+    Just id ->
+      ( { gameID = Just id
+        , draftGameID = id
+        , key = key
+        , url = url
+        }
+        , Cmd.none
+      )
 
-  else
-    ( { gameID = Nothing
-      , key = key
-      , url = url
-      }
-      , Random.generate GameID BGF.idGenerator
-    )
+    Nothing ->
+      ( { gameID = Nothing
+        , draftGameID = ""
+        , key = key
+        , url = url
+        }
+        , Random.generate GameID BGF.idGenerator
+      )
 
 
 -- Update the model with a message
@@ -73,28 +77,42 @@ type Msg =
   GameID String
   | UrlRequested Browser.UrlRequest
   | UrlChanged Url.Url
+  | DraftGameIDChange String
+  | GoClick
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     GameID id ->
-      let
-        url = model.url
-        url2 = { url | fragment = Just id }
-      in
-      ( { model
-        | gameID = Just id
-        , url = url2
-        }
-      , Nav.pushUrl model.key (Url.toString url2)
-      )
+      updateWithGameID id model
 
     UrlRequested req ->
       (model, Cmd.none)
 
     UrlChanged url ->
       (model, Cmd.none)
+
+    DraftGameIDChange draftID ->
+      ({model | draftGameID = draftID}, Cmd.none)
+
+    GoClick ->
+      updateWithGameID model.draftGameID model
+
+
+updateWithGameID : String -> Model -> (Model, Cmd Msg)
+updateWithGameID id model =
+  let
+    url = model.url
+    url2 = { url | fragment = Just id }
+  in
+  ( { model
+    | gameID = Just id
+    , draftGameID = id
+    , url = url2
+    }
+  , Nav.pushUrl model.key (Url.toString url2)
+  )
 
 
 -- Subscriptions
@@ -126,6 +144,20 @@ view : Model -> Browser.Document Msg
 view model =
   { title = "Lobby"
   , body =
-    [ text <| "Game ID is " ++ Maybe.withDefault "[unknown]" model.gameID
+    [ p []
+      [ text "Join a game, or start a new one, by entering a code into the "
+      , text "box and clicking Go"
+      ]
+    , input
+      [ Attr.type_ "text", Attr.size 30
+      , Attr.value model.draftGameID
+      , Events.onInput DraftGameIDChange
+      ]
+      []
+    , button
+      [ Attr.disabled <| not(BGF.isGoodGameID model.draftGameID)
+      , Events.onClick GoClick
+      ]
+      [text "Go"]
     ]
   }

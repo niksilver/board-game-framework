@@ -1,6 +1,8 @@
 - Create an "actioned data" demo, which uses the structured data.
-- Put some Elm logic into a package.
+- Have the server send a receipt, so a client knows the order in which
+  their message was sent.
 - Noughts and crosses demo.
+- Quiz demo with a quiz host and password.
 - Join-in-the-lobby demo - collect names and enter.
 - Generate a game ID demo.
 - Generate a game ID, but check it with the server first.
@@ -64,3 +66,4 @@ DONE:
 - Have demo app choose its game ID.
 - Create an Elm version of the Javascript "simple data" demo.
 - Re-organise the files.
+- Put some Elm logic into a package.

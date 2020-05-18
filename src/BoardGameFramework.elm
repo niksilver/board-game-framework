@@ -4,7 +4,7 @@
 
 
 module BoardGameFramework exposing (
-  idGenerator, isGoodGameID, isGoodGameIDMaybe
+  idGenerator, isGoodGameID, isGoodGameIDMaybe, goodGameID, goodGameIDMaybe
   )
 
 {-| Types and functions help create remote multiplayer board games
@@ -15,7 +15,7 @@ for detailed documentation and example code.
 # Game IDs
 Functions for enabling players to gather and find a unique game ID
 in preparation for starting a game.
-@docs idGenerator, isGoodGameID, isGoodGameIDMaybe
+@docs idGenerator, isGoodGameID, isGoodGameIDMaybe, goodGameID, goodGameIDMaybe
 -}
 
 
@@ -53,4 +53,20 @@ isGoodGameID : String -> Bool
 isGoodGameID id =
   (String.length id >= 5) &&
     String.all (\c -> Char.isAlphaNum c || c == '-' || c == '.') id
+
+
+goodGameID : String -> Maybe String
+goodGameID id =
+  if isGoodGameID id then
+    Just id
+  else
+    Nothing
+
+
+goodGameIDMaybe : Maybe String -> Maybe String
+goodGameIDMaybe mID =
+  case mID of
+    Just id -> goodGameID id
+
+    Nothing -> Nothing
 

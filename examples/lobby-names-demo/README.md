@@ -1,13 +1,13 @@
 # Lobby names demo
 
-This is to demonstrate how multiple players might join together in lobby
+This is to demonstrate how multiple players might join together in a lobby
 and give their screen names before all entering the game.
 Interesting features are:
 * The game ID is randomly generated;
 * Once one player decides the game should start, it starts for everyone;
 * Players who join after the game starts are presented as observers.
 
-There is not actual game - it's just a list of players and observers.
+There is no actual game - it's just a live list of players and observers.
 
 ## Files and compilation
 
@@ -25,5 +25,5 @@ elm make src/Main.elm --output=lobby-names.js
 ```
 
 and then use `elm reactor` to view `lobby-names.html` to see it running.
-You need reactor because it's an `Browser.application`,
+You need reactor because it's a `Browser.application`,
 which relies on running from a server, not the local filesystem.
