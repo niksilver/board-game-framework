@@ -86,6 +86,39 @@ meDecoder : Dec.Decoder String
 meDecoder = Dec.field "To" Dec.string
 
 
+-- Confirms if a list is a singleton
+singleton : List a -> Maybe a
+singleton lst =
+  case List.head lst of
+    Just elt ->
+      if List.length lst == 1 then
+        Just elt
+      else
+        Nothing
+
+    Nothing ->
+      Nothing
+
+
+-- Takes a list and produces a just-singleton
+maybeSingletonDecoder : Dec.Decoder (Maybe String)
+maybeSingletonDecoder =
+  Dec.map singleton (Dec.list Dec.string)
+
+
+justStringDecoder : Maybe String -> Dec.Decoder String
+justStringDecoder ms =
+  case ms of
+    Just s -> Dec.string
+    Nothing -> Dec.fail "Not a singleton string list"
+
+
+singletonStringDecoder : Dec.Decoder String
+singletonStringDecoder =
+  maybeSingletonDecoder
+  |> Dec.andThen justStringDecoder
+
+
 decodeEnvelope : Enc.Value -> Result String Envelope
 decodeEnvelope v =
   let
