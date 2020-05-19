@@ -28,6 +28,7 @@ import String
 import Random
 import Json.Encode as Enc
 import Json.Decode as Dec
+import Result
 import Url exposing (Url)
 
 import Words
@@ -129,22 +130,21 @@ decodeEnvelope : Enc.Value -> Result String Envelope
 decodeEnvelope v =
   let
     toRes = Dec.decodeValue (Dec.field "To" singletonStringDecoder) v
-    --from = Dec.decodeValue (Dec.field "From" (Dec.list Dec.string))
+    fromRes = Dec.decodeValue (Dec.field "From" (Dec.list Dec.string)) v
     intentRes = Dec.decodeValue (Dec.field "Intent" Dec.string) v
   in
   case intentRes of
     Ok "Welcome" ->
-      case toRes of
-        Ok to ->
-          Ok <|
+      let
+        make to from =
           Welcome
           { me = to
-          , others = []
+          , others = from
           , time = 0
           }
-
-        Err e ->
-          Err <| "Bad 'To' for Welcome: " ++ Dec.errorToString e
+      in
+        Result.map2 make toRes fromRes
+        |> Result.mapError Dec.errorToString
 
     _ ->
       Err "Didn't find Welcome intent"

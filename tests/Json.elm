@@ -13,20 +13,23 @@ decodeEnvelopeTest : Test
 decodeEnvelopeTest =
   describe "decodeEnvelope test"
     [ describe "Decode Welcome " <|
-      [ test "To translated as me" <|
+      [ test "Good Welcome" <|
         let
           j =
             Enc.object
             [ ("From", Enc.list Enc.string ["222.234", "333.345"])
             , ("To", Enc.list Enc.string ["123.456"])
-            , ("Time", Enc.int 76487293)
+            , ("Time", Enc.int 7654321)
             , ("Intent", Enc.string "Welcome")
             ]
         in
         \_ ->
           case decodeEnvelope j of
             Ok (Welcome data) ->
-              Expect.equal "123.456" data.me
+              Expect.all
+              [ \d -> Expect.equal "123.456" d.me
+              , \d -> Expect.equal ["222.234", "333.345"] d.others
+              ] data
             other ->
               Expect.fail <| "Got other result: " ++ (Debug.toString other)
 
@@ -61,6 +64,8 @@ decodeEnvelopeTest =
           , ("Time", Enc.int 76487293)
           , ("Intent", Enc.string "Welcome")
           ]
+
+      -- Insert bad From tests here
 
       ]
     ]
