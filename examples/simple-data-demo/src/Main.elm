@@ -139,7 +139,7 @@ port outgoing : Enc.Value -> Cmd msg
 port incoming : (Enc.Value -> msg) -> Sub msg
 
 
-type Request a =
+type Request =
   Open String
   | Send Body
   | Close
@@ -148,7 +148,7 @@ type Request a =
 -- Turn an application request into something that can be sent out
 -- through a port
 
-encode : Request String -> Enc.Value
+encode : Request -> Enc.Value
 encode req =
   case req of
     Open gameID ->
