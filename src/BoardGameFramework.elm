@@ -86,6 +86,7 @@ meDecoder : Dec.Decoder String
 meDecoder = Dec.field "To" Dec.string
 
 
+-- Singleton list decoder part 1
 -- Confirms if a list is a singleton
 singleton : List a -> Maybe a
 singleton lst =
@@ -100,19 +101,24 @@ singleton lst =
       Nothing
 
 
+-- Singleton list decoder part 2
 -- Takes a list and produces a just-singleton
 maybeSingletonDecoder : Dec.Decoder (Maybe String)
 maybeSingletonDecoder =
   Dec.map singleton (Dec.list Dec.string)
 
 
+-- Singleton list decoder part 3
+-- Produce a decoder that outputs a string, if it's a Just string
 justStringDecoder : Maybe String -> Dec.Decoder String
 justStringDecoder ms =
   case ms of
-    Just s -> Dec.string
+    Just s -> Dec.succeed s
     Nothing -> Dec.fail "Not a singleton string list"
 
 
+-- Singleton list decoder part 4 and final
+-- Expect a singleton string list, and output the value
 singletonStringDecoder : Dec.Decoder String
 singletonStringDecoder =
   maybeSingletonDecoder
@@ -122,25 +128,20 @@ singletonStringDecoder =
 decodeEnvelope : Enc.Value -> Result String Envelope
 decodeEnvelope v =
   let
-    toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
+    toRes = Dec.decodeValue (Dec.field "To" singletonStringDecoder) v
     --from = Dec.decodeValue (Dec.field "From" (Dec.list Dec.string))
     intentRes = Dec.decodeValue (Dec.field "Intent" Dec.string) v
   in
   case intentRes of
     Ok "Welcome" ->
       case toRes of
-        Ok toList ->
-          case List.length toList of
-            1 ->
-              Ok <|
-              Welcome
-              { me = List.head toList |> Maybe.withDefault ""
-              , others = []
-              , time = 0
-              }
-
-            _ ->
-              Err "Welcome didn't have exactly one item in To field"
+        Ok to ->
+          Ok <|
+          Welcome
+          { me = to
+          , others = []
+          , time = 0
+          }
 
         Err e ->
           Err <| "Bad 'To' for Welcome: " ++ Dec.errorToString e

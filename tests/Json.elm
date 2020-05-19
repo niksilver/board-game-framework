@@ -28,7 +28,7 @@ decodeEnvelopeTest =
             Ok (Welcome data) ->
               Expect.equal "123.456" data.me
             other ->
-              Expect.fail <| "Got other result: " ++ (Debug.toString e)
+              Expect.fail <| "Got other result: " ++ (Debug.toString other)
 
       , testWontParse "To is not a list" <|
           Enc.object
