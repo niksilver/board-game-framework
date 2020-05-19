@@ -65,7 +65,21 @@ decodeEnvelopeTest =
           , ("Intent", Enc.string "Welcome")
           ]
 
-      -- Insert bad From tests here
+      , testWontParse "From is a list of wrong type" <|
+          Enc.object
+          [ ("From", Enc.list Enc.int [222, 333])
+          , ("To", Enc.list Enc.string ["123", "222"])
+          , ("Time", Enc.int 76487293)
+          , ("Intent", Enc.string "Welcome")
+          ]
+
+      , testWontParse "From is wrong type" <|
+          Enc.object
+          [ ("From", Enc.string "234.444")
+          , ("To", Enc.list Enc.string ["123", "222"])
+          , ("Time", Enc.int 76487293)
+          , ("Intent", Enc.string "Welcome")
+          ]
 
       ]
     ]
