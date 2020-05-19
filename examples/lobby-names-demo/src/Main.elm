@@ -130,7 +130,7 @@ updateWithGameID id model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  incoming toAlert
+  incoming decodeEnvelope
 
 
 -- Ports to communicate with the framework
@@ -140,8 +140,8 @@ port outgoing : Enc.Value -> Cmd msg
 port incoming : (Enc.Value -> msg) -> Sub msg
 
 
-toAlert : Enc.Value -> Msg
-toAlert v =
+decodeEnvelope : Enc.Value -> Msg
+decodeEnvelope v =
   Enc.encode 0 v |> Received
 
 

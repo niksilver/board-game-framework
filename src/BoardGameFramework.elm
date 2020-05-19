@@ -5,7 +5,7 @@
 
 module BoardGameFramework exposing (
   idGenerator, isGoodGameID, isGoodGameIDMaybe, goodGameID, goodGameIDMaybe
-  , Envelope(..), Request(..), encode
+  , Envelope(..), Request(..), encode, decodeEnvelope
   )
 
 {-| Types and functions help create remote multiplayer board games
@@ -27,6 +27,7 @@ Sending to and receiving from other players.
 import String
 import Random
 import Json.Encode as Enc
+import Json.Decode as Dec
 import Url exposing (Url)
 
 import Words
@@ -79,6 +80,20 @@ goodGameIDMaybe mID =
 
 type Envelope =
   Welcome {me: String, others: List String, time: Int}
+
+
+meDecoder : Dec.Decoder String
+meDecoder = Dec.field "To" Dec.string
+
+
+decodeEnvelope : Enc.Value -> Result String Envelope
+decodeEnvelope v =
+  case Dec.decodeValue (Dec.field "Intent" Dec.string) v of
+    Ok "Welcome" ->
+      Ok <| Welcome {me = "", others = [], time = 0}
+
+    _ ->
+      Err "Didn't find Welcome intent"
 
 
 type Request =
