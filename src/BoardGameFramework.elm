@@ -5,6 +5,7 @@
 
 module BoardGameFramework exposing (
   idGenerator, isGoodGameID, isGoodGameIDMaybe, goodGameID, goodGameIDMaybe
+  , Envelope(..), Request(..), encode
   )
 
 {-| Types and functions help create remote multiplayer board games
@@ -12,15 +13,20 @@ using the related framework. See
 [https://github.com/niksilver/board-game-framework](https://github.com/niksilver/board-game-framework)
 for detailed documentation and example code.
 
-# Game IDs
-Functions for enabling players to gather and find a unique game ID
+# Lobby
+Enable players to gather and find a unique game ID
 in preparation for starting a game.
 @docs idGenerator, isGoodGameID, isGoodGameIDMaybe, goodGameID, goodGameIDMaybe
+
+# Communication
+Sending to and receiving from other players.
+@docs Envelope, Request, encode
 -}
 
 
 import String
 import Random
+import Json.Encode as Enc
 import Url exposing (Url)
 
 import Words
@@ -70,3 +76,40 @@ goodGameIDMaybe mID =
 
     Nothing -> Nothing
 
+
+type Envelope =
+  Welcome {me: String, others: List String, time: Int}
+
+
+type Request =
+  Open String
+--  | Send Body
+--  | Close
+
+
+encode : Request -> Enc.Value
+encode req =
+  case req of
+    Open url ->
+      Enc.object
+        [ ("instruction", Enc.string "Open")
+        , ("url", url |> Enc.string)
+        ]
+
+{-    Send body ->
+      Enc.object
+        [ ("instruction", Enc.string "Send")
+        , ("body"
+          , Enc.object
+            [ ("words", Enc.string body.draftWords)
+            , ("truth", Enc.bool body.draftTruth)
+            , ("wholenumber", Enc.int body.draftWholeNumber)
+            ]
+          )
+        ]
+
+    Close ->
+      Enc.object
+        [ ("instruction", Enc.string "Close")
+        ]
+-}

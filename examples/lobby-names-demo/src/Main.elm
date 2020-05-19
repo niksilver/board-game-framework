@@ -3,7 +3,7 @@
 -- Licensed under the GPL v3.0. See file LICENCE.txt for details.
 
 
-module Main exposing (..)
+port module Main exposing (..)
 
 
 import Browser
@@ -11,7 +11,7 @@ import Browser.Navigation as Nav
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
--- import Json.Encode as Enc
+import Json.Encode as Enc
 import Array exposing (Array)
 import Maybe
 import Random
@@ -78,7 +78,8 @@ type Msg =
   | UrlRequested Browser.UrlRequest
   | UrlChanged Url.Url
   | DraftGameIDChange String
-  | GoClick
+  | JoinClick
+  | Received String
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -96,8 +97,14 @@ update msg model =
     DraftGameIDChange draftID ->
       ({model | draftGameID = draftID}, Cmd.none)
 
-    GoClick ->
+    JoinClick ->
       updateWithGameID model.draftGameID model
+
+    Received s ->
+      let
+        _ = Debug.log "Received " s
+      in
+      (model, Cmd.none)
 
 
 updateWithGameID : String -> Model -> (Model, Cmd Msg)
@@ -111,7 +118,10 @@ updateWithGameID id model =
     , draftGameID = id
     , url = url2
     }
-  , Nav.pushUrl model.key (Url.toString url2)
+  , Cmd.batch
+    [ Nav.pushUrl model.key (Url.toString url2)
+    , BGF.Open (serverURL ++ "/g/" ++ id) |> BGF.encode |> outgoing
+    ]
   )
 
 
@@ -120,21 +130,19 @@ updateWithGameID id model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+  incoming toAlert
 
 
 -- Ports to communicate with the framework
 
 
-{-- port outgoing : Enc.Value -> Cmd msg
+port outgoing : Enc.Value -> Cmd msg
 port incoming : (Enc.Value -> msg) -> Sub msg
 
 
-type Request a =
-  Open String
-  | Send Body
-  | Close
-  --}
+toAlert : Enc.Value -> Msg
+toAlert v =
+  Enc.encode 0 v |> Received
 
 
 -- View
@@ -143,21 +151,30 @@ type Request a =
 view : Model -> Browser.Document Msg
 view model =
   { title = "Lobby"
-  , body =
-    [ p []
-      [ text "Join a game, or start a new one, by entering a code into the "
-      , text "box and clicking Go"
-      ]
-    , input
-      [ Attr.type_ "text", Attr.size 30
-      , Attr.value model.draftGameID
-      , Events.onInput DraftGameIDChange
-      ]
-      []
-    , button
-      [ Attr.disabled <| not(BGF.isGoodGameID model.draftGameID)
-      , Events.onClick GoClick
-      ]
-      [text "Go"]
-    ]
+  , body = viewJoin model
   }
+
+
+viewJoin : Model -> List (Html Msg)
+viewJoin model =
+  [ p []
+    [ text "This is the code for this game. Tell others to join you by "
+    , text "typing the code into their box and hitting Join, or they can "
+    , text " go to "
+    , a [Attr.href <| Url.toString model.url]
+      [ text <| Url.toString model.url ], text ". "
+    , text "You can join their game by typing their code into the box and "
+    , text "hitting Join, or by going to the address they give you."
+    ]
+  , input
+    [ Attr.type_ "text", Attr.size 30
+    , Attr.value model.draftGameID
+    , Events.onInput DraftGameIDChange
+    ]
+    []
+  , button
+    [ Attr.disabled <| not(BGF.isGoodGameID model.draftGameID)
+    , Events.onClick JoinClick
+    ]
+    [text "Join"]
+  ]
