@@ -88,9 +88,29 @@ meDecoder = Dec.field "To" Dec.string
 
 decodeEnvelope : Enc.Value -> Result String Envelope
 decodeEnvelope v =
-  case Dec.decodeValue (Dec.field "Intent" Dec.string) v of
+  let
+    toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
+    --from = Dec.decodeValue (Dec.field "From" (Dec.list Dec.string))
+    intentRes = Dec.decodeValue (Dec.field "Intent" Dec.string) v
+  in
+  case intentRes of
     Ok "Welcome" ->
-      Ok <| Welcome {me = "", others = [], time = 0}
+      case toRes of
+        Ok toList ->
+          case List.length toList of
+            1 ->
+              Ok <|
+              Welcome
+              { me = List.head toList |> Maybe.withDefault ""
+              , others = []
+              , time = 0
+              }
+
+            _ ->
+              Err "Welcome didn't have exactly one item in To field"
+
+        Err e ->
+          Err <| "Bad 'To' for Welcome: " ++ Dec.errorToString e
 
     _ ->
       Err "Didn't find Welcome intent"
