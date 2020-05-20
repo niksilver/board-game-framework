@@ -29,6 +29,7 @@ decodeEnvelopeTest =
               Expect.all
               [ \d -> Expect.equal "123.456" d.me
               , \d -> Expect.equal ["222.234", "333.345"] d.others
+              , \d -> Expect.equal 7654321 d.time
               ] data
             other ->
               Expect.fail <| "Got other result: " ++ (Debug.toString other)
@@ -75,9 +76,17 @@ decodeEnvelopeTest =
 
       , testWontParse "From is wrong type" <|
           Enc.object
-          [ ("From", Enc.string "234.444")
-          , ("To", Enc.list Enc.string ["123", "222"])
-          , ("Time", Enc.int 76487293)
+          [ ("From", Enc.int 1000)
+          , ("To", Enc.list Enc.string ["123.456"])
+          , ("Time", Enc.int 7654321)
+          , ("Intent", Enc.string "Welcome")
+          ]
+
+      , testWontParse "Time is wrong type" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456"])
+          , ("Time", Enc.string "7654321")
           , ("Intent", Enc.string "Welcome")
           ]
 

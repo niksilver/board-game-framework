@@ -131,19 +131,20 @@ decodeEnvelope v =
   let
     toRes = Dec.decodeValue (Dec.field "To" singletonStringDecoder) v
     fromRes = Dec.decodeValue (Dec.field "From" (Dec.list Dec.string)) v
+    timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
     intentRes = Dec.decodeValue (Dec.field "Intent" Dec.string) v
   in
   case intentRes of
     Ok "Welcome" ->
       let
-        make to from =
+        make to from time =
           Welcome
           { me = to
           , others = from
-          , time = 0
+          , time = time
           }
       in
-        Result.map2 make toRes fromRes
+        Result.map3 make toRes fromRes timeRes
         |> Result.mapError Dec.errorToString
 
     _ ->
