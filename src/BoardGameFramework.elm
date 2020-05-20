@@ -83,10 +83,6 @@ type Envelope =
   Welcome {me: String, others: List String, time: Int}
 
 
-meDecoder : Dec.Decoder String
-meDecoder = Dec.field "To" Dec.string
-
-
 -- Singleton list decoder part 1
 -- Confirms if a list is a singleton
 singleton : List a -> Maybe a

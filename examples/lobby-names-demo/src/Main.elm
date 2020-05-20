@@ -12,7 +12,6 @@ import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
 import Json.Encode as Enc
-import Array exposing (Array)
 import Maybe
 import Random
 import Url
@@ -45,6 +44,8 @@ type alias Model =
   , draftGameID: String
   , key: Nav.Key
   , url: Url.Url
+  , myID : Maybe String
+  , error : Maybe String
   }
 
 
@@ -56,6 +57,8 @@ init _ url key =
         , draftGameID = id
         , key = key
         , url = url
+        , myID = Nothing
+        , error = Nothing
         }
         , Cmd.none
       )
@@ -65,6 +68,8 @@ init _ url key =
         , draftGameID = ""
         , key = key
         , url = url
+        , myID = Nothing
+        , error = Nothing
         }
         , Random.generate GameID BGF.idGenerator
       )
@@ -79,7 +84,7 @@ type Msg =
   | UrlChanged Url.Url
   | DraftGameIDChange String
   | JoinClick
-  | Received String
+  | Received (Result String BGF.Envelope)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -100,11 +105,13 @@ update msg model =
     JoinClick ->
       updateWithGameID model.draftGameID model
 
-    Received s ->
-      let
-        _ = Debug.log "Received " s
-      in
-      (model, Cmd.none)
+    Received envRes ->
+      case envRes of
+        Ok env ->
+          updateWithEnvelope env model
+
+        Err desc ->
+          ({ model | error = Just desc }, Cmd.none)
 
 
 updateWithGameID : String -> Model -> (Model, Cmd Msg)
@@ -125,6 +132,13 @@ updateWithGameID id model =
   )
 
 
+updateWithEnvelope : BGF.Envelope -> Model -> (Model, Cmd Msg)
+updateWithEnvelope env model =
+  case env of
+    BGF.Welcome w ->
+      ({ model | myID = Just w.me }, Cmd.none)
+
+
 -- Subscriptions
 
 
@@ -142,7 +156,7 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 
 decodeEnvelope : Enc.Value -> Msg
 decodeEnvelope v =
-  Enc.encode 0 v |> Received
+  BGF.decodeEnvelope v |> Received
 
 
 -- View
@@ -151,7 +165,12 @@ decodeEnvelope v =
 view : Model -> Browser.Document Msg
 view model =
   { title = "Lobby"
-  , body = viewJoin model
+  , body =
+      List.concat
+      [ viewJoin model
+      , viewPlayers model
+      , viewError model
+      ]
   }
 
 
@@ -178,3 +197,25 @@ viewJoin model =
     ]
     [text "Join"]
   ]
+
+
+viewPlayers : Model -> List (Html Msg)
+viewPlayers model =
+  case model.myID of
+    Just id ->
+      [ p [] [ "Your ID: " ++ id |> text ]
+      ]
+
+    Nothing ->
+      []
+
+
+viewError : Model -> List (Html Msg)
+viewError model =
+  case model.error of
+    Just desc ->
+      [ p [] [ "Error: " ++ desc |> text ]
+      ]
+
+    Nothing ->
+      []
