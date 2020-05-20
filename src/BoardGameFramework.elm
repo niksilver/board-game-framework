@@ -4,7 +4,7 @@
 
 
 module BoardGameFramework exposing (
-  idGenerator, isGoodGameID, isGoodGameIDMaybe, goodGameID, goodGameIDMaybe
+  idGenerator, isGoodGameId, isGoodGameIdMaybe, goodGameId, goodGameIdMaybe
   , Envelope(..), Request(..), encode, decodeEnvelope
   )
 
@@ -16,7 +16,7 @@ for detailed documentation and example code.
 # Lobby
 Enable players to gather and find a unique game ID
 in preparation for starting a game.
-@docs idGenerator, isGoodGameID, isGoodGameIDMaybe, goodGameID, goodGameIDMaybe
+@docs idGenerator, isGoodGameId, isGoodGameIdMaybe, goodGameId, goodGameIdMaybe
 
 # Communication
 Sending to and receiving from other players.
@@ -49,32 +49,32 @@ idGenerator =
       Random.constant "xxx"
 
 
-isGoodGameIDMaybe : Maybe String -> Bool
-isGoodGameIDMaybe mID =
-  case mID of
+isGoodGameIdMaybe : Maybe String -> Bool
+isGoodGameIdMaybe mId =
+  case mId of
     Nothing -> False
 
-    Just id -> isGoodGameID id
+    Just id -> isGoodGameId id
 
 
-isGoodGameID : String -> Bool
-isGoodGameID id =
+isGoodGameId : String -> Bool
+isGoodGameId id =
   (String.length id >= 5) &&
     String.all (\c -> Char.isAlphaNum c || c == '-' || c == '.') id
 
 
-goodGameID : String -> Maybe String
-goodGameID id =
-  if isGoodGameID id then
+goodGameId : String -> Maybe String
+goodGameId id =
+  if isGoodGameId id then
     Just id
   else
     Nothing
 
 
-goodGameIDMaybe : Maybe String -> Maybe String
-goodGameIDMaybe mID =
-  case mID of
-    Just id -> goodGameID id
+goodGameIdMaybe : Maybe String -> Maybe String
+goodGameIdMaybe mId =
+  case mId of
+    Just id -> goodGameId id
 
     Nothing -> Nothing
 

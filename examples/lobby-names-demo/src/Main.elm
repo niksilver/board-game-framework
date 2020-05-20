@@ -28,7 +28,7 @@ main =
   , onUrlRequest = UrlRequested
   , onUrlChange = UrlChanged
   , view = view
-    }
+  }
 
 
 -- Model and basic initialisation
@@ -40,38 +40,38 @@ serverURL = "wss://board-game-framework.nw.r.appspot.com"
 
 
 type alias Model =
-  { gameID: Maybe String
-  , draftGameID: String
+  { gameId: Maybe String
+  , draftGameId: String
   , key: Nav.Key
   , url: Url.Url
-  , myID : Maybe String
+  , myId : Maybe String
   , error : Maybe String
   }
 
 
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
-  case BGF.goodGameIDMaybe url.fragment of
+  case BGF.goodGameIdMaybe url.fragment of
     Just id ->
-      ( { gameID = Just id
-        , draftGameID = id
+      ( { gameId = Just id
+        , draftGameId = id
         , key = key
         , url = url
-        , myID = Nothing
+        , myId = Nothing
         , error = Nothing
         }
         , Cmd.none
       )
 
     Nothing ->
-      ( { gameID = Nothing
-        , draftGameID = ""
+      ( { gameId = Nothing
+        , draftGameId = ""
         , key = key
         , url = url
-        , myID = Nothing
+        , myId = Nothing
         , error = Nothing
         }
-        , Random.generate GameID BGF.idGenerator
+        , Random.generate GameId BGF.idGenerator
       )
 
 
@@ -79,10 +79,10 @@ init _ url key =
 
 
 type Msg =
-  GameID String
+  GameId String
   | UrlRequested Browser.UrlRequest
   | UrlChanged Url.Url
-  | DraftGameIDChange String
+  | DraftGameIdChange String
   | JoinClick
   | Received (Result String BGF.Envelope)
 
@@ -90,8 +90,8 @@ type Msg =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    GameID id ->
-      updateWithGameID id model
+    GameId id ->
+      updateWithGameId id model
 
     UrlRequested req ->
       (model, Cmd.none)
@@ -99,11 +99,11 @@ update msg model =
     UrlChanged url ->
       (model, Cmd.none)
 
-    DraftGameIDChange draftID ->
-      ({model | draftGameID = draftID}, Cmd.none)
+    DraftGameIdChange draftId ->
+      ({model | draftGameId = draftId}, Cmd.none)
 
     JoinClick ->
-      updateWithGameID model.draftGameID model
+      updateWithGameId model.draftGameId model
 
     Received envRes ->
       case envRes of
@@ -114,15 +114,15 @@ update msg model =
           ({ model | error = Just desc }, Cmd.none)
 
 
-updateWithGameID : String -> Model -> (Model, Cmd Msg)
-updateWithGameID id model =
+updateWithGameId : String -> Model -> (Model, Cmd Msg)
+updateWithGameId id model =
   let
     url = model.url
     url2 = { url | fragment = Just id }
   in
   ( { model
-    | gameID = Just id
-    , draftGameID = id
+    | gameId = Just id
+    , draftGameId = id
     , url = url2
     }
   , Cmd.batch
@@ -136,7 +136,7 @@ updateWithEnvelope : BGF.Envelope -> Model -> (Model, Cmd Msg)
 updateWithEnvelope env model =
   case env of
     BGF.Welcome w ->
-      ({ model | myID = Just w.me }, Cmd.none)
+      ({ model | myId = Just w.me }, Cmd.none)
 
 
 -- Subscriptions
@@ -187,12 +187,12 @@ viewJoin model =
     ]
   , input
     [ Attr.type_ "text", Attr.size 30
-    , Attr.value model.draftGameID
-    , Events.onInput DraftGameIDChange
+    , Attr.value model.draftGameId
+    , Events.onInput DraftGameIdChange
     ]
     []
   , button
-    [ Attr.disabled <| not(BGF.isGoodGameID model.draftGameID)
+    [ Attr.disabled <| not(BGF.isGoodGameId model.draftGameId)
     , Events.onClick JoinClick
     ]
     [text "Join"]
@@ -201,9 +201,9 @@ viewJoin model =
 
 viewPlayers : Model -> List (Html Msg)
 viewPlayers model =
-  case model.myID of
+  case model.myId of
     Just id ->
-      [ p [] [ "Your ID: " ++ id |> text ]
+      [ p [] [ "Your Id: " ++ id |> text ]
       ]
 
     Nothing ->

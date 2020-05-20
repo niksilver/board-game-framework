@@ -33,7 +33,7 @@ serverURL = "wss://board-game-framework.nw.r.appspot.com"
 
 
 type alias Model =
-  { draftGameID: String
+  { draftGameId: String
   , body: Body
   , history: List String
   }
@@ -48,7 +48,7 @@ type alias Body =
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ( { draftGameID = "sample-game-id"
+  ( { draftGameId = "sample-game-id"
     , body =
       { draftWords = "Hello world!"
       , draftTruth = True
@@ -64,7 +64,7 @@ init _ =
 
 
 type Msg =
-  GameID String
+  GameId String
   | OpenClick
   | Words String
   | Truth Bool
@@ -77,13 +77,13 @@ type Msg =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    GameID id ->
-      ( { model | draftGameID = id }
+    GameId id ->
+      ( { model | draftGameId = id }
       , Cmd.none
       )
 
     OpenClick ->
-      (model, Open model.draftGameID |> encode |> outgoing)
+      (model, Open model.draftGameId |> encode |> outgoing)
 
     Words w ->
       let
@@ -151,10 +151,10 @@ type Request =
 encode : Request -> Enc.Value
 encode req =
   case req of
-    Open gameID ->
+    Open gameId ->
       Enc.object
         [ ("instruction", Enc.string "Open")
-        , ("url", "wss://board-game-framework.nw.r.appspot.com/g/" ++ gameID |> Enc.string)
+        , ("url", "wss://board-game-framework.nw.r.appspot.com/g/" ++ gameId |> Enc.string)
         ]
 
     Send body ->
@@ -199,7 +199,7 @@ viewControls model =
     [ p [] [text """
         Choose a game ID, then click "Open" to connect to the server.
         "Send" to send the structured data to other clients in the same game.
-        "Close" to close the connection. 
+        "Close" to close the connection.
         You can edit the structured data and send multiple times.
         """]
     , p []
@@ -207,8 +207,8 @@ viewControls model =
       , input
         [ Attr.id "gameid"
       , Attr.type_ "text"
-        , Attr.value model.draftGameID
-        , Events.onInput GameID
+        , Attr.value model.draftGameId
+        , Events.onInput GameId
         ] []
       , text " "
       , button [ Events.onClick OpenClick ] [ text "Open" ]
