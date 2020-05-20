@@ -45,6 +45,8 @@ type alias Model =
   , key: Nav.Key
   , url: Url.Url
   , myId : Maybe String
+  , draftMyName : String
+  , myName : Maybe String
   , error : Maybe String
   }
 
@@ -58,6 +60,8 @@ init _ url key =
         , key = key
         , url = url
         , myId = Nothing
+        , draftMyName = ""
+        , myName = Nothing
         , error = Nothing
         }
         , Cmd.none
@@ -69,6 +73,8 @@ init _ url key =
         , key = key
         , url = url
         , myId = Nothing
+        , draftMyName = ""
+        , myName = Nothing
         , error = Nothing
         }
         , Random.generate GameId BGF.idGenerator
@@ -84,6 +90,8 @@ type Msg =
   | UrlChanged Url.Url
   | DraftGameIdChange String
   | JoinClick
+  | DraftMyNameChange String
+  | ConfirmNameClick
   | Received (Result String BGF.Envelope)
 
 
@@ -94,9 +102,15 @@ update msg model =
       updateWithGameId id model
 
     UrlRequested req ->
+      let
+        _ = Debug.log "URL requested " (Debug.toString req)
+      in
       (model, Cmd.none)
 
     UrlChanged url ->
+      let
+        _ = Debug.log "URL changed " (Url.toString url)
+      in
       (model, Cmd.none)
 
     DraftGameIdChange draftId ->
@@ -104,6 +118,12 @@ update msg model =
 
     JoinClick ->
       updateWithGameId model.draftGameId model
+
+    DraftMyNameChange draftName ->
+      ({model | draftMyName = draftName}, Cmd.none)
+
+    ConfirmNameClick ->
+      ({model | myName = String.trim model.draftMyName |> Just}, Cmd.none)
 
     Received envRes ->
       case envRes of
@@ -189,8 +209,8 @@ viewJoin model =
     [ Attr.type_ "text", Attr.size 30
     , Attr.value model.draftGameId
     , Events.onInput DraftGameIdChange
-    ]
-    []
+    ] []
+  , text " "
   , button
     [ Attr.disabled <| not(BGF.isGoodGameId model.draftGameId)
     , Events.onClick JoinClick
@@ -203,11 +223,31 @@ viewPlayers : Model -> List (Html Msg)
 viewPlayers model =
   case model.myId of
     Just id ->
-      [ p [] [ "Your Id: " ++ id |> text ]
+      [ p []
+        [ text "Your name: "
+        , input
+          [ Attr.type_ "text", Attr.size 15
+          , Attr.value model.draftMyName
+          , Events.onInput DraftMyNameChange
+          ] []
+        , text " "
+        , button
+          [ Attr.disabled <| not(goodName model.draftMyName)
+          , Events.onClick ConfirmNameClick
+          ]
+          [ text "Confirm" ]
+        , text " "
+        , Maybe.withDefault "" model.myName |> text
+        ]
       ]
 
     Nothing ->
       []
+
+
+goodName : String -> Bool
+goodName name =
+  String.length (String.trim name) >= 3
 
 
 viewError : Model -> List (Html Msg)
