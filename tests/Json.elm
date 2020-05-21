@@ -12,7 +12,8 @@ import BoardGameFramework exposing (..)
 decodeEnvelopeTest : Test
 decodeEnvelopeTest =
   describe "decodeEnvelope test"
-    [ describe "Decode Welcome " <|
+
+    [ describe "Decode Welcome" <|
       [ test "Good Welcome" <|
         let
           j =
@@ -91,6 +92,38 @@ decodeEnvelopeTest =
           ]
 
       ]
+
+    , describe "Decode Peer" <|
+      [ test "Good Peer" <|
+        let
+          j =
+            Enc.object
+            [ ("From", Enc.list Enc.string ["222.234"])
+            , ("To", Enc.list Enc.string ["123.456", "333.345"])
+            , ("Time", Enc.int 8765432)
+            , ("Intent", Enc.string "Peer")
+            ]
+        in
+        \_ ->
+          case decodeEnvelope j of
+            Ok (Peer data) ->
+              Expect.all
+              [ \d -> Expect.equal "222.234" d.from
+              , \d -> Expect.equal ["123.456", "333.345"] d.to
+              , \d -> Expect.equal 8765432 d.time
+              ] data
+            other ->
+              Expect.fail <| "Got other result: " ++ (Debug.toString other)
+
+      , testWontParse "From is more than a singleton" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Time", Enc.int 8765432)
+          , ("Intent", Enc.string "Peer")
+          ]
+
+       ]
     ]
 
 testWontParse : String -> Enc.Value -> Test

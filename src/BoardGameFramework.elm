@@ -81,6 +81,7 @@ goodGameIdMaybe mId =
 
 type Envelope =
   Welcome {me: String, others: List String, time: Int}
+  | Peer {from: String, to: List String, time: Int}
 
 
 -- Singleton list decoder part 1
@@ -125,18 +126,32 @@ singletonStringDecoder =
 decodeEnvelope : Enc.Value -> Result String Envelope
 decodeEnvelope v =
   let
-    toRes = Dec.decodeValue (Dec.field "To" singletonStringDecoder) v
-    fromRes = Dec.decodeValue (Dec.field "From" (Dec.list Dec.string)) v
     timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
     intentRes = Dec.decodeValue (Dec.field "Intent" Dec.string) v
   in
   case intentRes of
     Ok "Welcome" ->
       let
+        toRes = Dec.decodeValue (Dec.field "To" singletonStringDecoder) v
+        fromRes = Dec.decodeValue (Dec.field "From" (Dec.list Dec.string)) v
         make to from time =
           Welcome
           { me = to
           , others = from
+          , time = time
+          }
+      in
+        Result.map3 make toRes fromRes timeRes
+        |> Result.mapError Dec.errorToString
+
+    Ok "Peer" ->
+      let
+        fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
+        toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
+        make to from time =
+          Peer
+          { from = from
+          , to = to
           , time = time
           }
       in
