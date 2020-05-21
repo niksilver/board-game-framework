@@ -12,6 +12,7 @@ import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
 import Json.Encode as Enc
+import Json.Decode as Dec
 import Maybe
 import Random
 import Url
@@ -45,9 +46,23 @@ openCmd gameId =
   |> outgoing
 
 
-bodyEncoder : String -> Enc.Value
+-- Our peer-to-peer messages
+
+
+type alias Body = String
+
+
+type alias Envelope = BGF.Envelope Body
+
+
+bodyEncoder : Body -> Enc.Value
 bodyEncoder body =
   Enc.string body
+
+
+bodyDecoder : Dec.Decoder Body
+bodyDecoder =
+  Dec.string
 
 
 -- Model and basic initialisation
@@ -106,7 +121,7 @@ type Msg =
   | JoinClick
   | DraftMyNameChange String
   | ConfirmNameClick
-  | Received (Result String BGF.Envelope)
+  | Received (Result String Envelope)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -178,11 +193,17 @@ updateWithGameId id model =
   )
 
 
-updateWithEnvelope : BGF.Envelope -> Model -> (Model, Cmd Msg)
+updateWithEnvelope : Envelope -> Model -> (Model, Cmd Msg)
 updateWithEnvelope env model =
   case env of
     BGF.Welcome w ->
       ({ model | myId = Just w.me }, Cmd.none)
+
+    BGF.Peer p ->
+      let
+        _ = Debug.log "Body from peer: " p.body
+      in
+      (model, Cmd.none)
 
 
 -- Subscriptions and ports
@@ -199,7 +220,7 @@ subscriptions model =
 
 decodeEnvelope : Enc.Value -> Msg
 decodeEnvelope v =
-  BGF.decodeEnvelope v |> Received
+  BGF.decodeEnvelope bodyDecoder v |> Received
 
 
 -- View
