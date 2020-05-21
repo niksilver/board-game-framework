@@ -5,6 +5,7 @@ import Fuzz exposing (Fuzzer, int, list, string)
 import Test exposing (..)
 
 import Json.Encode as Enc
+import Json.Decode as Dec
 
 import BoardGameFramework exposing (..)
 
@@ -25,7 +26,7 @@ decodeEnvelopeTest =
             ]
         in
         \_ ->
-          case decodeEnvelope j of
+          case decodeEnvelope simpleDecoder j of
             Ok (Welcome data) ->
               Expect.all
               [ \d -> Expect.equal "123.456" d.me
@@ -102,15 +103,17 @@ decodeEnvelopeTest =
             , ("To", Enc.list Enc.string ["123.456", "333.345"])
             , ("Time", Enc.int 8765432)
             , ("Intent", Enc.string "Peer")
+            , ("Body", Enc.object [("colour", Enc.string "Red")])
             ]
         in
         \_ ->
-          case decodeEnvelope j of
+          case decodeEnvelope simpleDecoder j of
             Ok (Peer data) ->
               Expect.all
               [ \d -> Expect.equal "222.234" d.from
               , \d -> Expect.equal ["123.456", "333.345"] d.to
               , \d -> Expect.equal 8765432 d.time
+              , \d -> Expect.equal {colour = "Red"} d.body
               ] data
             other ->
               Expect.fail <| "Got other result: " ++ (Debug.toString other)
@@ -121,17 +124,34 @@ decodeEnvelopeTest =
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Peer")
+          , ("Body", Enc.object [("colour", Enc.string "Red")])
+          ]
+
+      , testWontParse "Body shouldn't parse" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Time", Enc.int 8765432)
+          , ("Intent", Enc.string "Peer")
+          , ("Body", Enc.object [("Xolor", Enc.string "Red")])
           ]
 
        ]
     ]
 
+
 testWontParse : String -> Enc.Value -> Test
 testWontParse desc json =
   test desc <|
   \_ ->
-    case decodeEnvelope json of
+    case decodeEnvelope simpleDecoder json of
       Err _ ->
         Expect.pass
       Ok env ->
         Expect.fail <| "Wrongly parsed Ok: " ++ (Debug.toString env)
+
+
+simpleDecoder : Dec.Decoder { colour : String }
+simpleDecoder =
+  Dec.map (\s -> {colour = s}) <|
+    Dec.field "colour" Dec.string

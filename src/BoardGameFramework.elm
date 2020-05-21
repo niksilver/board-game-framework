@@ -79,9 +79,9 @@ goodGameIdMaybe mId =
     Nothing -> Nothing
 
 
-type Envelope =
+type Envelope a =
   Welcome {me: String, others: List String, time: Int}
-  | Peer {from: String, to: List String, time: Int}
+  | Peer {from: String, to: List String, time: Int, body: a}
 
 
 -- Singleton list decoder part 1
@@ -123,8 +123,8 @@ singletonStringDecoder =
   |> Dec.andThen justStringDecoder
 
 
-decodeEnvelope : Enc.Value -> Result String Envelope
-decodeEnvelope v =
+decodeEnvelope : Dec.Decoder a -> Enc.Value -> Result String (Envelope a)
+decodeEnvelope bodyDecoder v =
   let
     timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
     intentRes = Dec.decodeValue (Dec.field "Intent" Dec.string) v
@@ -148,18 +148,20 @@ decodeEnvelope v =
       let
         fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
-        make to from time =
+        bodyRes = Dec.decodeValue (Dec.field "Body" bodyDecoder) v
+        make to from time body =
           Peer
           { from = from
           , to = to
           , time = time
+          , body = body
           }
       in
-        Result.map3 make toRes fromRes timeRes
+        Result.map4 make toRes fromRes timeRes bodyRes
         |> Result.mapError Dec.errorToString
 
     _ ->
-      Err "Didn't find Welcome intent"
+      Err "Didn't find Welcome or Peer intent"
 
 
 type Request a =
