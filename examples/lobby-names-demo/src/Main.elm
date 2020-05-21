@@ -31,12 +31,19 @@ main =
   }
 
 
--- Model and basic initialisation
-
-
 -- The board game server
+
+
 serverURL : String
 serverURL = "wss://board-game-framework.nw.r.appspot.com"
+
+
+openCmd : String -> Cmd Msg
+openCmd gameId =
+  BGF.Open (serverURL ++ "/g/" ++ gameId) |> BGF.encode |> outgoing
+
+
+-- Model and basic initialisation
 
 
 type alias Model =
@@ -55,7 +62,7 @@ init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
   case BGF.goodGameIdMaybe url.fragment of
     Just id ->
-      ( { gameId = Just id
+      ( { gameId = Just (id |> Debug.log "Init with id")
         , draftGameId = id
         , key = key
         , url = url
@@ -64,11 +71,11 @@ init _ url key =
         , myName = Nothing
         , error = Nothing
         }
-        , Cmd.none
+        , openCmd id
       )
 
     Nothing ->
-      ( { gameId = Nothing
+      ( { gameId = Nothing |> Debug.log "Init with nothing"
         , draftGameId = ""
         , key = key
         , url = url
@@ -77,7 +84,7 @@ init _ url key =
         , myName = Nothing
         , error = Nothing
         }
-        , Random.generate GameId BGF.idGenerator
+        , Random.generate GeneratedGameId BGF.idGenerator
       )
 
 
@@ -85,7 +92,7 @@ init _ url key =
 
 
 type Msg =
-  GameId String
+  GeneratedGameId String
   | UrlRequested Browser.UrlRequest
   | UrlChanged Url.Url
   | DraftGameIdChange String
@@ -98,20 +105,33 @@ type Msg =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    GameId id ->
+    GeneratedGameId id ->
       updateWithGameId id model
 
     UrlRequested req ->
-      let
-        _ = Debug.log "URL requested " (Debug.toString req)
-      in
       (model, Cmd.none)
 
     UrlChanged url ->
+      -- URL may have been changed by this app or by the user.
+      -- So we can't assume the URL fragment is a good game ID.
       let
         _ = Debug.log "URL changed " (Url.toString url)
+        frag = url.fragment
+        gameId = BGF.goodGameIdMaybe frag
+        cmd =
+          case gameId of
+            Just id ->
+              openCmd id
+            Nothing ->
+              Cmd.none
       in
-      (model, Cmd.none)
+      ( { model
+        | gameId = frag
+        , draftGameId = Maybe.withDefault "" frag
+        , url = url
+        }
+      , cmd
+      )
 
     DraftGameIdChange draftId ->
       ({model | draftGameId = draftId}, Cmd.none)
@@ -140,15 +160,8 @@ updateWithGameId id model =
     url = model.url
     url2 = { url | fragment = Just id }
   in
-  ( { model
-    | gameId = Just id
-    , draftGameId = id
-    , url = url2
-    }
-  , Cmd.batch
-    [ Nav.pushUrl model.key (Url.toString url2)
-    , BGF.Open (serverURL ++ "/g/" ++ id) |> BGF.encode |> outgoing
-    ]
+  ( model
+  , Nav.pushUrl model.key (Url.toString url2)
   )
 
 
