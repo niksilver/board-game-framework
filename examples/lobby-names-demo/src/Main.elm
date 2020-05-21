@@ -143,7 +143,13 @@ update msg model =
       ({model | draftMyName = draftName}, Cmd.none)
 
     ConfirmNameClick ->
-      ({model | myName = String.trim model.draftMyName |> Just}, Cmd.none)
+      -- If we've confirmed our name, tell our peers
+      let
+        myName = String.trim model.draftMyName
+      in
+      ( { model | myName = Just myName }
+      , Enc.string myName |> BGF.Send |> BGF.encode |> outgoing
+      )
 
     Received envRes ->
       case envRes of
@@ -172,19 +178,16 @@ updateWithEnvelope env model =
       ({ model | myId = Just w.me }, Cmd.none)
 
 
--- Subscriptions
+-- Subscriptions and ports
+
+
+port outgoing : Enc.Value -> Cmd msg
+port incoming : (Enc.Value -> msg) -> Sub msg
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
   incoming decodeEnvelope
-
-
--- Ports to communicate with the framework
-
-
-port outgoing : Enc.Value -> Cmd msg
-port incoming : (Enc.Value -> msg) -> Sub msg
 
 
 decodeEnvelope : Enc.Value -> Msg

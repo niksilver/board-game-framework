@@ -149,7 +149,7 @@ decodeEnvelope v =
 
 type Request =
   Open String
---  | Send Body
+  | Send Enc.Value
 --  | Close
 
 
@@ -162,19 +162,13 @@ encode req =
         , ("url", url |> Enc.string)
         ]
 
-{-    Send body ->
+    Send body ->
       Enc.object
         [ ("instruction", Enc.string "Send")
-        , ("body"
-          , Enc.object
-            [ ("words", Enc.string body.draftWords)
-            , ("truth", Enc.bool body.draftTruth)
-            , ("wholenumber", Enc.int body.draftWholeNumber)
-            ]
-          )
+        , ("body", body )
         ]
 
-    Close ->
+{-    Close ->
       Enc.object
         [ ("instruction", Enc.string "Close")
         ]
