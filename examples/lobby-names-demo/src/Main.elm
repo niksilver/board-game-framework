@@ -31,7 +31,7 @@ main =
   }
 
 
--- The board game server
+-- The board game server: connecting and sending
 
 
 serverURL : String
@@ -40,7 +40,14 @@ serverURL = "wss://board-game-framework.nw.r.appspot.com"
 
 openCmd : String -> Cmd Msg
 openCmd gameId =
-  BGF.Open (serverURL ++ "/g/" ++ gameId) |> BGF.encode |> outgoing
+  BGF.Open (serverURL ++ "/g/" ++ gameId)
+  |> BGF.encode bodyEncoder
+  |> outgoing
+
+
+bodyEncoder : String -> Enc.Value
+bodyEncoder body =
+  Enc.string body
 
 
 -- Model and basic initialisation
@@ -148,7 +155,7 @@ update msg model =
         myName = String.trim model.draftMyName
       in
       ( { model | myName = Just myName }
-      , Enc.string myName |> BGF.Send |> BGF.encode |> outgoing
+      , BGF.Send myName |> BGF.encode bodyEncoder |> outgoing
       )
 
     Received envRes ->

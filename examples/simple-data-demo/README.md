@@ -8,6 +8,9 @@ This is a simple demo to show:
 The structured data received is a simple JSON object, but it
 is not used or interpreted in any way. It's just displayed as a string.
 
+This simple application is also useful for testing other apps, as it
+allows us to see raw JSON messages coming into a client in a game.
+
 There are two versions of the application: in JavaScript, and in Elm.
 
 ## JavaScript version

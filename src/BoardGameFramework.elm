@@ -147,14 +147,14 @@ decodeEnvelope v =
       Err "Didn't find Welcome intent"
 
 
-type Request =
+type Request a =
   Open String
-  | Send Enc.Value
+  | Send a
 --  | Close
 
 
-encode : Request -> Enc.Value
-encode req =
+encode : (a -> Enc.Value) -> Request a -> Enc.Value
+encode encoder req =
   case req of
     Open url ->
       Enc.object
@@ -165,7 +165,7 @@ encode req =
     Send body ->
       Enc.object
         [ ("instruction", Enc.string "Send")
-        , ("body", body )
+        , ("body", encoder body )
         ]
 
 {-    Close ->
