@@ -84,43 +84,17 @@ type Envelope a =
   | Peer {from: String, to: List String, time: Int, body: a}
 
 
--- Singleton list decoder part 1
--- Confirms if a list is a singleton
-singleton : List a -> Maybe a
-singleton lst =
-  case List.head lst of
-    Just elt ->
-      if List.length lst == 1 then
-        Just elt
-      else
-        Nothing
-
-    Nothing ->
-      Nothing
-
-
--- Singleton list decoder part 2
--- Takes a list and produces a just-singleton
-maybeSingletonDecoder : Dec.Decoder (Maybe String)
-maybeSingletonDecoder =
-  Dec.map singleton (Dec.list Dec.string)
-
-
--- Singleton list decoder part 3
--- Produce a decoder that outputs a string, if it's a Just string
-justStringDecoder : Maybe String -> Dec.Decoder String
-justStringDecoder ms =
-  case ms of
-    Just s -> Dec.succeed s
-    Nothing -> Dec.fail "Not a singleton string list"
-
-
--- Singleton list decoder part 4 and final
+-- Singleton string list decoder.
 -- Expect a singleton string list, and output the value
 singletonStringDecoder : Dec.Decoder String
 singletonStringDecoder =
-  maybeSingletonDecoder
-  |> Dec.andThen justStringDecoder
+  let
+    singleDecoder list = case list of
+      [elt] -> Dec.succeed elt
+      _ -> Dec.fail "Didn't get string singleton"
+  in
+  Dec.list Dec.string
+  |> Dec.andThen singleDecoder
 
 
 decodeEnvelope : Dec.Decoder a -> Enc.Value -> Result String (Envelope a)
