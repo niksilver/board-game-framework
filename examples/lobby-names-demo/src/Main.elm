@@ -8,6 +8,7 @@ port module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
@@ -32,6 +33,51 @@ main =
   }
 
 
+-- Model and basic initialisation
+
+
+type alias Model =
+  { gameId: Maybe String
+  , draftGameId: String
+  , key: Nav.Key
+  , url: Url.Url
+  , draftMyName : String
+  , myName : Maybe String
+  , error : Maybe String
+  , game : GameState
+  }
+
+
+init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
+init _ url key =
+  case BGF.goodGameIdMaybe url.fragment of
+    Just id ->
+      ( { gameId = Just (id |> Debug.log "Init with id")
+        , draftGameId = id
+        , key = key
+        , url = url
+        , draftMyName = ""
+        , myName = Nothing
+        , error = Nothing
+        , game = initialGameState
+        }
+        , openCmd id
+      )
+
+    Nothing ->
+      ( { gameId = Nothing |> Debug.log "Init with nothing"
+        , draftGameId = ""
+        , key = key
+        , url = url
+        , draftMyName = ""
+        , myName = Nothing
+        , error = Nothing
+        , game = initialGameState
+        }
+        , Random.generate GeneratedGameId BGF.idGenerator
+      )
+
+
 -- The board game server: connecting and sending
 
 
@@ -44,6 +90,23 @@ openCmd gameId =
   BGF.Open (serverURL ++ "/g/" ++ gameId)
   |> BGF.encode bodyEncoder
   |> outgoing
+
+
+-- State of the game
+
+
+-- The game is just a bunch of players (including us), each with a name
+type alias GameState =
+  { myId : Maybe String
+  , players : Dict String String
+  }
+
+
+initialGameState : GameState
+initialGameState =
+  { myId = Nothing
+  , players = Dict.empty
+  }
 
 
 -- Our peer-to-peer messages
@@ -63,51 +126,6 @@ bodyEncoder body =
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
   Dec.string
-
-
--- Model and basic initialisation
-
-
-type alias Model =
-  { gameId: Maybe String
-  , draftGameId: String
-  , key: Nav.Key
-  , url: Url.Url
-  , myId : Maybe String
-  , draftMyName : String
-  , myName : Maybe String
-  , error : Maybe String
-  }
-
-
-init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
-init _ url key =
-  case BGF.goodGameIdMaybe url.fragment of
-    Just id ->
-      ( { gameId = Just (id |> Debug.log "Init with id")
-        , draftGameId = id
-        , key = key
-        , url = url
-        , myId = Nothing
-        , draftMyName = ""
-        , myName = Nothing
-        , error = Nothing
-        }
-        , openCmd id
-      )
-
-    Nothing ->
-      ( { gameId = Nothing |> Debug.log "Init with nothing"
-        , draftGameId = ""
-        , key = key
-        , url = url
-        , myId = Nothing
-        , draftMyName = ""
-        , myName = Nothing
-        , error = Nothing
-        }
-        , Random.generate GeneratedGameId BGF.idGenerator
-      )
 
 
 -- Update the model with a message
@@ -197,7 +215,11 @@ updateWithEnvelope : Envelope -> Model -> (Model, Cmd Msg)
 updateWithEnvelope env model =
   case env of
     BGF.Welcome w ->
-      ({ model | myId = Just w.me }, Cmd.none)
+      let
+        game = model.game
+        game2 = { game | myId = Just w.me }
+      in
+      ({ model | game = game2 }, Cmd.none)
 
     BGF.Peer p ->
       let
@@ -265,7 +287,7 @@ viewJoin model =
 
 viewPlayers : Model -> List (Html Msg)
 viewPlayers model =
-  case model.myId of
+  case model.game.myId of
     Just id ->
       [ p []
         [ text "Your name: "

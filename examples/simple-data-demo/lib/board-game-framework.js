@@ -42,10 +42,6 @@ var boardgameframework = {
     // Open a websocket and set up the event handlers
     open: function(url) {
         parent = this;
-        if (this.ws) {
-            // Already have a websocket connection
-            return false;
-        }
         this.ws = new WebSocket(url);
         this.ws.onopen = function(evt) {
             // No action

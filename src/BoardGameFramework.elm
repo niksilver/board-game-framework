@@ -160,8 +160,11 @@ decodeEnvelope bodyDecoder v =
         Result.map4 make toRes fromRes timeRes bodyRes
         |> Result.mapError Dec.errorToString
 
-    _ ->
-      Err "Didn't find Welcome or Peer intent"
+    Ok intent ->
+      Err <| "Got unknown intent: '" ++ intent ++ "'"
+
+    Err desc ->
+      Err <| "Error decoding envelope: " ++ (Dec.errorToString desc)
 
 
 type Request a =
