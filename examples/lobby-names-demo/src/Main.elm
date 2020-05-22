@@ -110,26 +110,20 @@ initialGameState =
 -- Our peer-to-peer messages
 
 
-type alias Body = (String, String)
+type alias Body = Dict String String
 
 
 type alias Envelope = BGF.Envelope Body
 
 
 bodyEncoder : Body -> Enc.Value
-bodyEncoder (id, name) =
-  Enc.list identity [Enc.string id, Enc.string name]
+bodyEncoder =
+  Enc.dict identity Enc.string
 
 
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
-  let
-    pairDecoder list = case list of
-      [id, name] -> Dec.succeed (id, name)
-      _ -> Dec.fail "Didn't get string pair"
-  in
-  Dec.list Dec.string
-  |> Dec.andThen pairDecoder
+  Dec.dict Dec.string
 
 
 -- Update the model with a message
@@ -197,7 +191,7 @@ update msg model =
             game2 = { game | players = players }
           in
           ( { model | game = game2 }
-          , BGF.Send (id, myName) |> BGF.encode bodyEncoder |> outgoing
+          , BGF.Send players |> BGF.encode bodyEncoder |> outgoing
           )
 
         Nothing ->
