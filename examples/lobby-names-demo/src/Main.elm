@@ -42,7 +42,6 @@ type alias Model =
   , key: Nav.Key
   , url: Url.Url
   , draftMyName : String
-  , myName : Maybe String
   , error : Maybe String
   , game : GameState
   }
@@ -57,7 +56,6 @@ init _ url key =
         , key = key
         , url = url
         , draftMyName = ""
-        , myName = Nothing
         , error = Nothing
         , game = initialGameState
         }
@@ -70,7 +68,6 @@ init _ url key =
         , key = key
         , url = url
         , draftMyName = ""
-        , myName = Nothing
         , error = Nothing
         , game = initialGameState
         }
@@ -183,13 +180,21 @@ update msg model =
       ({model | draftMyName = draftName}, Cmd.none)
 
     ConfirmNameClick ->
-      -- If we've confirmed our name, tell our peers
-      let
-        myName = String.trim model.draftMyName
-      in
-      ( { model | myName = Just myName }
-      , BGF.Send myName |> BGF.encode bodyEncoder |> outgoing
-      )
+      -- If we've confirmed our name, update our game state and tell our peers
+      case model.game.myId of
+        Just id ->
+          let
+            myName = String.trim model.draftMyName
+            game = model.game
+            players = game.players |> Dict.insert myName id
+            game2 = { game | players = players }
+          in
+          ( { model | game = game2 }
+          , BGF.Send myName |> BGF.encode bodyEncoder |> outgoing
+          )
+
+        Nothing ->
+          (model, Cmd.none)
 
     Received envRes ->
       case envRes of
@@ -289,6 +294,9 @@ viewPlayers : Model -> List (Html Msg)
 viewPlayers model =
   case model.game.myId of
     Just id ->
+      let
+        myName = Dict.get id model.game.players
+      in
       [ p []
         [ text "Your name: "
         , input
@@ -303,7 +311,7 @@ viewPlayers model =
           ]
           [ text "Confirm" ]
         , text " "
-        , Maybe.withDefault "" model.myName |> text
+        , Maybe.withDefault "" myName |> text
         ]
       ]
 
