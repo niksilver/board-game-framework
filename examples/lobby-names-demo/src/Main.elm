@@ -110,20 +110,23 @@ initialGameState =
 -- Our peer-to-peer messages
 
 
-type alias Body = Dict String String
+type Body =
+  Players (Dict String String)
 
 
 type alias Envelope = BGF.Envelope Body
 
 
 bodyEncoder : Body -> Enc.Value
-bodyEncoder =
-  Enc.dict identity Enc.string
+bodyEncoder (Players dict) =
+  Enc.object
+  [("players", Enc.dict identity Enc.string dict)]
 
 
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
-  Dec.dict Dec.string
+  Dec.field "players" (Dec.dict Dec.string)
+  |> Dec.map Players
 
 
 -- Update the model with a message
@@ -189,9 +192,10 @@ update msg model =
             game = model.game
             players = game.players |> Dict.insert myName id
             game2 = { game | players = players }
+            body = Players players
           in
           ( { model | game = game2 }
-          , BGF.Send players |> BGF.encode bodyEncoder |> outgoing
+          , BGF.Send body |> BGF.encode bodyEncoder |> outgoing
           )
 
         Nothing ->
