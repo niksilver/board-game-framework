@@ -16,6 +16,7 @@ import Json.Encode as Enc
 import Json.Decode as Dec
 import Maybe
 import Random
+import Tuple
 import Url
 
 import BoardGameFramework as BGF
@@ -109,20 +110,26 @@ initialGameState =
 -- Our peer-to-peer messages
 
 
-type alias Body = String
+type alias Body = (String, String)
 
 
 type alias Envelope = BGF.Envelope Body
 
 
 bodyEncoder : Body -> Enc.Value
-bodyEncoder body =
-  Enc.string body
+bodyEncoder (id, name) =
+  Enc.list identity [Enc.string id, Enc.string name]
 
 
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
-  Dec.string
+  let
+    pairDecoder list = case list of
+      [id, name] -> Dec.succeed (id, name)
+      _ -> Dec.fail "Didn't get string pair"
+  in
+  Dec.list Dec.string
+  |> Dec.andThen pairDecoder
 
 
 -- Update the model with a message
@@ -190,7 +197,7 @@ update msg model =
             game2 = { game | players = players }
           in
           ( { model | game = game2 }
-          , BGF.Send myName |> BGF.encode bodyEncoder |> outgoing
+          , BGF.Send (id, myName) |> BGF.encode bodyEncoder |> outgoing
           )
 
         Nothing ->
