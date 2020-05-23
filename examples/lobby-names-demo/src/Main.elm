@@ -76,6 +76,18 @@ init _ url key =
       )
 
 
+-- Whenever we change the game ID we need to empty out the game state
+newGameId : Maybe String -> Model -> Model
+newGameId gameId model =
+  if gameId == model.gameId then
+    model
+  else
+    { model
+    | gameId = gameId
+    , game = initialGameState
+    }
+
+
 -- The board game server: connecting and sending
 
 
@@ -172,10 +184,10 @@ update msg model =
               Cmd.none
       in
       ( { model
-        | gameId = frag
-        , draftGameId = Maybe.withDefault "" frag
+        | draftGameId = Maybe.withDefault "" frag
         , url = url
         }
+        |> newGameId frag
       , cmd
       )
 
