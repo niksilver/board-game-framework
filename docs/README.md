@@ -160,7 +160,9 @@ clients receive:
 ## Testing applications
 
 * Two clients can connect with the same ID.
-* Use a private browser window.
+* Use a private browser window, or better, a different browser.
+  Firefox uses the same websockets cookie across different private
+  browser windows.
 * Use the simple demo to watch messages arriving.
 
 ## Duplicate IDs
