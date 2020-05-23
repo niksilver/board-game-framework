@@ -59,7 +59,7 @@ var boardgameframework = {
             // No action
         }
         this._ws.onclose = function(evt) {
-            parent.toapp({close: true});
+            parent.toapp({closed: true});
             parent._ws = null;
             if (parent._nextOpen) {
                 url = parent._nextOpen;

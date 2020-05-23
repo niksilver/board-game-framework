@@ -282,6 +282,15 @@ updateWithEnvelope env model =
       , Cmd.none
       )
 
+    BGF.Closed ->
+      -- Wipe the game data if the connection closes
+      let
+        _ = Debug.log "Got closed envelope" True
+      in
+      ( model |> newGameId Nothing
+      , Cmd.none
+      )
+
 
 -- Subscriptions and ports
 
