@@ -197,10 +197,9 @@ update msg model =
             game = model.game
             players = game.players |> Dict.insert id myName
             game2 = { game | players = players }
-            body = { myId = id, myName = myName }
           in
           ( { model | game = game2 }
-          , BGF.Send body |> BGF.encode bodyEncoder |> outgoing
+          , sendMyNameCmd id myName
           )
 
         Nothing ->
@@ -213,6 +212,13 @@ update msg model =
 
         Err desc ->
           ({ model | error = Just desc }, Cmd.none)
+
+
+sendMyNameCmd : String -> String -> Cmd Msg
+sendMyNameCmd myId myName =
+  BGF.Send { myId = myId, myName = myName }
+  |> BGF.encode bodyEncoder
+  |> outgoing
 
 
 updateWithGameId : String -> Model -> (Model, Cmd Msg)
@@ -230,6 +236,7 @@ updateWithEnvelope : Envelope -> Model -> (Model, Cmd Msg)
 updateWithEnvelope env model =
   case env of
     BGF.Welcome w ->
+      -- When we're welcomed, note the client ID we've been given
       let
         game = model.game
         game2 = { game | myId = Just w.me }
@@ -237,14 +244,35 @@ updateWithEnvelope env model =
       ({ model | game = game2 }, Cmd.none)
 
     BGF.Peer p ->
+      -- A peer will send their client ID and name
       let
-        _ = Debug.log "Body from peer: " p.body
         players = model.game.players
         players2 = players |> Dict.insert p.body.myId p.body.myName
         game = model.game
         game2 = { game | players = players2 }
       in
       ({ model | game = game2 }, Cmd.none)
+
+    BGF.Joiner j ->
+      -- When a client joins, (a) record their ID, and (b) tell them our name
+      let
+        players = model.game.players
+        players2 = players |> Dict.insert j.joiner ""
+        game = model.game
+        game2 = { game | players = players2 }
+      in
+        case model.game.myId of
+          Just id ->
+            let
+              myName = players |> Dict.get id |> Maybe.withDefault ""
+            in
+            ( { model | game = game2 }
+            , sendMyNameCmd id myName
+            )
+
+          Nothing ->
+            ({ model | game = game2 }, Cmd.none)
+
 
 
 -- Subscriptions and ports

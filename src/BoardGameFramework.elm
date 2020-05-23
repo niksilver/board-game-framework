@@ -82,7 +82,7 @@ goodGameIdMaybe mId =
 type Envelope a =
   Welcome {me: String, others: List String, time: Int}
   | Peer {from: String, to: List String, time: Int, body: a}
-  | Joiner {from: String, to: List String, time: Int}
+  | Joiner {joiner: String, to: List String, time: Int}
 
 
 -- Singleton string list decoder.
@@ -141,7 +141,7 @@ decodeEnvelope bodyDecoder v =
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
         make to from time =
           Joiner
-          { from = from
+          { joiner = from
           , to = to
           , time = time
           }

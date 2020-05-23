@@ -153,7 +153,7 @@ decodeEnvelopeTest =
           case decodeEnvelope simpleDecoder j of
             Ok (Joiner data) ->
               Expect.all
-              [ \d -> Expect.equal "222.234" d.from
+              [ \d -> Expect.equal "222.234" d.joiner
               , \d -> Expect.equal ["123.456", "333.345"] d.to
               , \d -> Expect.equal 6543210 d.time
               ] data
