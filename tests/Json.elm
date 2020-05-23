@@ -217,6 +217,18 @@ decodeEnvelopeTest =
 
       ]
 
+    , describe "Decode error" <|
+      [ test "Good error" <|
+        \_ ->
+          Enc.object [ ("error", Enc.string "This is my error") ]
+          |> decodeEnvelope simpleDecoder
+          |> Expect.equal (Err "This is my error")
+
+      , testWontParse "Error isn't a string" <|
+          Enc.object [ ("error", Enc.int 333) ]
+
+      ]
+
     , describe "Nonsense envelope" <|
       [ testWontParse "Intent doesn't make sense" <|
           Enc.object

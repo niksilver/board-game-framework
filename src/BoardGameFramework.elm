@@ -104,9 +104,11 @@ decodeEnvelope : Dec.Decoder a -> Enc.Value -> Result String (Envelope a)
 decodeEnvelope bodyDecoder v =
   let
     sayClosed = Dec.succeed "closed"
+    sayError = Dec.succeed "error"
     intentDec = Dec.field "Intent" Dec.string
     closedDec = Dec.field "closed" sayClosed
-    purposeDec = Dec.oneOf [intentDec, closedDec] 
+    errorDec = Dec.field "error" sayError
+    purposeDec = Dec.oneOf [intentDec, closedDec, errorDec]
     purpose = Dec.decodeValue purposeDec v
   in
   case purpose of
@@ -175,11 +177,21 @@ decodeEnvelope bodyDecoder v =
     Ok "closed" ->
       Ok Closed
 
+    Ok "error" ->
+      let
+        errorRes = Dec.decodeValue (Dec.field "error" Dec.string) v
+      in
+        case errorRes of
+          Ok str ->
+            Err str
+          Err e ->
+            Err (Dec.errorToString e)
+
     Ok intent ->
       Err <| "Got unknown intent: '" ++ intent ++ "'"
 
     Err desc ->
-      Err <| "Error decoding envelope: " ++ (Dec.errorToString desc)
+      Err (Dec.errorToString desc)
 
 
 type Request a =
