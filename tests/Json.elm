@@ -136,6 +136,39 @@ decodeEnvelopeTest =
           , ("Body", Enc.object [("Xolor", Enc.string "Red")])
           ]
 
+      ]
+
+    , describe "Decode Joiner" <|
+      [ test "Good Joiner" <|
+        let
+          j =
+            Enc.object
+            [ ("From", Enc.list Enc.string ["222.234"])
+            , ("To", Enc.list Enc.string ["123.456", "333.345"])
+            , ("Time", Enc.int 6543210)
+            , ("Intent", Enc.string "Joiner")
+            ]
+        in
+        \_ ->
+          case decodeEnvelope simpleDecoder j of
+            Ok (Joiner data) ->
+              Expect.all
+              [ \d -> Expect.equal "222.234" d.from
+              , \d -> Expect.equal ["123.456", "333.345"] d.to
+              , \d -> Expect.equal 6543210 d.time
+              ] data
+            other ->
+              Expect.fail <| "Got other result: " ++ (Debug.toString other)
+
+      , testWontParse "From is more than a singleton" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Time", Enc.int 6543210)
+          , ("Intent", Enc.string "Peer")
+          ]
+
+
        ]
     ]
 

@@ -82,6 +82,7 @@ goodGameIdMaybe mId =
 type Envelope a =
   Welcome {me: String, others: List String, time: Int}
   | Peer {from: String, to: List String, time: Int, body: a}
+  | Joiner {from: String, to: List String, time: Int}
 
 
 -- Singleton string list decoder.
@@ -132,6 +133,20 @@ decodeEnvelope bodyDecoder v =
           }
       in
         Result.map4 make toRes fromRes timeRes bodyRes
+        |> Result.mapError Dec.errorToString
+
+    Ok "Joiner" ->
+      let
+        fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
+        toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
+        make to from time =
+          Joiner
+          { from = from
+          , to = to
+          , time = time
+          }
+      in
+        Result.map3 make toRes fromRes timeRes
         |> Result.mapError Dec.errorToString
 
     Ok intent ->
