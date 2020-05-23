@@ -272,6 +272,15 @@ updateWithEnvelope env model =
             , Cmd.none
             )
 
+    BGF.Leaver l ->
+      -- When a client leaves, remove their name from the players table
+      let
+        _ = Debug.log "Got leaver" l
+        players = model.players |> Dict.remove l.leaver
+      in
+      ( { model | players = players }
+      , Cmd.none
+      )
 
 
 -- Subscriptions and ports
