@@ -7,6 +7,10 @@ var boardgameframework = {
     // Our websocket
     ws: null,
 
+    // The URL to open next, if we try to open a connection while we've still
+    // got one
+    nextOpen : null,
+
     // Send an envelope of data to the main application.
     // Replace this default implementation in your app.
     toapp: function(env) {
@@ -17,7 +21,15 @@ var boardgameframework = {
     act: function(data) {
         switch (data.instruction) {
             case 'Open':
+                if (this.ws) {
+                    // Already open, so line up the URL to be opened next,
+                    // and close the current connection.
+                    this.nextOpen = data.url;
+                    this.ws.close();
+                    return;
+                }
                 this.open(data.url);
+                console.log("opened ws for " + data.url);
                 return;
             case 'Close':
                 if (!this.ws) {
@@ -31,6 +43,8 @@ var boardgameframework = {
                     this.toapp({error: "Send: Websocket not configured"});
                     return;
                 }
+                console.log("ws: " + this.ws);
+                console.log("data: " + data);
                 this.ws.send(JSON.stringify(data.body));
                 return;
             default:
@@ -50,6 +64,11 @@ var boardgameframework = {
         this.ws.onclose = function(evt) {
             parent.toapp({close: true});
             parent.ws = null;
+            if (parent.nextOpen) {
+                url = parent.nextOpen;
+                parent.nextOpen = null;
+                parent.act({instruction: 'Open', url: url});
+            }
         }
         this.ws.onmessage = function(evt) {
             // Get the received envelope as structured data

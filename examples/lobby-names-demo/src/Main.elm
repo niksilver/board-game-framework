@@ -237,15 +237,20 @@ updateWithEnvelope env model =
   case env of
     BGF.Welcome w ->
       -- When we're welcomed, note the client ID we've been given
+      -- and record it in our player table.
       let
+        _ = Debug.log "Got welcome" w
+        players = model.game.players
+        players2 = players |> Dict.insert w.me ""
         game = model.game
-        game2 = { game | myId = Just w.me }
+        game2 = { game | myId = Just w.me, players = players2 }
       in
       ({ model | game = game2 }, Cmd.none)
 
     BGF.Peer p ->
-      -- A peer will send their client ID and name
+      -- A peer will send us their client ID and name
       let
+        _ = Debug.log "Got peer" p
         players = model.game.players
         players2 = players |> Dict.insert p.body.myId p.body.myName
         game = model.game
@@ -256,6 +261,7 @@ updateWithEnvelope env model =
     BGF.Joiner j ->
       -- When a client joins, (a) record their ID, and (b) tell them our name
       let
+        _ = Debug.log "Got joiner" j
         players = model.game.players
         players2 = players |> Dict.insert j.joiner ""
         game = model.game
