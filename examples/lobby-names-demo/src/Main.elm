@@ -46,6 +46,7 @@ type alias Model =
   , draftMyName : String
   , error : Maybe String
   , players : Dict String String
+  , begun : Bool
   }
 
 
@@ -61,6 +62,7 @@ init _ url key =
         , draftMyName = ""
         , error = Nothing
         , players = Dict.empty
+        , begun = False
         }
         , openCmd id
       )
@@ -74,6 +76,7 @@ init _ url key =
         , draftMyName = ""
         , error = Nothing
         , players = Dict.empty
+        , begun = False
         }
         , Random.generate GeneratedGameId BGF.idGenerator
       )
@@ -145,6 +148,7 @@ type Msg =
   | JoinClick
   | DraftMyNameChange String
   | ConfirmNameClick
+  | BeginClick
   | Received (Result String Envelope)
 
 
@@ -202,6 +206,14 @@ update msg model =
 
         Nothing ->
           (model, Cmd.none)
+
+    BeginClick ->
+      let
+        _ = Debug.log "Clicked Begin" True
+      in
+      ( { model | begun = True }
+      , Cmd.none
+      )
 
     Received envRes ->
       case envRes of
@@ -322,12 +334,19 @@ view : Model -> Browser.Document Msg
 view model =
   { title = "Lobby"
   , body =
-      List.concat
-      [ viewJoin model
-      , viewMyName model
-      , viewPlayers model
-      , viewError model
-      ]
+      if model.begun then
+        List.concat
+        [ viewPlayers model
+        , viewError model
+        ]
+      else
+        List.concat
+        [ viewJoin model
+        , viewMyName model
+        , viewPlayers model
+        , viewBegin model
+        , viewError model
+        ]
   }
 
 
@@ -406,6 +425,24 @@ nicePlayerName myId id name =
   (if goodName name then name else "Unknown player")
   ++ (if Just id == myId then " (you)" else "")
 
+
+viewBegin : Model -> List (Html Msg)
+viewBegin model =
+  [ p []
+    [ text "When everyone is here... "
+    , button
+      [ Attr.disabled <| not(canBegin model)
+      , Events.onClick BeginClick
+      ]
+      [ text "Begin" ]
+    ]
+  ]
+
+
+canBegin : Model -> Bool
+canBegin model =
+  not(model.begun)
+  && List.all goodName (Dict.values model.players)
 
 viewError : Model -> List (Html Msg)
 viewError model =
