@@ -38,13 +38,14 @@ main =
 
 
 type alias Model =
-  { gameId: Maybe String
-  , draftGameId: String
-  , key: Nav.Key
-  , url: Url.Url
+  { gameId : Maybe String
+  , draftGameId : String
+  , key : Nav.Key
+  , url : Url.Url
+  , myId : Maybe String
   , draftMyName : String
   , error : Maybe String
-  , game : GameState
+  , players : Dict String String
   }
 
 
@@ -56,9 +57,10 @@ init _ url key =
         , draftGameId = id
         , key = key
         , url = url
+        , myId = Nothing
         , draftMyName = ""
         , error = Nothing
-        , game = initialGameState
+        , players = Dict.empty
         }
         , openCmd id
       )
@@ -68,9 +70,10 @@ init _ url key =
         , draftGameId = ""
         , key = key
         , url = url
+        , myId = Nothing
         , draftMyName = ""
         , error = Nothing
-        , game = initialGameState
+        , players = Dict.empty
         }
         , Random.generate GeneratedGameId BGF.idGenerator
       )
@@ -84,7 +87,7 @@ newGameId gameId model =
   else
     { model
     | gameId = gameId
-    , game = initialGameState
+    , players = Dict.empty
     }
 
 
@@ -100,23 +103,6 @@ openCmd gameId =
   BGF.Open (serverURL ++ "/g/" ++ gameId)
   |> BGF.encode bodyEncoder
   |> outgoing
-
-
--- State of the game
-
-
--- The game is just a bunch of players (including us), each with a name
-type alias GameState =
-  { myId : Maybe String
-  , players : Dict String String
-  }
-
-
-initialGameState : GameState
-initialGameState =
-  { myId = Nothing
-  , players = Dict.empty
-  }
 
 
 -- Our peer-to-peer messages
@@ -175,9 +161,9 @@ update msg model =
       let
         _ = Debug.log "URL changed " (Url.toString url)
         frag = url.fragment
-        gameId = BGF.goodGameIdMaybe frag
+        goodGameId = BGF.goodGameIdMaybe frag
         cmd =
-          case gameId of
+          case goodGameId of
             Just id ->
               openCmd id
             Nothing ->
@@ -202,15 +188,13 @@ update msg model =
 
     ConfirmNameClick ->
       -- If we've confirmed our name, update our game state and tell our peers
-      case model.game.myId of
+      case model.myId of
         Just id ->
           let
             myName = String.trim model.draftMyName
-            game = model.game
-            players = game.players |> Dict.insert id myName
-            game2 = { game | players = players }
+            players = model.players |> Dict.insert id myName
           in
-          ( { model | game = game2 }
+          ( { model | players = players }
           , sendMyNameCmd id myName
           )
 
@@ -252,44 +236,41 @@ updateWithEnvelope env model =
       -- and record it in our player table.
       let
         _ = Debug.log "Got welcome" w
-        players = model.game.players
-        players2 = players |> Dict.insert w.me ""
-        game = model.game
-        game2 = { game | myId = Just w.me, players = players2 }
+        players = model.players |> Dict.insert w.me ""
       in
-      ({ model | game = game2 }, Cmd.none)
+      ( { model
+        | myId = Just w.me
+        , players = players
+        }
+      , Cmd.none)
 
     BGF.Peer p ->
       -- A peer will send us their client ID and name
       let
         _ = Debug.log "Got peer" p
-        players = model.game.players
-        players2 = players |> Dict.insert p.body.myId p.body.myName
-        game = model.game
-        game2 = { game | players = players2 }
+        players = model.players |> Dict.insert p.body.myId p.body.myName
       in
-      ({ model | game = game2 }, Cmd.none)
+      ({ model | players = players }, Cmd.none)
 
     BGF.Joiner j ->
       -- When a client joins, (a) record their ID, and (b) tell them our name
       let
         _ = Debug.log "Got joiner" j
-        players = model.game.players
-        players2 = players |> Dict.insert j.joiner ""
-        game = model.game
-        game2 = { game | players = players2 }
+        players = model.players |> Dict.insert j.joiner ""
       in
-        case model.game.myId of
+        case model.myId of
           Just id ->
             let
               myName = players |> Dict.get id |> Maybe.withDefault ""
             in
-            ( { model | game = game2 }
+            ( { model | players = players }
             , sendMyNameCmd id myName
             )
 
           Nothing ->
-            ({ model | game = game2 }, Cmd.none)
+            ( { model | players = players }
+            , Cmd.none
+            )
 
 
 
@@ -353,10 +334,10 @@ viewJoin model =
 
 viewMyName : Model -> List (Html Msg)
 viewMyName model =
-  case model.game.myId of
+  case model.myId of
     Just id ->
       let
-        myName = Dict.get id model.game.players
+        myName = Dict.get id model.players
       in
       [ p []
         [ text "Your name: "
@@ -385,11 +366,11 @@ goodName name =
 
 viewPlayers : Model -> List (Html Msg)
 viewPlayers model =
-  model.game.players
+  model.players
   |> Dict.toList
   |> List.map
     (\(id, name) ->
-      nicePlayerName model.game.myId id name
+      nicePlayerName model.myId id name
       |> text
       |> List.singleton
       |> p []
