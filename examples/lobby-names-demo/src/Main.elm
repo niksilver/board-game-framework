@@ -359,8 +359,6 @@ viewMyName model =
           , Events.onClick ConfirmNameClick
           ]
           [ text "Confirm" ]
-        , text " "
-        , Maybe.withDefault "" myName |> text
         ]
       ]
 
@@ -379,11 +377,17 @@ viewPlayers model =
   |> Dict.toList
   |> List.map
     (\(id, name) ->
-      if goodName name then
-        p [] [text name]
-      else
-        p [] [text "Unknown player"]
+      nicePlayerName model.game.myId id name
+      |> text
+      |> List.singleton
+      |> p []
     )
+
+
+nicePlayerName : Maybe String -> String -> String -> String
+nicePlayerName myId id name =
+  (if goodName name then name else "Unknown player")
+  ++ (if Just id == myId then " (you)" else "")
 
 
 viewError : Model -> List (Html Msg)

@@ -29,7 +29,6 @@ var boardgameframework = {
                     return;
                 }
                 this.open(data.url);
-                console.log("opened ws for " + data.url);
                 return;
             case 'Close':
                 if (!this._ws) {
@@ -43,8 +42,6 @@ var boardgameframework = {
                     this.toapp({error: "Send: Websocket not configured"});
                     return;
                 }
-                console.log("ws: " + this._ws);
-                console.log("data: " + data);
                 this._ws.send(JSON.stringify(data.body));
                 return;
             default:
