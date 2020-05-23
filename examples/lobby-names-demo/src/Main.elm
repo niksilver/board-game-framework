@@ -113,28 +113,45 @@ openCmd gameId =
 
 type Body =
   PlayerName String String
+  | Begun Bool
 
 
 type alias Envelope = BGF.Envelope Body
 
 
 bodyEncoder : Body -> Enc.Value
-bodyEncoder (PlayerName myId myName) =
-    Enc.object
-    [ ("playername"
-      , Enc.object
-        [ ("myId", Enc.string myId)
-        , ("myName", Enc.string myName)
-        ]
-      )
-    ]
+bodyEncoder body =
+  case body of
+    PlayerName myId myName ->
+      Enc.object
+      [ ("playername"
+        , Enc.object
+          [ ("myId", Enc.string myId)
+          , ("myName", Enc.string myName)
+          ]
+        )
+      ]
+
+    Begun flag ->
+      Enc.object
+      [ ("begun", Enc.bool flag) ]
 
 
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
-  Dec.map2 PlayerName
-    (Dec.at ["playername", "myId"] Dec.string)
-    (Dec.at ["playername", "myName"] Dec.string)
+  let
+    nameDec =
+      Dec.map2 PlayerName
+        (Dec.at ["playername", "myId"] Dec.string)
+        (Dec.at ["playername", "myName"] Dec.string)
+    begunDec =
+      Dec.map Begun
+        (Dec.field "begun" Dec.bool)
+  in
+    Dec.oneOf
+    [ nameDec
+    , begunDec
+    ]
 
 
 -- Update the model with a message
@@ -201,18 +218,19 @@ update msg model =
             players = model.players |> Dict.insert id myName
           in
           ( { model | players = players }
-          , sendMyNameCmd id myName
+          , PlayerName id myName |> sendBodyCmd
           )
 
         Nothing ->
           (model, Cmd.none)
 
     BeginClick ->
+      -- If we've begun the game, tell our peers
       let
         _ = Debug.log "Clicked Begin" True
       in
       ( { model | begun = True }
-      , Cmd.none
+      , Begun True |> sendBodyCmd
       )
 
     Received envRes ->
@@ -224,10 +242,9 @@ update msg model =
           ({ model | error = Just desc }, Cmd.none)
 
 
-sendMyNameCmd : String -> String -> Cmd Msg
-sendMyNameCmd myId myName =
-  PlayerName myId myName
-  |> BGF.Send
+sendBodyCmd : Body -> Cmd Msg
+sendBodyCmd body =
+  BGF.Send body
   |> BGF.encode bodyEncoder
   |> outgoing
 
@@ -261,17 +278,19 @@ updateWithEnvelope env model =
 
     BGF.Peer p ->
       -- A peer will send us their client ID and name
-      let
-        _ = Debug.log "Got peer" p
-        players =
-          case p.body of
-            PlayerName myId myName ->
-              model.players |> Dict.insert myId myName
-      in
-      ({ model | players = players }, Cmd.none)
+      case p.body |> Debug.log "Got peer " of
+        PlayerName myId myName ->
+          let
+            players = model.players |> Dict.insert myId myName
+          in
+          ({ model | players = players }, Cmd.none)
+
+        Begun flag ->
+          ({ model | begun = flag }, Cmd.none)
 
     BGF.Joiner j ->
-      -- When a client joins, (a) record their ID, and (b) tell them our name
+      -- When a client joins, (a) record their ID, and
+      -- (b) tell them our name and whether the game has begun
       let
         _ = Debug.log "Got joiner" j
         players = model.players |> Dict.insert j.joiner ""
@@ -282,7 +301,10 @@ updateWithEnvelope env model =
               myName = players |> Dict.get id |> Maybe.withDefault ""
             in
             ( { model | players = players }
-            , sendMyNameCmd id myName
+            , Cmd.batch
+              [ PlayerName id myName |> sendBodyCmd
+              , Begun model.begun |> sendBodyCmd
+              ]
             )
 
           Nothing ->
