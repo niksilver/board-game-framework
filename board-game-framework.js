@@ -5,11 +5,11 @@
 // The layer from our application to the plumbing
 var boardgameframework = {
     // Our websocket
-    ws: null,
+    _ws: null,
 
     // The URL to open next, if we try to open a connection while we've still
     // got one
-    nextOpen : null,
+    _nextOpen : null,
 
     // Send an envelope of data to the main application.
     // Replace this default implementation in your app.
@@ -21,31 +21,28 @@ var boardgameframework = {
     act: function(data) {
         switch (data.instruction) {
             case 'Open':
-                if (this.ws) {
+                if (this._ws) {
                     // Already open, so line up the URL to be opened next,
                     // and close the current connection.
-                    this.nextOpen = data.url;
-                    this.ws.close();
+                    this._nextOpen = data.url;
+                    this._ws.close();
                     return;
                 }
                 this.open(data.url);
-                console.log("opened ws for " + data.url);
                 return;
             case 'Close':
-                if (!this.ws) {
+                if (!this._ws) {
                     // Closing non-existent websocket. Odd, but okay
                     return;
                 }
-                this.ws.close();
+                this._ws.close();
                 return;
             case 'Send':
-                if (!this.ws) {
+                if (!this._ws) {
                     this.toapp({error: "Send: Websocket not configured"});
                     return;
                 }
-                console.log("ws: " + this.ws);
-                console.log("data: " + data);
-                this.ws.send(JSON.stringify(data.body));
+                this._ws.send(JSON.stringify(data.body));
                 return;
             default:
                 this.toapp({error: "Unrecognised instruction"});
@@ -57,20 +54,20 @@ var boardgameframework = {
     // Opening a second websocket will close the first one.
     open: function(url) {
         parent = this;
-        this.ws = new WebSocket(url);
-        this.ws.onopen = function(evt) {
+        this._ws = new WebSocket(url);
+        this._ws.onopen = function(evt) {
             // No action
         }
-        this.ws.onclose = function(evt) {
+        this._ws.onclose = function(evt) {
             parent.toapp({close: true});
-            parent.ws = null;
-            if (parent.nextOpen) {
-                url = parent.nextOpen;
-                parent.nextOpen = null;
+            parent._ws = null;
+            if (parent._nextOpen) {
+                url = parent._nextOpen;
+                parent._nextOpen = null;
                 parent.act({instruction: 'Open', url: url});
             }
         }
-        this.ws.onmessage = function(evt) {
+        this._ws.onmessage = function(evt) {
             // Get the received envelope as structured data
             env = JSON.parse(evt.data);
             // If there's a body (base64 encoded) decode it
@@ -79,7 +76,7 @@ var boardgameframework = {
             }
             parent.toapp(env);
         }
-        this.ws.onerror = function(evt) {
+        this._ws.onerror = function(evt) {
             // Error details can't be determined by design. See
             // https://stackoverflow.com/a/31003057/1830955
             // The browser will also close the websocket
