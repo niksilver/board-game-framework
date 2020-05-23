@@ -108,28 +108,30 @@ openCmd gameId =
 -- Our peer-to-peer messages
 
 
-type alias Body =
-  { myId: String
-  , myName: String
-  }
+type Body =
+  PlayerName String String
 
 
 type alias Envelope = BGF.Envelope Body
 
 
 bodyEncoder : Body -> Enc.Value
-bodyEncoder {myId, myName} =
-  Enc.object
-  [ ("myId", Enc.string myId)
-  , ("myName", Enc.string myName)
-  ]
+bodyEncoder (PlayerName myId myName) =
+    Enc.object
+    [ ("playername"
+      , Enc.object
+        [ ("myId", Enc.string myId)
+        , ("myName", Enc.string myName)
+        ]
+      )
+    ]
 
 
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
-  Dec.map2 Body
-    (Dec.field "myId" Dec.string)
-    (Dec.field "myName" Dec.string)
+  Dec.map2 PlayerName
+    (Dec.at ["playername", "myId"] Dec.string)
+    (Dec.at ["playername", "myName"] Dec.string)
 
 
 -- Update the model with a message
@@ -212,7 +214,8 @@ update msg model =
 
 sendMyNameCmd : String -> String -> Cmd Msg
 sendMyNameCmd myId myName =
-  BGF.Send { myId = myId, myName = myName }
+  PlayerName myId myName
+  |> BGF.Send
   |> BGF.encode bodyEncoder
   |> outgoing
 
@@ -248,7 +251,10 @@ updateWithEnvelope env model =
       -- A peer will send us their client ID and name
       let
         _ = Debug.log "Got peer" p
-        players = model.players |> Dict.insert p.body.myId p.body.myName
+        players =
+          case p.body of
+            PlayerName myId myName ->
+              model.players |> Dict.insert myId myName
       in
       ({ model | players = players }, Cmd.none)
 
