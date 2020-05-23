@@ -84,6 +84,7 @@ type Envelope a =
   | Peer {from: String, to: List String, time: Int, body: a}
   | Joiner {joiner: String, to: List String, time: Int}
   | Leaver {leaver: String, to: List String, time: Int}
+  | Closed
 
 
 -- Singleton string list decoder.
@@ -102,14 +103,18 @@ singletonStringDecoder =
 decodeEnvelope : Dec.Decoder a -> Enc.Value -> Result String (Envelope a)
 decodeEnvelope bodyDecoder v =
   let
-    timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
-    intentRes = Dec.decodeValue (Dec.field "Intent" Dec.string) v
+    sayClosed = Dec.succeed "closed"
+    intentDec = Dec.field "Intent" Dec.string
+    closedDec = Dec.field "closed" sayClosed
+    purposeDec = Dec.oneOf [intentDec, closedDec] 
+    purpose = Dec.decodeValue purposeDec v
   in
-  case intentRes of
+  case purpose of
     Ok "Welcome" ->
       let
         toRes = Dec.decodeValue (Dec.field "To" singletonStringDecoder) v
         fromRes = Dec.decodeValue (Dec.field "From" (Dec.list Dec.string)) v
+        timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
         make to from time =
           Welcome
           { me = to
@@ -124,6 +129,7 @@ decodeEnvelope bodyDecoder v =
       let
         fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
+        timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
         bodyRes = Dec.decodeValue (Dec.field "Body" bodyDecoder) v
         make to from time body =
           Peer
@@ -140,6 +146,7 @@ decodeEnvelope bodyDecoder v =
       let
         fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
+        timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
         make to from time =
           Joiner
           { joiner = from
@@ -154,6 +161,7 @@ decodeEnvelope bodyDecoder v =
       let
         fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
+        timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
         make to from time =
           Leaver
           { leaver = from
@@ -163,6 +171,9 @@ decodeEnvelope bodyDecoder v =
       in
         Result.map3 make toRes fromRes timeRes
         |> Result.mapError Dec.errorToString
+
+    Ok "closed" ->
+      Ok Closed
 
     Ok intent ->
       Err <| "Got unknown intent: '" ++ intent ++ "'"

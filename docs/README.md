@@ -75,7 +75,16 @@ as client C2 sends message M2, then it's not certain which message
 the server picks up first. Whichever it is, though, is the one
 it will send out first.
 
-## Intents
+## Incoming messages
+
+An application can receive these messages from the platform:
+
+* Welcome. Received immediately after connecting to the server.
+* Peer. A message from another client. (See above.)
+* Joiner. When another client has joined.
+* Leaver. When another client has left.
+* Closed. When connection to the server has closed.
+* Error. On a network or data parsing error.
 
 Most envelopes carry a message from another client, which is found in
 the envelope `Body`. The intent of such an envelope is `"Peer"`.
@@ -145,6 +154,14 @@ clients receive:
   Intent: "Leaver"
 }
 ```
+
+////Something here about closed envelope////
+
+## Testing applications
+
+* Two clients can connect with the same ID.
+* Use a private browser window.
+* Use the simple demo to watch messages arriving.
 
 ## Duplicate IDs
 

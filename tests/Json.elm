@@ -202,6 +202,35 @@ decodeEnvelopeTest =
 
        ]
 
+    , describe "Decode closed" <|
+      [ test "Good closed" <|
+        \_ ->
+          Enc.object [ ("closed", Enc.bool True) ]
+          |> decodeEnvelope simpleDecoder
+          |> Expect.equal (Ok Closed)
+
+      , test "Unusual closed" <|
+        \_ ->
+          Enc.object [ ("closed", Enc.int 27) ]
+          |> decodeEnvelope simpleDecoder
+          |> Expect.equal (Ok Closed)
+
+      ]
+
+    , describe "Nonsense envelope" <|
+      [ testWontParse "Intent doesn't make sense" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234"])
+          , ("To", Enc.list Enc.string ["123.456"])
+          , ("Time", Enc.int 987654)
+          , ("Intent", Enc.string "Peculiar")
+          ]
+
+      , testWontParse "Envelope isn't an object" <|
+          Enc.int 222
+
+      ]
+
     ]
 
 
