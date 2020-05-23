@@ -195,7 +195,7 @@ update msg model =
           let
             myName = String.trim model.draftMyName
             game = model.game
-            players = game.players |> Dict.insert myName id
+            players = game.players |> Dict.insert id myName
             game2 = { game | players = players }
             body = { myId = id, myName = myName }
           in
@@ -239,8 +239,12 @@ updateWithEnvelope env model =
     BGF.Peer p ->
       let
         _ = Debug.log "Body from peer: " p.body
+        players = model.game.players
+        players2 = players |> Dict.insert p.body.myId p.body.myName
+        game = model.game
+        game2 = { game | players = players2 }
       in
-      (model, Cmd.none)
+      ({ model | game = game2 }, Cmd.none)
 
 
 -- Subscriptions and ports
@@ -269,6 +273,7 @@ view model =
   , body =
       List.concat
       [ viewJoin model
+      , viewMyName model
       , viewPlayers model
       , viewError model
       ]
@@ -300,8 +305,8 @@ viewJoin model =
   ]
 
 
-viewPlayers : Model -> List (Html Msg)
-viewPlayers model =
+viewMyName : Model -> List (Html Msg)
+viewMyName model =
   case model.game.myId of
     Just id ->
       let
@@ -332,6 +337,19 @@ viewPlayers model =
 goodName : String -> Bool
 goodName name =
   String.length (String.trim name) >= 3
+
+
+viewPlayers : Model -> List (Html Msg)
+viewPlayers model =
+  model.game.players
+  |> Dict.toList
+  |> List.map
+    (\(id, name) ->
+      if goodName name then
+        p [] [text name]
+      else
+        p [] [text "Unknown player"]
+    )
 
 
 viewError : Model -> List (Html Msg)
