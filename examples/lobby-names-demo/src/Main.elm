@@ -38,60 +38,110 @@ main =
 
 
 type alias Model =
-  { gameId : Maybe String
-  , draftGameId : String
-  , key : Nav.Key
+  { key : Nav.Key
   , url : Url.Url
-  , myId : Maybe String
+  , draftGameId : String
   , draftMyName : String
-  , error : Maybe String
-  , players : Dict String String
-  , begun : Bool
+  , game : Game
   }
+
+
+type Game =
+  Unknown -- Everything is unknown
+  | KnowSelfOnly String -- We know our ID, but nothing else
+  | KnowGameIdOnly String -- All we know is we're in a game (with a good ID)
+  | Started
+    { myId : String
+    , gameId : String
+    , players : Dict String String
+    , ended : Bool
+    , error : Maybe String
+    }
 
 
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
   case BGF.goodGameIdMaybe url.fragment of
     Just id ->
-      ( { gameId = Just (id |> Debug.log "Init with id")
-        , draftGameId = id
-        , key = key
+      ( { key = key
         , url = url
-        , myId = Nothing
+        , draftGameId = id
         , draftMyName = ""
-        , error = Nothing
-        , players = Dict.empty
-        , begun = False
+        , game = KnowGameIdOnly id
         }
         , openCmd id
       )
 
     Nothing ->
-      ( { gameId = Nothing |> Debug.log "Init with nothing"
-        , draftGameId = ""
-        , key = key
+      ( { key = key
         , url = url
-        , myId = Nothing
+        , draftGameId = Maybe.withDefault "" url.fragment
         , draftMyName = ""
-        , error = Nothing
-        , players = Dict.empty
-        , begun = False
+        , game = Unknown
         }
         , Random.generate GeneratedGameId BGF.idGenerator
       )
 
 
--- Whenever we change the game ID we need to empty out the game state
-newGameId : Maybe String -> Model -> Model
-newGameId gameId model =
-  if gameId == model.gameId then
-    model
+-- Try to change the game ID. We'll get an updated game and a flag to
+-- say if we have joined a new game.
+setGameId : String -> Game -> (Game, Bool)
+setGameId gameId game =
+  let
+    sameId =
+      case game of
+        KnowGameIdOnly old ->
+          gameId == old
+        Started state ->
+          gameId == state.gameId
+        _ ->
+          False
+  in
+  if sameId then
+    (game, False)
+
+  else if not(BGF.isGoodGameId gameId) then
+    (game, False)
+
   else
-    { model
-    | gameId = gameId
-    , players = Dict.empty
-    }
+    case game of
+      Unknown ->
+        ( KnowGameIdOnly gameId
+        , True
+        )
+
+      KnowSelfOnly myId ->
+        ( Started
+          { myId = myId
+          , gameId = gameId
+          , players = Dict.empty
+          , ended = False
+          , error = Nothing
+          }
+        , True
+        )
+
+      KnowGameIdOnly myId ->
+        ( Started
+          { myId = myId
+          , gameId = gameId
+          , players = Dict.empty
+          , ended = False
+          , error = Nothing
+          }
+        , True
+        )
+
+      Started old ->
+        ( Started
+          { myId = old.myId
+          , gameId = gameId
+          , players = Dict.empty
+          , ended = False
+          , error = Nothing
+          }
+        , True
+        )
 
 
 -- The board game server: connecting and sending
@@ -111,9 +161,10 @@ openCmd gameId =
 -- Our peer-to-peer messages
 
 
-type Body =
-  PlayerName String String
-  | Begun Bool
+type alias Body =
+  { players : Dict String String
+  , ended : Bool
+  }
 
 
 type alias Envelope = BGF.Envelope Body
@@ -121,37 +172,23 @@ type alias Envelope = BGF.Envelope Body
 
 bodyEncoder : Body -> Enc.Value
 bodyEncoder body =
-  case body of
-    PlayerName myId myName ->
-      Enc.object
-      [ ("playername"
-        , Enc.object
-          [ ("myId", Enc.string myId)
-          , ("myName", Enc.string myName)
-          ]
-        )
-      ]
-
-    Begun flag ->
-      Enc.object
-      [ ("begun", Enc.bool flag) ]
+  Enc.object
+  [ ("players" , Enc.dict identity Enc.string body.players)
+  , ("ended", Enc.bool body.ended)
+  ]
 
 
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
   let
-    nameDec =
-      Dec.map2 PlayerName
-        (Dec.at ["playername", "myId"] Dec.string)
-        (Dec.at ["playername", "myName"] Dec.string)
-    begunDec =
-      Dec.map Begun
-        (Dec.field "begun" Dec.bool)
+    playersDec =
+      Dec.field "players" (Dec.dict Dec.string)
+    endedDec =
+      Dec.field "ended" Dec.bool
   in
-    Dec.oneOf
-    [ nameDec
-    , begunDec
-    ]
+    Dec.map2 Body
+      playersDec
+      endedDec
 
 
 -- Update the model with a message
@@ -165,7 +202,7 @@ type Msg =
   | JoinClick
   | DraftMyNameChange String
   | ConfirmNameClick
-  | BeginClick
+  | EndClick
   | Received (Result String Envelope)
 
 
@@ -173,30 +210,35 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     GeneratedGameId id ->
-      updateWithGameId id model
+      let
+        url = model.url
+        url2 = { url | fragment = Just id }
+      in
+      ( model
+      , Nav.pushUrl model.key (Url.toString url2)
+      )
 
     UrlRequested req ->
       (model, Cmd.none)
 
     UrlChanged url ->
-      -- URL may have been changed by this app or by the user.
-      -- So we can't assume the URL fragment is a good game ID.
+      -- URL may have been changed by this app or by the user,
+      -- so we can't assume the URL fragment is a good game ID.
       let
-        _ = Debug.log "URL changed " (Url.toString url)
-        frag = url.fragment
-        goodGameId = BGF.goodGameIdMaybe frag
+        frag = Maybe.withDefault "" url.fragment
+        (game, changed) = model.game |> setGameId frag
         cmd =
-          case goodGameId of
-            Just id ->
-              openCmd id
-            Nothing ->
-              Cmd.none
+          if changed then
+            openCmd frag
+          else
+            Cmd.none
+        model2 = { model | game = game }
       in
       ( { model
-        | draftGameId = Maybe.withDefault "" frag
+        | draftGameId = frag
         , url = url
+        , game = game
         }
-        |> newGameId frag
       , cmd
       )
 
@@ -204,34 +246,51 @@ update msg model =
       ({model | draftGameId = draftId}, Cmd.none)
 
     JoinClick ->
-      updateWithGameId model.draftGameId model
+      let
+        url = model.url
+        url2 = { url | fragment = Just model.draftGameId }
+      in
+      ( model
+      , Nav.pushUrl model.key (Url.toString url2)
+      )
 
     DraftMyNameChange draftName ->
       ({model | draftMyName = draftName}, Cmd.none)
 
     ConfirmNameClick ->
-      -- If we've confirmed our name, update our game state and tell our peers
-      case model.myId of
-        Just id ->
-          let
-            myName = String.trim model.draftMyName
-            players = model.players |> Dict.insert id myName
-          in
-          ( { model | players = players }
-          , PlayerName id myName |> sendBodyCmd
-          )
+      -- We've confirmed our name. If the game is in progress,
+      -- update our game state and tell our peers
+      case model.game of
+        Started state ->
+          if not(state.ended) then
+            let
+              myId = state.myId
+              myName = model.draftMyName
+              players = state.players |> Dict.insert myId myName
+              game = Started { state | players = players }
+            in
+            ( { model | game = game }
+            , sendBodyCmd { players = players, ended = state.ended }
+            )
+          else
+            (model, Cmd.none)
 
-        Nothing ->
+        _ ->
           (model, Cmd.none)
 
-    BeginClick ->
-      -- If we've begun the game, tell our peers
-      let
-        _ = Debug.log "Clicked Begin" True
-      in
-      ( { model | begun = True }
-      , Begun True |> sendBodyCmd
-      )
+    EndClick ->
+      -- If we're ending the game, tell our peers
+      case model.game of
+        Started state ->
+          let
+            game = Started { state | ended = True }
+          in
+          ( { model | game = game }
+          , sendBodyCmd { players = state.players, ended = True }
+          )
+
+        _ ->
+          (model, Cmd.none)
 
     Received envRes ->
       case envRes of
@@ -239,7 +298,16 @@ update msg model =
           updateWithEnvelope env model
 
         Err desc ->
-          ({ model | error = Just desc }, Cmd.none)
+          case model.game of
+            Started state ->
+              ( { model
+                | game = Started { state | error = Just desc }
+                }
+              , Cmd.none
+              )
+
+            _ ->
+              (model, Cmd.none)
 
 
 sendBodyCmd : Body -> Cmd Msg
@@ -249,87 +317,140 @@ sendBodyCmd body =
   |> outgoing
 
 
-updateWithGameId : String -> Model -> (Model, Cmd Msg)
-updateWithGameId id model =
-  let
-    url = model.url
-    url2 = { url | fragment = Just id }
-  in
-  ( model
-  , Nav.pushUrl model.key (Url.toString url2)
-  )
-
-
 updateWithEnvelope : Envelope -> Model -> (Model, Cmd Msg)
 updateWithEnvelope env model =
   case env of
     BGF.Welcome w ->
-      -- When we're welcomed, note the client ID we've been given
-      -- and record it in our player table.
+      -- When we're welcomed, we'll assume the game has just started.
+      -- Note the client ID we've been given and record it in our player table.
       let
         _ = Debug.log "Got welcome" w
-        players = model.players |> Dict.insert w.me ""
       in
-      ( { model
-        | myId = Just w.me
-        , players = players
-        }
-      , Cmd.none)
+      case model.game of
+        Unknown ->
+          let
+            _ = Debug.log "Got welcome from Unknown state - error!"
+          in
+            (model, Cmd.none)
+
+        KnowSelfOnly _ ->
+          let
+            _ = Debug.log "Got welcome from KnowSelfOnly state - error!"
+          in
+            (model, Cmd.none)
+
+        KnowGameIdOnly gameId ->
+          ( { model
+            | game =
+              Started
+              { myId = w.me
+              , gameId = gameId
+              , players = Dict.singleton w.me ""
+              , ended = False
+              , error = Nothing
+              }
+            }
+          , Cmd.none
+          )
+
+        Started state ->
+          ( { model
+            | game =
+              Started
+              { state |
+                myId = w.me
+              , players = Dict.singleton w.me ""
+              , error = Nothing
+              }
+            }
+          , Cmd.none
+          )
 
     BGF.Peer p ->
-      -- A peer will send us their client ID and name
-      case p.body |> Debug.log "Got peer " of
-        PlayerName myId myName ->
-          let
-            players = model.players |> Dict.insert myId myName
-          in
-          ({ model | players = players }, Cmd.none)
+      -- A peer will send us the state of the whole game
+      let
+        _ = Debug.log "Got peer" p
+      in
+      case model.game of
+        Started state ->
+          ( { model
+            | game =
+              Started
+              { state
+              | players = p.body.players
+              , ended = p.body.ended
+              }
+            }
+          , Cmd.none
+          )
 
-        Begun flag ->
-          ({ model | begun = flag }, Cmd.none)
+        _ ->
+          let
+            _ = Debug.log "Got peer, but not Started"
+          in
+          (model, Cmd.none)
 
     BGF.Joiner j ->
-      -- When a client joins, (a) record their ID, and
-      -- (b) tell them our name and whether the game has begun
+      -- When a client joins,
+      -- (a) if the game has started but not ended, record their ID; and
+      -- (b) tell them the game state
       let
         _ = Debug.log "Got joiner" j
-        players = model.players |> Dict.insert j.joiner ""
       in
-        case model.myId of
-          Just id ->
-            let
-              myName = players |> Dict.get id |> Maybe.withDefault ""
-            in
-            ( { model | players = players }
-            , Cmd.batch
-              [ PlayerName id myName |> sendBodyCmd
-              , Begun model.begun |> sendBodyCmd
-              ]
-            )
+      case model.game of
+        Started state ->
+          let
+            players =
+              if state.ended then
+                state.players
+              else
+                state.players |> Dict.insert j.joiner ""
+          in
+          ( { model
+            | game = Started { state | players = players }
+            }
+          , sendBodyCmd { players = players, ended = state.ended }
+          )
 
-          Nothing ->
-            ( { model | players = players }
-            , Cmd.none
-            )
+        _ ->
+          let
+            _ = Debug.log "Got joiner, game was not Started: " model.game
+          in
+          (model, Cmd.none)
 
     BGF.Leaver l ->
-      -- When a client leaves, remove their name from the players table
+      -- When a client leaves, if the game has not ended remove their
+      -- name from the players table
       let
         _ = Debug.log "Got leaver" l
-        players = model.players |> Dict.remove l.leaver
       in
-      ( { model | players = players }
-      , Cmd.none
-      )
+      case model.game of
+        Started state ->
+          let
+            players =
+              if state.ended then
+                state.players
+              else
+                state.players |> Dict.remove l.leaver
+          in
+          ( { model
+            | game = Started { state | players = players }
+            }
+          , Cmd.none
+          )
+
+        _ ->
+          let
+            _ = Debug.log "Got leaver, game was not Started: " model.game
+          in
+          (model, Cmd.none)
 
     BGF.Closed ->
-      -- Wipe the game data if the connection closes
+      -- The connection has closed. We don't act on this, currently
       let
         _ = Debug.log "Got closed envelope" True
       in
-      ( model |> newGameId Nothing
-      , Cmd.none
-      )
+      ( model, Cmd.none)
 
 
 -- Subscriptions and ports
@@ -356,19 +477,27 @@ view : Model -> Browser.Document Msg
 view model =
   { title = "Lobby"
   , body =
-      if model.begun then
-        List.concat
-        [ viewPlayers model
-        , viewError model
-        ]
-      else
-        List.concat
-        [ viewJoin model
-        , viewMyName model
-        , viewPlayers model
-        , viewBegin model
-        , viewError model
-        ]
+      case model.game of
+        Started state ->
+          if state.ended then
+            List.concat
+            [ viewPlayers state
+            , viewError state
+            ]
+
+          else
+            List.concat
+            [ viewJoin model
+            , viewMyName model
+            , viewPlayers state
+            , viewEndOffer model
+            , viewError state
+            ]
+
+        _ ->
+          List.concat
+          [ viewJoin model
+          ]
   }
 
 
@@ -399,28 +528,32 @@ viewJoin model =
 
 viewMyName : Model -> List (Html Msg)
 viewMyName model =
-  case model.myId of
-    Just id ->
-      let
-        myName = Dict.get id model.players
-      in
-      [ p []
-        [ text "Your name: "
-        , input
-          [ Attr.type_ "text", Attr.size 15
-          , Attr.value model.draftMyName
-          , Events.onInput DraftMyNameChange
-          ] []
-        , text " "
-        , button
-          [ Attr.disabled <| not(goodName model.draftMyName)
-          , Events.onClick ConfirmNameClick
+  case model.game of
+    Started state ->
+      if not(state.ended) then
+        let
+          myName = Dict.get state.myId state.players
+        in
+        [ p []
+          [ text "Your name: "
+          , input
+            [ Attr.type_ "text", Attr.size 15
+            , Attr.value model.draftMyName
+            , Events.onInput DraftMyNameChange
+            ] []
+          , text " "
+          , button
+            [ Attr.disabled <| not(goodName model.draftMyName)
+            , Events.onClick ConfirmNameClick
+            ]
+            [ text "Confirm" ]
           ]
-          [ text "Confirm" ]
         ]
-      ]
 
-    Nothing ->
+      else
+        []
+
+    _ ->
       []
 
 
@@ -429,46 +562,52 @@ goodName name =
   String.length (String.trim name) >= 3
 
 
-viewPlayers : Model -> List (Html Msg)
-viewPlayers model =
-  model.players
+viewPlayers : { a | myId: String, players: Dict String String } -> List (Html Msg)
+viewPlayers subState =
+  subState.players
   |> Dict.toList
   |> List.map
     (\(id, name) ->
-      nicePlayerName model.myId id name
+      nicePlayerName subState.myId id name
       |> text
       |> List.singleton
       |> p []
     )
 
 
-nicePlayerName : Maybe String -> String -> String -> String
+nicePlayerName : String -> String -> String -> String
 nicePlayerName myId id name =
   (if goodName name then name else "Unknown player")
-  ++ (if Just id == myId then " (you)" else "")
+  ++ (if id == myId then " (you)" else "")
 
 
-viewBegin : Model -> List (Html Msg)
-viewBegin model =
+viewEndOffer : Model -> List (Html Msg)
+viewEndOffer model =
   [ p []
     [ text "When everyone is here... "
     , button
-      [ Attr.disabled <| not(canBegin model)
-      , Events.onClick BeginClick
+      [ Attr.disabled <| not(canEnd model)
+      , Events.onClick EndClick
       ]
-      [ text "Begin" ]
+      [ text "End" ]
     ]
   ]
 
 
-canBegin : Model -> Bool
-canBegin model =
-  not(model.begun)
-  && List.all goodName (Dict.values model.players)
+canEnd : Model -> Bool
+canEnd model =
+  case model.game of
+    Started state ->
+      not(state.ended)
+      && List.all goodName (Dict.values state.players)
 
-viewError : Model -> List (Html Msg)
-viewError model =
-  case model.error of
+    _ ->
+      False
+
+
+viewError : { a | error : Maybe String } -> List (Html Msg)
+viewError subState =
+  case subState.error of
     Just desc ->
       [ p [] [ "Error: " ++ desc |> text ]
       ]
