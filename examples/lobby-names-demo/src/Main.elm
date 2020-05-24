@@ -46,17 +46,25 @@ type alias Model =
   }
 
 
+-- There are four game states:
+--   Everything is unknown
+--   We know our ID, but nothing else
+--   We know we're in a game (with a good ID), but nothing else
+--   Game has started, and maybe ended
 type Game =
-  Unknown -- Everything is unknown
-  | KnowSelfOnly String -- We know our ID, but nothing else
-  | KnowGameIdOnly String -- All we know is we're in a game (with a good ID)
-  | Started
-    { myId : String
-    , gameId : String
-    , players : Dict String String
-    , ended : Bool
-    , error : Maybe String
-    }
+  Unknown
+  | KnowSelfOnly String
+  | KnowGameIdOnly String
+  | Started Started State
+
+
+type alias StartedState =
+  { myId : String
+  , gameId : String
+  , players : Dict String String
+  , ended : Bool
+  , error : Maybe String
+  }
 
 
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
@@ -488,9 +496,9 @@ view model =
           else
             List.concat
             [ viewJoin model
-            , viewMyName model
+            , viewMyName state
             , viewPlayers state
-            , viewEndOffer model
+            , viewEndOffer state
             , viewError state
             ]
 
@@ -526,35 +534,30 @@ viewJoin model =
   ]
 
 
-viewMyName : Model -> List (Html Msg)
-viewMyName model =
-  case model.game of
-    Started state ->
-      if not(state.ended) then
-        let
-          myName = Dict.get state.myId state.players
-        in
-        [ p []
-          [ text "Your name: "
-          , input
-            [ Attr.type_ "text", Attr.size 15
-            , Attr.value model.draftMyName
-            , Events.onInput DraftMyNameChange
-            ] []
-          , text " "
-          , button
-            [ Attr.disabled <| not(goodName model.draftMyName)
-            , Events.onClick ConfirmNameClick
-            ]
-            [ text "Confirm" ]
-          ]
+viewMyName : StartedState -> List (Html Msg)
+viewMyName state =
+  if not(state.ended) then
+    let
+      myName = Dict.get state.myId state.players
+    in
+    [ p []
+      [ text "Your name: "
+      , input
+        [ Attr.type_ "text", Attr.size 15
+        , Attr.value model.draftMyName
+        , Events.onInput DraftMyNameChange
+        ] []
+      , text " "
+      , button
+        [ Attr.disabled <| not(goodName model.draftMyName)
+        , Events.onClick ConfirmNameClick
         ]
+        [ text "Confirm" ]
+      ]
+    ]
 
-      else
-        []
-
-    _ ->
-      []
+  else
+    []
 
 
 goodName : String -> Bool
@@ -562,13 +565,13 @@ goodName name =
   String.length (String.trim name) >= 3
 
 
-viewPlayers : { a | myId: String, players: Dict String String } -> List (Html Msg)
-viewPlayers subState =
-  subState.players
+viewPlayers : StartedState -> List (Html Msg)
+viewPlayers state =
+  state.players
   |> Dict.toList
   |> List.map
     (\(id, name) ->
-      nicePlayerName subState.myId id name
+      nicePlayerName state.myId id name
       |> text
       |> List.singleton
       |> p []
@@ -581,12 +584,12 @@ nicePlayerName myId id name =
   ++ (if id == myId then " (you)" else "")
 
 
-viewEndOffer : Model -> List (Html Msg)
-viewEndOffer model =
+viewEndOffer : StartedState -> List (Html Msg)
+viewEndOffer state =
   [ p []
     [ text "When everyone is here... "
     , button
-      [ Attr.disabled <| not(canEnd model)
+      [ Attr.disabled <| not(canEnd state)
       , Events.onClick EndClick
       ]
       [ text "End" ]
@@ -594,20 +597,15 @@ viewEndOffer model =
   ]
 
 
-canEnd : Model -> Bool
-canEnd model =
-  case model.game of
-    Started state ->
-      not(state.ended)
-      && List.all goodName (Dict.values state.players)
-
-    _ ->
-      False
+canEnd : StartedState -> Bool
+canEnd state =
+  not(state.ended)
+  && List.all goodName (Dict.values state.players)
 
 
-viewError : { a | error : Maybe String } -> List (Html Msg)
-viewError subState =
-  case subState.error of
+viewError : StartedState -> List (Html Msg)
+viewError state =
+  case state.error of
     Just desc ->
       [ p [] [ "Error: " ++ desc |> text ]
       ]
