@@ -1,3 +1,6 @@
+- Have the JavaScript library attempt a reconnection on unexpected disconnect.
+- Tidy up the message structs between clients and hub.
+- Switch client id creation to the client, coming via a query string.
 - Create an "actioned data" demo, which uses the structured data.
 - Have the server send a receipt, so a client knows the order in which
   their message was sent.
@@ -67,3 +70,6 @@ DONE:
 - Create an Elm version of the Javascript "simple data" demo.
 - Re-organise the files.
 - Put some Elm logic into a package.
+- Have the server allow a quick reconnection from the client.
+- Buffer: get rid of unsentSet, replace with -ve unsent
+- A reconnection with a lastnum that doesn't exist will get rejected.
