@@ -1,16 +1,12 @@
+- Get rid LostConnection branches from client.sendExt.
 - Have the JavaScript library attempt a reconnection on unexpected disconnect.
-- Tidy up the message structs between clients and hub.
 - Switch client id creation to the client, coming via a query string.
 - Create an "actioned data" demo, which uses the structured data.
-- Have the server send a receipt, so a client knows the order in which
-  their message was sent.
 - Noughts and crosses demo.
 - Quiz demo with a quiz host and password.
 - Join-in-the-lobby demo - collect names and enter.
 - Generate a game ID demo.
 - Generate a game ID, but check it with the server first.
-- Update documentation to talk about application data structures
-  (Open, Close, Send).
 - Update documentation to include behind-the-scenes connectivity:
   game name, annul cookie command.
 - Switch To/From/etc to to/from/etc for consistency with Elm conventions.
@@ -73,3 +69,10 @@ DONE:
 - Have the server allow a quick reconnection from the client.
 - Buffer: get rid of unsentSet, replace with -ve unsent
 - A reconnection with a lastnum that doesn't exist will get rejected.
+- A new client with a bad lastnum should get a closed connection.
+- Fix bug where hub has one client, and shuts down before the receiveExt
+  has sent its last message.
+- Have the server send a receipt, so a client knows the order in which
+  their message was sent.
+- Envelope time is in milliseconds.
+- Tidy up the message structs between clients and hub.
