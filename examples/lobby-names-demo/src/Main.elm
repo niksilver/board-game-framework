@@ -52,10 +52,10 @@ type alias Model =
 --   We know we're in a game (with a good ID), but nothing else
 --   Game has started, and maybe ended
 type Game =
-  Unknown
+ Unknown
   | KnowSelfOnly String
   | KnowGameIdOnly String
-  | Started Started State
+  | Started StartedState
 
 
 type alias StartedState =
@@ -156,7 +156,9 @@ setGameId gameId game =
 
 
 serverURL : String
-serverURL = "wss://board-game-framework.nw.r.appspot.com"
+-- serverURL = "wss://board-game-framework.nw.r.appspot.com"
+-- serverURL = "ws://bgf-aws-dev.eu-west-2.elasticbeanstalk.com"
+serverURL = "ws://bgf-aws-dev.eu-west-2.elasticbeanstalk.com"
 
 
 openCmd : String -> Cmd Msg
@@ -496,7 +498,7 @@ view model =
           else
             List.concat
             [ viewJoin model
-            , viewMyName state
+            , viewMyName model.draftMyName state
             , viewPlayers state
             , viewEndOffer state
             , viewError state
@@ -534,8 +536,8 @@ viewJoin model =
   ]
 
 
-viewMyName : StartedState -> List (Html Msg)
-viewMyName state =
+viewMyName : String -> StartedState -> List (Html Msg)
+viewMyName draftMyName state =
   if not(state.ended) then
     let
       myName = Dict.get state.myId state.players
@@ -544,12 +546,12 @@ viewMyName state =
       [ text "Your name: "
       , input
         [ Attr.type_ "text", Attr.size 15
-        , Attr.value model.draftMyName
+        , Attr.value draftMyName
         , Events.onInput DraftMyNameChange
         ] []
       , text " "
       , button
-        [ Attr.disabled <| not(goodName model.draftMyName)
+        [ Attr.disabled <| not(goodName draftMyName)
         , Events.onClick ConfirmNameClick
         ]
         [ text "Confirm" ]
