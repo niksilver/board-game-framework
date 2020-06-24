@@ -45,7 +45,6 @@ var boardgameframework = {
                 this._reconnCounter = 0;
                 url = this._makeConnURL(data.url);
                 this._url = url;
-                console.log("Opening url=" + url + ", _reconnCounter=" + this._reconnCounter);
                 this.open(url);
                 return;
             case 'Close':
@@ -80,7 +79,6 @@ var boardgameframework = {
             // We've got an open connection.
             // Future connections will be reconnection
             parent._reconnCounter = 3;
-            console.log("Got onopen, _reconnCounter reset to 3");
         }
         this._ws.onclose = async function(evt) {
             // We got a close; should we reconnect for the main app?
@@ -88,8 +86,7 @@ var boardgameframework = {
                 // Need to reconnect
                 url = parent._makeConnURL(parent._url);
                 parent._reconnCounter--;
-                console.log("Reopening url=" + url + ", _reconnCounter=" + parent._reconnCounter);
-                await new Promise(r => setTimeout(r, 2000));
+                await new Promise(r => setTimeout(r, parent._delay()));
                 parent.open(url);
                 return;
             }
@@ -130,13 +127,28 @@ var boardgameframework = {
     // Make a connection URL using some URL, but also what we know
     // about whether we're reconnecting and the last num received.
     _makeConnURL: function(url) {
-        console.log("_makeConnURL: _reconnCounter=" + this._reconnCounter);
         if (this._reconnCounter <= 0) {
             // New connection
             return url;
         }
         // It's a reconnection
         return url + "?lastnum=" + this._num;
+    },
+
+    // Calculate a delay for reconnecting. The first reconnection should
+    // be immediate. Later ones should get further apart. There should
+    // also be some randomness in it.
+    _delay: function() {
+        switch (this._reconnCounter) {
+            case 3:
+                return 0;
+            case 2:
+                return 750 + Math.random()*500;
+            case 1:
+                return 1500 + Math.random()*1000;
+            default:
+                return 0;
+        }
     }
 
 };
