@@ -7,6 +7,10 @@ var boardgameframework = {
     // Our websocket
     _ws: null,
 
+    // Base URL we've most recently tried to open, and which we may need to
+    // reconnect to
+    _url: null,
+
     // The URL to open next, if we try to open a connection while we've still
     // got one
     _nextOpen : null,
@@ -43,7 +47,8 @@ var boardgameframework = {
                 this._num = -1;
                 this._reconnCounter = 0;
                 this._reconnecting = false;
-                url = this.makeConnURL(data.url)
+                url = this._makeConnURL(data.url);
+                this._url = url;
                 console.log("Opening url=" + url + ", _reconnCounter=" + this._reconnCounter);
                 this.open(url);
                 return;
@@ -83,20 +88,22 @@ var boardgameframework = {
             parent._reconnecting = false;
             console.log("Got onopen, _reconnCounter reset to 3");
         }
-        this._ws.onclose = function(evt) {
+        this._ws.onclose = async function(evt) {
             // We got a close; should we reconnect for the main app?
             if (parent._reconnCounter > 0) {
                 // Need to reconnect
-                parent.makeConnURL(this._ws);
+                url = parent._makeConnURL(parent._url);
                 parent._reconnCounter--;
                 parent._reconnecting = true;
                 console.log("Reopening url=" + url + ", _reconnCounter=" + parent._reconnCounter);
+                await new Promise(r => setTimeout(r, 2000));
                 parent.open(url);
                 return;
             }
             // We accept this close
             parent.toapp({closed: true});
             parent._ws = null;
+            parent._url = null;
             parent._reconnecting = false;
             if (parent._nextOpen) {
                 url = parent._nextOpen;
@@ -110,6 +117,10 @@ var boardgameframework = {
             // If there's a body (base64 encoded) decode it
             if (env.Body) {
                 env.Body = JSON.parse(atob(env.Body));
+            }
+            // Record the envelope num
+            if (env.Num >= 0) {
+                parent._num = env.Num;
             }
             parent.toapp(env);
         }
@@ -126,8 +137,9 @@ var boardgameframework = {
 
     // Make a connection URL using some URL, but also what we know
     // about whether we're reconnecting and the last num received.
-    makeConnURL: function(url) {
-        if (this._reconnCounter >= 0) {
+    _makeConnURL: function(url) {
+        console.log("_makeConnURL: _reconnCounter=" + this._reconnCounter);
+        if (this._reconnCounter <= 0) {
             // New connection
             return url;
         }
