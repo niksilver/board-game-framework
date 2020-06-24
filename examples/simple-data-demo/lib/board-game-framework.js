@@ -23,9 +23,6 @@ var boardgameframework = {
     // reconnection.
     _reconnCounter: 0,
 
-    // Are we currently trying to reconnect?
-    _reconnecting: false,
-
     // Send an envelope of data to the main application.
     // Replace this default implementation in your app.
     toapp: function(env) {
@@ -46,7 +43,6 @@ var boardgameframework = {
                 }
                 this._num = -1;
                 this._reconnCounter = 0;
-                this._reconnecting = false;
                 url = this._makeConnURL(data.url);
                 this._url = url;
                 console.log("Opening url=" + url + ", _reconnCounter=" + this._reconnCounter);
@@ -60,7 +56,6 @@ var boardgameframework = {
                 // This is a requested close, so we don't want to
                 // reconnect
                 this._reconnCounter = 0;
-                this._reconnecting = false;
                 this._ws.close();
                 return;
             case 'Send':
@@ -85,7 +80,6 @@ var boardgameframework = {
             // We've got an open connection.
             // Future connections will be reconnection
             parent._reconnCounter = 3;
-            parent._reconnecting = false;
             console.log("Got onopen, _reconnCounter reset to 3");
         }
         this._ws.onclose = async function(evt) {
@@ -94,7 +88,6 @@ var boardgameframework = {
                 // Need to reconnect
                 url = parent._makeConnURL(parent._url);
                 parent._reconnCounter--;
-                parent._reconnecting = true;
                 console.log("Reopening url=" + url + ", _reconnCounter=" + parent._reconnCounter);
                 await new Promise(r => setTimeout(r, 2000));
                 parent.open(url);
@@ -104,7 +97,6 @@ var boardgameframework = {
             parent.toapp({closed: true});
             parent._ws = null;
             parent._url = null;
-            parent._reconnecting = false;
             if (parent._nextOpen) {
                 url = parent._nextOpen;
                 parent._nextOpen = null;
@@ -128,8 +120,8 @@ var boardgameframework = {
             // Error details can't be determined by design. See
             // https://stackoverflow.com/a/31003057/1830955
             // The browser will also close the websocket
-            // Don't pass on the error if we're trying to reconnect
-            if (!parent._reconnecting) {
+            // Only pass on the error if wouldn't want to reconnect
+            if (parent._reconnCounter <= 0) {
                 parent.toapp({error: "Websocket error"});
             }
         }
