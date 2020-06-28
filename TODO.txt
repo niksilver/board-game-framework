@@ -1,6 +1,4 @@
-- Get rid LostConnection branches from client.sendExt.
-- Have the JavaScript library attempt a reconnection on unexpected disconnect.
-- Switch client id creation to the client, coming via a query string.
+- Have client-side client ID stored in local storage.
 - Create an "actioned data" demo, which uses the structured data.
 - Noughts and crosses demo.
 - Quiz demo with a quiz host and password.
@@ -76,3 +74,6 @@ DONE:
   their message was sent.
 - Envelope time is in milliseconds.
 - Tidy up the message structs between clients and hub.
+- Get rid LostConnection branches from client.sendExt.
+- Have the JavaScript library attempt a reconnection on unexpected disconnect.
+- Switch client id creation to the client, coming via a query string.

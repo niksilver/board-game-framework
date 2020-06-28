@@ -15,6 +15,9 @@ var boardgameframework = {
     // got one
     _nextOpen : null,
 
+    // Client ID, if known
+    _id: null,
+
     // Last num received
     _num : -1,
 
@@ -38,6 +41,7 @@ var boardgameframework = {
                     // Already open, so line up the URL to be opened next,
                     // and close the current connection.
                     this._nextOpen = data.url;
+                    console.log("Closing (in Open)");
                     this._ws.close();
                     return;
                 }
@@ -55,6 +59,7 @@ var boardgameframework = {
                 // This is a requested close, so we don't want to
                 // reconnect
                 this._reconnCounter = 0;
+                console.log("Closing (in Close)");
                 this._ws.close();
                 return;
             case 'Send':
@@ -78,6 +83,7 @@ var boardgameframework = {
         this._ws.onopen = function(evt) {
             // We've got an open connection.
             // Future connections will be reconnection
+            console.log("Resetting reconnCounter");
             parent._reconnCounter = 3;
         }
         this._ws.onclose = async function(evt) {
@@ -85,7 +91,8 @@ var boardgameframework = {
             if (parent._reconnCounter > 0) {
                 // Need to reconnect
                 url = parent._makeConnURL(parent._url);
-                parent._reconnCounter--;
+                --parent._reconnCounter;
+                console.log("reconnCounter=" + parent._reconnCounter);
                 await new Promise(r => setTimeout(r, parent._delay()));
                 parent.open(url);
                 return;
@@ -107,7 +114,10 @@ var boardgameframework = {
             if (env.Body) {
                 env.Body = JSON.parse(atob(env.Body));
             }
-            // Record the envelope num
+            // Record the client ID and envelope num
+            if (env.Intent == 'Welcome') {
+                parent._id = env.To[0];
+            }
             if (env.Num >= 0) {
                 parent._num = env.Num;
             }
@@ -132,13 +142,15 @@ var boardgameframework = {
             return url;
         }
         // It's a reconnection
-        return url + "?lastnum=" + this._num;
+        console.log("Reconnecting with " + url + "?id=" + this._id + "&lastnum=" + this._num);
+        return url + "?id=" + this._id + "&lastnum=" + this._num;
     },
 
     // Calculate a delay for reconnecting. The first reconnection should
     // be immediate. Later ones should get further apart. There should
     // also be some randomness in it.
     _delay: function() {
+        console.log("delay; reconnCounter=" + this._reconnCounter);
         switch (this._reconnCounter) {
             case 3:
                 return 0;
@@ -147,7 +159,7 @@ var boardgameframework = {
             case 1:
                 return 1500 + Math.random()*1000;
             default:
-                return 0;
+                return 1500 + Math.random()*1000;
         }
     }
 
