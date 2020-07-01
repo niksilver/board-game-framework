@@ -233,14 +233,13 @@ update msg model =
       -- URL may have been changed by this app or by the user,
       -- so we can't assume the URL fragment is a good game ID.
       let
-        _ = Debug.log "case UrlChanged" url
         frag = Maybe.withDefault "" url.fragment
         (game, changed) = model.game |> setGameId frag
         cmd =
           if changed then
-            openCmd (frag |> Debug.log "Url changed? Yes")
+            openCmd frag
           else
-            Cmd.none |> Debug.log "Url changed? No"
+            Cmd.none
         model2 = { model | game = game }
       in
       ( { model
