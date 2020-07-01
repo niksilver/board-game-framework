@@ -80,11 +80,11 @@ goodGameIdMaybe mId =
 
 
 type Envelope a =
-  Welcome {me: String, others: List String, time: Int}
-  | Peer {from: String, to: List String, time: Int, body: a}
-  | Receipt {from: String, to: List String, time: Int, body: a}
-  | Joiner {joiner: String, to: List String, time: Int}
-  | Leaver {leaver: String, to: List String, time: Int}
+  Welcome {me: String, others: List String, num: Int, time: Int}
+  | Peer {from: String, to: List String, num: Int, time: Int, body: a}
+  | Receipt {from: String, to: List String, num: Int, time: Int, body: a}
+  | Joiner {joiner: String, to: List String, num: Int, time: Int}
+  | Leaver {leaver: String, to: List String, num: Int, time: Int}
   | Closed
 
 
@@ -117,79 +117,89 @@ decodeEnvelope bodyDecoder v =
       let
         toRes = Dec.decodeValue (Dec.field "To" singletonStringDecoder) v
         fromRes = Dec.decodeValue (Dec.field "From" (Dec.list Dec.string)) v
+        numRes = Dec.decodeValue (Dec.field "Num" Dec.int) v
         timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
-        make to from time =
+        make to from num time =
           Welcome
           { me = to
           , others = from
+          , num = num
           , time = time
           }
       in
-        Result.map3 make toRes fromRes timeRes
+        Result.map4 make toRes fromRes numRes timeRes
         |> Result.mapError Dec.errorToString
 
     Ok "Peer" ->
       let
         fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
+        numRes = Dec.decodeValue (Dec.field "Num" Dec.int) v
         timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
         bodyRes = Dec.decodeValue (Dec.field "Body" bodyDecoder) v
-        make to from time body =
+        make to from num time body =
           Peer
           { from = from
           , to = to
+          , num = num
           , time = time
           , body = body
           }
       in
-        Result.map4 make toRes fromRes timeRes bodyRes
+        Result.map5 make toRes fromRes numRes timeRes bodyRes
         |> Result.mapError Dec.errorToString
 
     Ok "Receipt" ->
       let
         fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
+        numRes = Dec.decodeValue (Dec.field "Num" Dec.int) v
         timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
         bodyRes = Dec.decodeValue (Dec.field "Body" bodyDecoder) v
-        make to from time body =
+        make to from num time body =
           Receipt
           { from = from
           , to = to
+          , num = num
           , time = time
           , body = body
           }
       in
-        Result.map4 make toRes fromRes timeRes bodyRes
+        Result.map5 make toRes fromRes numRes timeRes bodyRes
         |> Result.mapError Dec.errorToString
 
     Ok "Joiner" ->
       let
         fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
+        numRes = Dec.decodeValue (Dec.field "Num" Dec.int) v
         timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
-        make to from time =
+        make to from num time =
           Joiner
           { joiner = from
           , to = to
+          , num = num
           , time = time
           }
       in
-        Result.map3 make toRes fromRes timeRes
+        Result.map4 make toRes fromRes numRes timeRes
         |> Result.mapError Dec.errorToString
 
     Ok "Leaver" ->
       let
         fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
+        numRes = Dec.decodeValue (Dec.field "Num" Dec.int) v
         timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
-        make to from time =
+        make to from num time =
           Leaver
           { leaver = from
           , to = to
+          , num = num
           , time = time
           }
       in
-        Result.map3 make toRes fromRes timeRes
+        Result.map4 make toRes fromRes numRes timeRes
         |> Result.mapError Dec.errorToString
 
     Ok "closed" ->

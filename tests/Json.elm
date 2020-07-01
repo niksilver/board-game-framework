@@ -21,6 +21,7 @@ decodeEnvelopeTest =
             Enc.object
             [ ("From", Enc.list Enc.string ["222.234", "333.345"])
             , ("To", Enc.list Enc.string ["123.456"])
+            , ("Num", Enc.int 28)
             , ("Time", Enc.int 7654321)
             , ("Intent", Enc.string "Welcome")
             ]
@@ -31,6 +32,7 @@ decodeEnvelopeTest =
               Expect.all
               [ \d -> Expect.equal "123.456" d.me
               , \d -> Expect.equal ["222.234", "333.345"] d.others
+              , \d -> Expect.equal 28 d.num
               , \d -> Expect.equal 7654321 d.time
               ] data
             other ->
@@ -40,6 +42,7 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.int 123)
+          , ("Num", Enc.int 28)
           , ("Time", Enc.int 76487293)
           , ("Intent", Enc.string "Welcome")
           ]
@@ -48,6 +51,7 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.int [123, 222])
+          , ("Num", Enc.int 28)
           , ("Time", Enc.int 76487293)
           , ("Intent", Enc.string "Welcome")
           ]
@@ -56,6 +60,7 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string [])
+          , ("Num", Enc.int 28)
           , ("Time", Enc.int 76487293)
           , ("Intent", Enc.string "Welcome")
           ]
@@ -64,6 +69,7 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123", "222"])
+          , ("Num", Enc.int 28)
           , ("Time", Enc.int 76487293)
           , ("Intent", Enc.string "Welcome")
           ]
@@ -72,6 +78,7 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.list Enc.int [222, 333])
           , ("To", Enc.list Enc.string ["123", "222"])
+          , ("Num", Enc.int 28)
           , ("Time", Enc.int 76487293)
           , ("Intent", Enc.string "Welcome")
           ]
@@ -80,7 +87,17 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.int 1000)
           , ("To", Enc.list Enc.string ["123.456"])
+          , ("Num", Enc.int 28)
           , ("Time", Enc.int 7654321)
+          , ("Intent", Enc.string "Welcome")
+          ]
+
+      , testWontParse "Num is wrong type" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456"])
+          , ("Num", Enc.string "Twenty eight")
+          , ("Time", Enc.int 76487293)
           , ("Intent", Enc.string "Welcome")
           ]
 
@@ -88,6 +105,7 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456"])
+          , ("Num", Enc.int 28)
           , ("Time", Enc.string "7654321")
           , ("Intent", Enc.string "Welcome")
           ]
@@ -101,6 +119,7 @@ decodeEnvelopeTest =
             Enc.object
             [ ("From", Enc.list Enc.string ["222.234"])
             , ("To", Enc.list Enc.string ["123.456", "333.345"])
+            , ("Num", Enc.int 29)
             , ("Time", Enc.int 8765432)
             , ("Intent", Enc.string "Peer")
             , ("Body", Enc.object [("colour", Enc.string "Red")])
@@ -112,6 +131,7 @@ decodeEnvelopeTest =
               Expect.all
               [ \d -> Expect.equal "222.234" d.from
               , \d -> Expect.equal ["123.456", "333.345"] d.to
+              , \d -> Expect.equal 29 d.num
               , \d -> Expect.equal 8765432 d.time
               , \d -> Expect.equal {colour = "Red"} d.body
               ] data
@@ -122,6 +142,7 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 29)
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Peer")
           , ("Body", Enc.object [("colour", Enc.string "Red")])
@@ -131,6 +152,7 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 29)
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Peer")
           , ("Body", Enc.object [("Xolor", Enc.string "Red")])
@@ -144,6 +166,7 @@ decodeEnvelopeTest =
             Enc.object
             [ ("From", Enc.list Enc.string ["222.234"])
             , ("To", Enc.list Enc.string ["123.456", "333.345"])
+            , ("Num", Enc.int 30)
             , ("Time", Enc.int 8765432)
             , ("Intent", Enc.string "Receipt")
             , ("Body", Enc.object [("colour", Enc.string "Red")])
@@ -155,6 +178,7 @@ decodeEnvelopeTest =
               Expect.all
               [ \d -> Expect.equal "222.234" d.from
               , \d -> Expect.equal ["123.456", "333.345"] d.to
+              , \d -> Expect.equal 30 d.num
               , \d -> Expect.equal 8765432 d.time
               , \d -> Expect.equal {colour = "Red"} d.body
               ] data
@@ -165,6 +189,7 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 30)
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Receipt")
           , ("Body", Enc.object [("colour", Enc.string "Red")])
@@ -174,6 +199,7 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 30)
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Receipt")
           , ("Body", Enc.object [("Xolor", Enc.string "Red")])
@@ -188,6 +214,7 @@ decodeEnvelopeTest =
             Enc.object
             [ ("From", Enc.list Enc.string ["222.234"])
             , ("To", Enc.list Enc.string ["123.456", "333.345"])
+            , ("Num", Enc.int 31)
             , ("Time", Enc.int 6543210)
             , ("Intent", Enc.string "Joiner")
             ]
@@ -198,6 +225,7 @@ decodeEnvelopeTest =
               Expect.all
               [ \d -> Expect.equal "222.234" d.joiner
               , \d -> Expect.equal ["123.456", "333.345"] d.to
+              , \d -> Expect.equal 31 d.num
               , \d -> Expect.equal 6543210 d.time
               ] data
             other ->
@@ -207,6 +235,7 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 31)
           , ("Time", Enc.int 6543210)
           , ("Intent", Enc.string "Joiner")
           ]
@@ -220,6 +249,7 @@ decodeEnvelopeTest =
             Enc.object
             [ ("From", Enc.list Enc.string ["222.234"])
             , ("To", Enc.list Enc.string ["123.456", "333.345"])
+            , ("Num", Enc.int 32)
             , ("Time", Enc.int 987654)
             , ("Intent", Enc.string "Leaver")
             ]
@@ -230,6 +260,7 @@ decodeEnvelopeTest =
               Expect.all
               [ \d -> Expect.equal "222.234" d.leaver
               , \d -> Expect.equal ["123.456", "333.345"] d.to
+              , \d -> Expect.equal 32 d.num
               , \d -> Expect.equal 987654 d.time
               ] data
             other ->
@@ -239,6 +270,7 @@ decodeEnvelopeTest =
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 32)
           , ("Time", Enc.int 987654)
           , ("Intent", Enc.string "Leaver")
           ]
