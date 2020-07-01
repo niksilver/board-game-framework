@@ -41,6 +41,9 @@ var boardgameframework = {
                     // Already open, so line up the URL to be opened next,
                     // and close the current connection.
                     this._nextOpen = data.url;
+                    this._reconnCounter = 0;
+                    console.log("JS.act.Open: _nextOpen: " + this._nextOpen);
+                    console.log("JS.act.Open: Closing connection");
                     this._ws.close();
                     return;
                 }
@@ -48,6 +51,7 @@ var boardgameframework = {
                 this._reconnCounter = 0;
                 url = this._makeConnURL(data.url);
                 this._url = url;
+                console.log("JS.act.Open: Opening connection: " + url);
                 this.open(url);
                 return;
             case 'Close':
@@ -58,6 +62,7 @@ var boardgameframework = {
                 // This is a requested close, so we don't want to
                 // reconnect
                 this._reconnCounter = 0;
+                console.log("JS.act.Close: Closing connection");
                 this._ws.close();
                 return;
             case 'Send':
@@ -77,19 +82,23 @@ var boardgameframework = {
     // Opening a second websocket will close the first one.
     open: function(url) {
         parent = this;
+        console.log("JS.open: new WebSocket: " + url);
         this._ws = new WebSocket(url);
         this._ws.onopen = function(evt) {
+            console.log("JS.open.onopen: Entered");
             // We've got an open connection.
             // Future connections will be reconnection
             parent._reconnCounter = 3;
         }
         this._ws.onclose = async function(evt) {
+            console.log("JS.open.onclose: Entered");
             // We got a close; should we reconnect for the main app?
             if (parent._reconnCounter > 0) {
                 // Need to reconnect
                 url = parent._makeConnURL(parent._url);
                 --parent._reconnCounter;
                 await new Promise(r => setTimeout(r, parent._delay()));
+                console.log("JS.open.onclose: Opening: " + url);
                 parent.open(url);
                 return;
             }
@@ -97,9 +106,11 @@ var boardgameframework = {
             parent.toapp({closed: true});
             parent._ws = null;
             parent._url = null;
+            console.log("JS.open.onclose: _nextOpen: " + parent._nextOpen);
             if (parent._nextOpen) {
                 url = parent._nextOpen;
                 parent._nextOpen = null;
+                console.log("JS.open.onclose: Will open: " + url);
                 parent.act({instruction: 'Open', url: url});
             }
         }

@@ -156,8 +156,6 @@ setGameId gameId game =
 
 
 serverURL : String
--- serverURL = "wss://board-game-framework.nw.r.appspot.com"
--- serverURL = "ws://bgf-aws-dev.eu-west-2.elasticbeanstalk.com"
 serverURL = "wss://boardgamefwk.nw.r.appspot.com"
 
 
@@ -235,13 +233,14 @@ update msg model =
       -- URL may have been changed by this app or by the user,
       -- so we can't assume the URL fragment is a good game ID.
       let
+        _ = Debug.log "case UrlChanged" url
         frag = Maybe.withDefault "" url.fragment
         (game, changed) = model.game |> setGameId frag
         cmd =
           if changed then
-            openCmd frag
+            openCmd (frag |> Debug.log "Url changed? Yes")
           else
-            Cmd.none
+            Cmd.none |> Debug.log "Url changed? No"
         model2 = { model | game = game }
       in
       ( { model
@@ -399,6 +398,13 @@ updateWithEnvelope env model =
             _ = Debug.log "Got peer, but not Started"
           in
           (model, Cmd.none)
+
+    BGF.Receipt r ->
+      -- A receipt will be what we sent, so ignore it
+      let
+        _ = Debug.log "Got receipt" r
+      in
+        (model, Cmd.none)
 
     BGF.Joiner j ->
       -- When a client joins,
