@@ -158,7 +158,7 @@ setGameId gameId game =
 serverURL : String
 -- serverURL = "wss://board-game-framework.nw.r.appspot.com"
 -- serverURL = "ws://bgf-aws-dev.eu-west-2.elasticbeanstalk.com"
-serverURL = "ws://bgf-aws-dev.eu-west-2.elasticbeanstalk.com"
+serverURL = "wss://boardgamefwk.nw.r.appspot.com"
 
 
 openCmd : String -> Cmd Msg

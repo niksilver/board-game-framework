@@ -135,6 +135,49 @@ decodeEnvelopeTest =
           , ("Intent", Enc.string "Peer")
           , ("Body", Enc.object [("Xolor", Enc.string "Red")])
           ]
+        ]
+
+    , describe "Decode Receipt" <|
+      [ test "Good Receipt" <|
+        let
+          j =
+            Enc.object
+            [ ("From", Enc.list Enc.string ["222.234"])
+            , ("To", Enc.list Enc.string ["123.456", "333.345"])
+            , ("Time", Enc.int 8765432)
+            , ("Intent", Enc.string "Receipt")
+            , ("Body", Enc.object [("colour", Enc.string "Red")])
+            ]
+        in
+        \_ ->
+          case decodeEnvelope simpleDecoder j of
+            Ok (Receipt data) ->
+              Expect.all
+              [ \d -> Expect.equal "222.234" d.from
+              , \d -> Expect.equal ["123.456", "333.345"] d.to
+              , \d -> Expect.equal 8765432 d.time
+              , \d -> Expect.equal {colour = "Red"} d.body
+              ] data
+            other ->
+              Expect.fail <| "Got other result: " ++ (Debug.toString other)
+
+      , testWontParse "From is more than a singleton" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Time", Enc.int 8765432)
+          , ("Intent", Enc.string "Receipt")
+          , ("Body", Enc.object [("colour", Enc.string "Red")])
+          ]
+
+      , testWontParse "Body shouldn't parse" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Time", Enc.int 8765432)
+          , ("Intent", Enc.string "Receipt")
+          , ("Body", Enc.object [("Xolor", Enc.string "Red")])
+          ]
 
       ]
 
