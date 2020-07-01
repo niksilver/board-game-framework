@@ -41,7 +41,6 @@ var boardgameframework = {
                     // Already open, so line up the URL to be opened next,
                     // and close the current connection.
                     this._nextOpen = data.url;
-                    console.log("Closing (in Open)");
                     this._ws.close();
                     return;
                 }
@@ -59,7 +58,6 @@ var boardgameframework = {
                 // This is a requested close, so we don't want to
                 // reconnect
                 this._reconnCounter = 0;
-                console.log("Closing (in Close)");
                 this._ws.close();
                 return;
             case 'Send':
@@ -83,7 +81,6 @@ var boardgameframework = {
         this._ws.onopen = function(evt) {
             // We've got an open connection.
             // Future connections will be reconnection
-            console.log("Resetting reconnCounter");
             parent._reconnCounter = 3;
         }
         this._ws.onclose = async function(evt) {
@@ -92,7 +89,6 @@ var boardgameframework = {
                 // Need to reconnect
                 url = parent._makeConnURL(parent._url);
                 --parent._reconnCounter;
-                console.log("reconnCounter=" + parent._reconnCounter);
                 await new Promise(r => setTimeout(r, parent._delay()));
                 parent.open(url);
                 return;
@@ -142,7 +138,6 @@ var boardgameframework = {
             return url;
         }
         // It's a reconnection
-        console.log("Reconnecting with " + url + "?id=" + this._id + "&lastnum=" + this._num);
         return url + "?id=" + this._id + "&lastnum=" + this._num;
     },
 
@@ -150,7 +145,6 @@ var boardgameframework = {
     // be immediate. Later ones should get further apart. There should
     // also be some randomness in it.
     _delay: function() {
-        console.log("delay; reconnCounter=" + this._reconnCounter);
         switch (this._reconnCounter) {
             case 3:
                 return 0;

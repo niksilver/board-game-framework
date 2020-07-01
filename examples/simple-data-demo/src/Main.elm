@@ -29,7 +29,7 @@ main =
 
 
 serverURL : String
-serverURL = "wss://board-game-framework.nw.r.appspot.com"
+serverURL = "wss://boardgamefwk.nw.r.appspot.com"
 
 
 type alias Model =
@@ -154,7 +154,7 @@ encode req =
     Open gameId ->
       Enc.object
         [ ("instruction", Enc.string "Open")
-        , ("url", "wss://board-game-framework.nw.r.appspot.com/g/" ++ gameId |> Enc.string)
+        , ("url", serverURL ++ "/g/" ++ gameId |> Enc.string)
         ]
 
     Send body ->
