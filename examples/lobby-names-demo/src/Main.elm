@@ -516,11 +516,26 @@ viewJoin model =
     ] []
   , text " "
   , button
-    [ Attr.disabled <| not(BGF.isGoodGameId model.draftGameId)
+    [ Attr.disabled <| not(joinEnabled model)
     , Events.onClick JoinClick
     ]
     [text "Join"]
   ]
+
+
+joinEnabled : Model -> Bool
+joinEnabled model =
+  let
+    inGame id =
+      case model.game of
+        Gathering state ->
+          state.gameId == id
+
+        _ ->
+          False
+  in
+  BGF.isGoodGameId model.draftGameId
+  && not(inGame model.draftGameId)
 
 
 viewMyName : String -> GatherState -> List (Html Msg)
