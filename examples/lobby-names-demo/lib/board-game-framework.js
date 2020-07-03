@@ -143,7 +143,6 @@ var boardgameframework = {
             params.set('lastnum', this._num);
         }
         // It's a reconnection
-        console.log("Connecting to " + url + "?" + params.toString());
         return url + "?" + params.toString();
     },
 
