@@ -52,8 +52,13 @@ type alias Model =
 --   Players are gathering, and maybe have even entered the game.
 type Game =
  Unknown
-  | KnowGameIdOnly String
+  | KnowGameIdOnly String Connectivity
   | Gathering GatherState
+
+
+type Connectivity =
+  Connected
+  | Disconnected
 
 
 type alias GatherState =
@@ -62,6 +67,7 @@ type alias GatherState =
   , players : Dict String String
   , entered : Bool
   , error : Maybe String
+  , connected : Connectivity
   }
 
 
@@ -73,7 +79,7 @@ init _ url key =
         , url = url
         , draftGameId = id
         , draftMyName = ""
-        , game = KnowGameIdOnly id
+        , game = KnowGameIdOnly id Disconnected
         }
         , openCmd id
       )
@@ -96,7 +102,7 @@ setGameId gameId game =
   let
     sameId =
       case game of
-        KnowGameIdOnly old ->
+        KnowGameIdOnly old _ ->
           gameId == old
         Gathering state ->
           gameId == state.gameId
@@ -112,17 +118,18 @@ setGameId gameId game =
   else
     case game of
       Unknown ->
-        ( KnowGameIdOnly gameId
+        ( KnowGameIdOnly gameId Disconnected
         , True
         )
 
-      KnowGameIdOnly myId ->
+      KnowGameIdOnly myId connected ->
         ( Gathering
           { myId = myId
           , gameId = gameId
           , players = Dict.empty
           , entered = False
           , error = Nothing
+          , connected = connected
           }
         , True
         )
@@ -134,6 +141,7 @@ setGameId gameId game =
           , players = Dict.empty
           , entered = False
           , error = Nothing
+          , connected = old.connected
           }
         , True
         )
@@ -222,8 +230,9 @@ update msg model =
       let
         frag = Maybe.withDefault "" url.fragment
         (game, changed) = model.game |> setGameId frag
+        disconnected = not(isConnected model.game)
         cmd =
-          if changed then
+          if changed || disconnected then
             openCmd frag
           else
             Cmd.none
@@ -328,7 +337,7 @@ updateWithEnvelope env model =
           in
             (model, Cmd.none)
 
-        KnowGameIdOnly gameId ->
+        KnowGameIdOnly gameId _ ->
           ( { model
             | game =
               Gathering
@@ -337,6 +346,7 @@ updateWithEnvelope env model =
               , players = Dict.singleton w.me ""
               , entered = False
               , error = Nothing
+              , connected = Connected
               }
             }
           , Cmd.none
@@ -350,6 +360,7 @@ updateWithEnvelope env model =
                 myId = w.me
               , players = Dict.singleton w.me ""
               , error = Nothing
+              , connected = Connected
               }
             }
           , Cmd.none
@@ -443,11 +454,27 @@ updateWithEnvelope env model =
           (model, Cmd.none)
 
     BGF.Closed ->
-      -- The connection has closed. We don't act on this, currently
+      -- The connection has closed
       let
         _ = Debug.log "Got closed envelope" True
       in
-      ( model, Cmd.none)
+      case model.game of
+        Unknown ->
+          ( model, Cmd.none)
+
+        KnowGameIdOnly gameId _ ->
+          ( { model
+            | game = KnowGameIdOnly gameId Disconnected
+            }
+          , Cmd.none
+          )
+
+        Gathering state ->
+          ( { model
+            | game = Gathering { state | connected = Disconnected }
+            }
+          , Cmd.none
+          )
 
 
 -- Subscriptions and ports
@@ -485,6 +512,7 @@ view model =
           else
             List.concat
             [ viewJoin model
+            , viewConnectivity model
             , viewMyName model.draftMyName state
             , viewPlayers state
             , viewEnterOffer state
@@ -494,6 +522,7 @@ view model =
         _ ->
           List.concat
           [ viewJoin model
+          , viewConnectivity model
           ]
   }
 
@@ -526,16 +555,45 @@ viewJoin model =
 joinEnabled : Model -> Bool
 joinEnabled model =
   let
-    inGame id =
+    inGame gameId =
       case model.game of
         Gathering state ->
-          state.gameId == id
+          state.gameId == gameId
 
         _ ->
           False
+    goodId = 
+      BGF.isGoodGameId model.draftGameId
+    draftIsThisGame =
+      not(inGame model.draftGameId)
+    disconnected =
+      not(isConnected model.game)
   in
-  BGF.isGoodGameId model.draftGameId
-  && not(inGame model.draftGameId)
+  goodId
+  && (draftIsThisGame || disconnected)
+
+
+isConnected : Game -> Bool
+isConnected game =
+  case game of
+    Unknown ->
+      False
+
+    KnowGameIdOnly _ c ->
+      c == Connected
+
+    Gathering state ->
+      state.connected == Connected
+
+
+viewConnectivity : Model -> List (Html Msg)
+viewConnectivity model =
+  case isConnected model.game of
+    True ->
+      [ p [] [text "Connected"] ]
+
+    False ->
+      [ p [] [text "Disconnected"] ]
 
 
 viewMyName : String -> GatherState -> List (Html Msg)
