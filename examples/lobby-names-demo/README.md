@@ -1,13 +1,14 @@
 # Lobby names demo
 
-This is to demonstrate how multiple players might join together in a lobby
+This is to demonstrate how multiple players might gather together in a lobby
 and give their screen names before all entering the game.
 Interesting features are:
 * The game ID is randomly generated;
-* Once one player decides the game should start, it starts for everyone;
-* Players who join after the game starts are presented as observers.
+* Once one player decides the players should enter the game, the
+  game state changes for everyone;
+* Anyone who joins after the players have entered just see a list of players.
 
-There is no actual game - it's just a live list of players and observers.
+After entering, there is no actual game - it's just a live list of players.
 
 ## Files and compilation
 
@@ -17,6 +18,8 @@ There is no actual game - it's just a live list of players and observers.
   the initialisation values.
 * *lib/board-game-framework.js*. A copy of the JavaScript framework library
   used by the shell page.
+
+## Compiling and running
 
 Compile the Elm app with this command:
 

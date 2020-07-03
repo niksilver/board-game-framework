@@ -50,19 +50,19 @@ type alias Model =
 --   Everything is unknown
 --   We know our ID, but nothing else
 --   We know we're in a game (with a good ID), but nothing else
---   Game has started, and maybe ended
+--   Players are gathering, and maybe have even entered the game.
 type Game =
  Unknown
   | KnowSelfOnly String
   | KnowGameIdOnly String
-  | Started StartedState
+  | Gathering GatherState
 
 
-type alias StartedState =
+type alias GatherState =
   { myId : String
   , gameId : String
   , players : Dict String String
-  , ended : Bool
+  , entered : Bool
   , error : Maybe String
   }
 
@@ -100,7 +100,7 @@ setGameId gameId game =
       case game of
         KnowGameIdOnly old ->
           gameId == old
-        Started state ->
+        Gathering state ->
           gameId == state.gameId
         _ ->
           False
@@ -119,33 +119,33 @@ setGameId gameId game =
         )
 
       KnowSelfOnly myId ->
-        ( Started
+        ( Gathering
           { myId = myId
           , gameId = gameId
           , players = Dict.empty
-          , ended = False
+          , entered = False
           , error = Nothing
           }
         , True
         )
 
       KnowGameIdOnly myId ->
-        ( Started
+        ( Gathering
           { myId = myId
           , gameId = gameId
           , players = Dict.empty
-          , ended = False
+          , entered = False
           , error = Nothing
           }
         , True
         )
 
-      Started old ->
-        ( Started
+      Gathering old ->
+        ( Gathering
           { myId = old.myId
           , gameId = gameId
           , players = Dict.empty
-          , ended = False
+          , entered = False
           , error = Nothing
           }
         , True
@@ -171,7 +171,7 @@ openCmd gameId =
 
 type alias Body =
   { players : Dict String String
-  , ended : Bool
+  , entered : Bool
   }
 
 
@@ -182,7 +182,7 @@ bodyEncoder : Body -> Enc.Value
 bodyEncoder body =
   Enc.object
   [ ("players" , Enc.dict identity Enc.string body.players)
-  , ("ended", Enc.bool body.ended)
+  , ("entered", Enc.bool body.entered)
   ]
 
 
@@ -191,12 +191,12 @@ bodyDecoder =
   let
     playersDec =
       Dec.field "players" (Dec.dict Dec.string)
-    endedDec =
-      Dec.field "ended" Dec.bool
+    enteredDec =
+      Dec.field "entered" Dec.bool
   in
     Dec.map2 Body
       playersDec
-      endedDec
+      enteredDec
 
 
 -- Update the model with a message
@@ -210,7 +210,7 @@ type Msg =
   | JoinClick
   | DraftMyNameChange String
   | ConfirmNameClick
-  | EndClick
+  | EnterClick
   | Received (Result String Envelope)
 
 
@@ -269,16 +269,16 @@ update msg model =
       -- We've confirmed our name. If the game is in progress,
       -- update our game state and tell our peers
       case model.game of
-        Started state ->
-          if not(state.ended) then
+        Gathering state ->
+          if not(state.entered) then
             let
               myId = state.myId
               myName = model.draftMyName
               players = state.players |> Dict.insert myId myName
-              game = Started { state | players = players }
+              game = Gathering { state | players = players }
             in
             ( { model | game = game }
-            , sendBodyCmd { players = players, ended = state.ended }
+            , sendBodyCmd { players = players, entered = state.entered }
             )
           else
             (model, Cmd.none)
@@ -286,15 +286,15 @@ update msg model =
         _ ->
           (model, Cmd.none)
 
-    EndClick ->
-      -- If we're ending the game, tell our peers
+    EnterClick ->
+      -- If we're entering the game, tell our peers
       case model.game of
-        Started state ->
+        Gathering state ->
           let
-            game = Started { state | ended = True }
+            game = Gathering { state | entered = True }
           in
           ( { model | game = game }
-          , sendBodyCmd { players = state.players, ended = True }
+          , sendBodyCmd { players = state.players, entered = True }
           )
 
         _ ->
@@ -307,9 +307,9 @@ update msg model =
 
         Err desc ->
           case model.game of
-            Started state ->
+            Gathering state ->
               ( { model
-                | game = Started { state | error = Just desc }
+                | game = Gathering { state | error = Just desc }
                 }
               , Cmd.none
               )
@@ -350,21 +350,21 @@ updateWithEnvelope env model =
         KnowGameIdOnly gameId ->
           ( { model
             | game =
-              Started
+              Gathering
               { myId = w.me
               , gameId = gameId
               , players = Dict.singleton w.me ""
-              , ended = False
+              , entered = False
               , error = Nothing
               }
             }
           , Cmd.none
           )
 
-        Started state ->
+        Gathering state ->
           ( { model
             | game =
-              Started
+              Gathering
               { state |
                 myId = w.me
               , players = Dict.singleton w.me ""
@@ -380,13 +380,13 @@ updateWithEnvelope env model =
         _ = Debug.log "Got peer" p
       in
       case model.game of
-        Started state ->
+        Gathering state ->
           ( { model
             | game =
-              Started
+              Gathering
               { state
               | players = p.body.players
-              , ended = p.body.ended
+              , entered = p.body.entered
               }
             }
           , Cmd.none
@@ -394,7 +394,7 @@ updateWithEnvelope env model =
 
         _ ->
           let
-            _ = Debug.log "Got peer, but not Started"
+            _ = Debug.log "Got peer, but not Gathering"
           in
           (model, Cmd.none)
 
@@ -407,56 +407,57 @@ updateWithEnvelope env model =
 
     BGF.Joiner j ->
       -- When a client joins,
-      -- (a) if the game has started but not ended, record their ID; and
+      -- (a) if the players are gathering, but not entered the game,
+      --     record their ID and;
       -- (b) tell them the game state
       let
         _ = Debug.log "Got joiner" j
       in
       case model.game of
-        Started state ->
+        Gathering state ->
           let
             players =
-              if state.ended then
+              if state.entered then
                 state.players
               else
                 state.players |> Dict.insert j.joiner ""
           in
           ( { model
-            | game = Started { state | players = players }
+            | game = Gathering { state | players = players }
             }
-          , sendBodyCmd { players = players, ended = state.ended }
+          , sendBodyCmd { players = players, entered = state.entered }
           )
 
         _ ->
           let
-            _ = Debug.log "Got joiner, game was not Started: " model.game
+            _ = Debug.log "Got joiner, game was not Gathering: " model.game
           in
           (model, Cmd.none)
 
     BGF.Leaver l ->
-      -- When a client leaves, if the game has not ended remove their
-      -- name from the players table
+      -- When a client leaves, if the players have not entered the game,
+      -- remove the leaver's name from the players table
       let
         _ = Debug.log "Got leaver" l
       in
       case model.game of
-        Started state ->
+        Gathering state ->
           let
             players =
-              if state.ended then
+              if state.entered then
                 state.players
               else
                 state.players |> Dict.remove l.leaver
           in
           ( { model
-            | game = Started { state | players = players }
+            | game = Gathering { state | players = players }
             }
           , Cmd.none
           )
 
         _ ->
           let
-            _ = Debug.log "Got leaver, game was not Started: " model.game
+            _ = Debug.log "Got leaver, game was not Gathering: " model.game
           in
           (model, Cmd.none)
 
@@ -493,8 +494,8 @@ view model =
   { title = "Lobby"
   , body =
       case model.game of
-        Started state ->
-          if state.ended then
+        Gathering state ->
+          if state.entered then
             List.concat
             [ viewPlayers state
             , viewError state
@@ -505,7 +506,7 @@ view model =
             [ viewJoin model
             , viewMyName model.draftMyName state
             , viewPlayers state
-            , viewEndOffer state
+            , viewEnterOffer state
             , viewError state
             ]
 
@@ -541,9 +542,9 @@ viewJoin model =
   ]
 
 
-viewMyName : String -> StartedState -> List (Html Msg)
+viewMyName : String -> GatherState -> List (Html Msg)
 viewMyName draftMyName state =
-  if not(state.ended) then
+  if not(state.entered) then
     let
       myName = Dict.get state.myId state.players
     in
@@ -572,7 +573,7 @@ goodName name =
   String.length (String.trim name) >= 3
 
 
-viewPlayers : StartedState -> List (Html Msg)
+viewPlayers : GatherState -> List (Html Msg)
 viewPlayers state =
   state.players
   |> Dict.toList
@@ -591,26 +592,26 @@ nicePlayerName myId id name =
   ++ (if id == myId then " (you)" else "")
 
 
-viewEndOffer : StartedState -> List (Html Msg)
-viewEndOffer state =
+viewEnterOffer : GatherState -> List (Html Msg)
+viewEnterOffer state =
   [ p []
     [ text "When everyone is here... "
     , button
-      [ Attr.disabled <| not(canEnd state)
-      , Events.onClick EndClick
+      [ Attr.disabled <| not(canEnter state)
+      , Events.onClick EnterClick
       ]
-      [ text "End" ]
+      [ text "Enter" ]
     ]
   ]
 
 
-canEnd : StartedState -> Bool
-canEnd state =
-  not(state.ended)
+canEnter : GatherState -> Bool
+canEnter state =
+  not(state.entered)
   && List.all goodName (Dict.values state.players)
 
 
-viewError : StartedState -> List (Html Msg)
+viewError : GatherState -> List (Html Msg)
 viewError state =
   case state.error of
     Just desc ->
