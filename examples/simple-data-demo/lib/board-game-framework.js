@@ -41,6 +41,7 @@ var boardgameframework = {
                     // Already open, so line up the URL to be opened next,
                     // and close the current connection.
                     this._nextOpen = data.url;
+                    this._reconnCounter = 0;
                     this._ws.close();
                     return;
                 }
@@ -133,12 +134,16 @@ var boardgameframework = {
     // Make a connection URL using some URL, but also what we know
     // about whether we're reconnecting and the last num received.
     _makeConnURL: function(url) {
-        if (this._reconnCounter <= 0) {
-            // New connection
-            return url;
+        params = new URLSearchParams();
+        if (this._id != null) {
+            params.set('id', this._id);
+        }
+        if (this._reconnCounter > 0) {
+            // It's a reconnection
+            params.set('lastnum', this._num);
         }
         // It's a reconnection
-        return url + "?id=" + this._id + "&lastnum=" + this._num;
+        return url + "?" + params.toString();
     },
 
     // Calculate a delay for reconnecting. The first reconnection should

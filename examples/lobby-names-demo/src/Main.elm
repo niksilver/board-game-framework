@@ -353,12 +353,15 @@ updateWithEnvelope env model =
           )
 
         Gathering state ->
+          let
+            myName = state.players |> Dict.get w.me |> Maybe.withDefault ""
+          in
           ( { model
             | game =
               Gathering
               { state |
                 myId = w.me
-              , players = Dict.singleton w.me ""
+              , players = Dict.singleton w.me myName
               , error = Nothing
               , connected = Connected
               }
