@@ -46,14 +46,12 @@ type alias Model =
   }
 
 
--- There are four game states:
+-- There are these game states:
 --   Everything is unknown
---   We know our ID, but nothing else
 --   We know we're in a game (with a good ID), but nothing else
 --   Players are gathering, and maybe have even entered the game.
 type Game =
  Unknown
-  | KnowSelfOnly String
   | KnowGameIdOnly String
   | Gathering GatherState
 
@@ -115,17 +113,6 @@ setGameId gameId game =
     case game of
       Unknown ->
         ( KnowGameIdOnly gameId
-        , True
-        )
-
-      KnowSelfOnly myId ->
-        ( Gathering
-          { myId = myId
-          , gameId = gameId
-          , players = Dict.empty
-          , entered = False
-          , error = Nothing
-          }
         , True
         )
 
@@ -338,12 +325,6 @@ updateWithEnvelope env model =
         Unknown ->
           let
             _ = Debug.log "Got welcome from Unknown state - error!"
-          in
-            (model, Cmd.none)
-
-        KnowSelfOnly _ ->
-          let
-            _ = Debug.log "Got welcome from KnowSelfOnly state - error!"
           in
             (model, Cmd.none)
 
