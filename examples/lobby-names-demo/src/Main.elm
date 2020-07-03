@@ -222,7 +222,13 @@ update msg model =
       )
 
     UrlRequested req ->
-      (model, Cmd.none)
+      -- The user has clicked on a link
+      case req of
+        Browser.Internal url ->
+          init () url model.key
+
+        Browser.External url ->
+          (model, Nav.load url)
 
     UrlChanged url ->
       -- URL may have been changed by this app or by the user,
@@ -510,6 +516,7 @@ view model =
             List.concat
             [ viewPlayers state
             , viewError state
+            , viewFooter model
             ]
 
           else
@@ -520,12 +527,14 @@ view model =
             , viewPlayers state
             , viewEnterOffer state
             , viewError state
+            , viewFooter model
             ]
 
         _ ->
           List.concat
           [ viewJoin model
           , viewConnectivity model
+          , viewFooter model
           ]
   }
 
@@ -677,3 +686,17 @@ viewError state =
 
     Nothing ->
       []
+
+
+viewFooter : Model -> List (Html Msg)
+viewFooter model =
+  let
+    url = model.url
+    baseUrl = { url | fragment = Nothing }
+  in
+  [ p []
+    [ a [Attr.href <| Url.toString baseUrl]
+      [ text "Click here to try a new game"
+      ]
+    ]
+  ]
