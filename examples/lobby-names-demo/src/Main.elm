@@ -19,7 +19,7 @@ import Random
 import Tuple
 import Url
 
-import Element as UI
+import Element as El
 import Element.Input as Input
 import Element.Background as Background
 import Element.Border as Border
@@ -515,8 +515,8 @@ view model =
   { title = "Lobby demo"
   , body =
       List.singleton
-      <| UI.layout []
-      <| UI.column []
+      <| El.layout []
+      <| El.column []
       <| List.concat
       <| case model.game of
           Gathering state ->
@@ -545,39 +545,39 @@ view model =
   }
 
 
-viewWelcome : List (UI.Element Msg)
+viewWelcome : List (El.Element Msg)
 viewWelcome =
-  [ UI.text "Welcome"
+  [ El.text "Welcome"
   ]
 
 
-viewJoin : Model -> List (UI.Element Msg)
+viewJoin : Model -> List (El.Element Msg)
 viewJoin model =
-  [ UI.text "Here is the code for this game."
-  , UI.row []
+  [ El.text "Here is the code for this game."
+  , El.row []
     [ Input.text []
       { text = model.draftGameId
       , onChange = DraftGameIdChange
-      , placeholder = UI.text "Game code" |> Input.placeholder [] |> Just
-      , label = UI.text "Code" |> Input.labelLeft []
+      , placeholder = El.text "Game code" |> Input.placeholder [] |> Just
+      , label = El.text "Code" |> Input.labelLeft []
       }
     , button
       -- Attr.disabled <| not(joinEnabled model)
       { onPress = Just JoinClick
-      , label = UI.text "Join"
+      , label = El.text "Join"
       }
     ]
-  , UI.paragraph []
-    [ UI.text "Tell others to join you by "
-    , UI.text "typing the code into their box and hitting Join, or they can "
-    , UI.text " go to "
-    , UI.link []
+  , El.paragraph []
+    [ El.text "Tell others to join you by "
+    , El.text "typing the code into their box and hitting Join, or they can "
+    , El.text " go to "
+    , El.link []
       { url = Url.toString model.url
-      , label = UI.text (Url.toString model.url)
+      , label = El.text (Url.toString model.url)
       }
-    , UI.text ". "
-    , UI.text "You can join their game by typing their code into the box and "
-    , UI.text "hitting Join, or by going to the address they give you."
+    , El.text ". "
+    , El.text "You can join their game by typing their code into the box and "
+    , El.text "hitting Join, or by going to the address they give you."
     ]
   ]
 
@@ -616,29 +616,29 @@ isConnected game =
       state.connected == Connected
 
 
-viewConnectivity : Model -> List (UI.Element Msg)
+viewConnectivity : Model -> List (El.Element Msg)
 viewConnectivity model =
   case isConnected model.game of
     True ->
-      [ UI.text "Connected" ]
+      [ El.text "Connected" ]
 
     False ->
-      [ UI.text "Disconnected" ]
+      [ El.text "Disconnected" ]
 
 
-viewMyName : String -> GatherState -> List (UI.Element Msg)
+viewMyName : String -> GatherState -> List (El.Element Msg)
 viewMyName draftMyName state =
-  [ UI.row []
+  [ El.row []
     [ Input.text []
       { onChange = DraftMyNameChange
       , text = draftMyName
-      , placeholder = UI.text "Enter name" |> Input.placeholder [] |> Just
-      , label = UI.text "Your name" |> Input.labelLeft []
+      , placeholder = El.text "Enter name" |> Input.placeholder [] |> Just
+      , label = El.text "Your name" |> Input.labelLeft []
       }
     , button
       -- Attr.disabled <| not(goodName draftMyName)
       { onPress = Just ConfirmNameClick
-      , label = UI.text "Confirm"
+      , label = El.text "Confirm"
       }
     ]
   ]
@@ -649,15 +649,15 @@ goodName name =
   String.length (String.trim name) >= 3
 
 
-viewPlayers : GatherState -> List (UI.Element Msg)
+viewPlayers : GatherState -> List (El.Element Msg)
 viewPlayers state =
   state.players
   |> Dict.toList
   |> List.map
     (\(id, name) ->
-      UI.text (nicePlayerName state.myId id name)
+      El.text (nicePlayerName state.myId id name)
     )
-  |> UI.column []
+  |> El.column []
   |> List.singleton
 
 
@@ -667,14 +667,14 @@ nicePlayerName myId id name =
   ++ (if id == myId then " (you)" else "")
 
 
-viewEnterOffer : GatherState -> List (UI.Element Msg)
+viewEnterOffer : GatherState -> List (El.Element Msg)
 viewEnterOffer state =
-  [ UI.row []
-    [ UI.text "When everyone is here... "
+  [ El.row []
+    [ El.text "When everyone is here... "
     , Input.button []
       -- Attr.disabled <| not(canEnter state)
       { onPress = Just EnterClick
-      , label = UI.text "Enter"
+      , label = El.text "Enter"
       }
     ]
   ]
@@ -686,26 +686,26 @@ canEnter state =
   && List.all goodName (Dict.values state.players)
 
 
-viewError : GatherState -> List (UI.Element Msg)
+viewError : GatherState -> List (El.Element Msg)
 viewError state =
   case state.error of
     Just desc ->
-      [ UI.text ("Error: " ++ desc)
+      [ El.text ("Error: " ++ desc)
       ]
 
     Nothing ->
       []
 
 
-viewFooter : Model -> List (UI.Element Msg)
+viewFooter : Model -> List (El.Element Msg)
 viewFooter model =
   let
     url = model.url
     baseUrl = { url | fragment = Nothing }
   in
-  [ UI.link []
+  [ El.link []
     { url = Url.toString baseUrl
-    , label = UI.text "Click here to try a new game"
+    , label = El.text "Click here to try a new game"
     }
   ]
 
@@ -713,16 +713,16 @@ viewFooter model =
 fontSize : Int
 fontSize = 12
 
-button : { onPress : Maybe msg, label : UI.Element msg } -> UI.Element msg
+button : { onPress : Maybe msg, label : El.Element msg } -> El.Element msg
 button desc =
   Input.button
-  [ Background.color (UI.rgb 0.9 0.9 0.9)
-  , Border.color (UI.rgb 0.5 0.5 0.5)
+  [ Background.color (El.rgb 0.9 0.9 0.9)
+  , Border.color (El.rgb 0.5 0.5 0.5)
   , Border.width 1
   , Border.rounded 4
-  , UI.padding fontSize
-  , UI.mouseOver
-    [ Background.color (UI.rgb 0.8 0.8 0.8)
+  , El.padding fontSize
+  , El.mouseOver
+    [ Background.color (El.rgb 0.8 0.8 0.8)
     ]
   ]
   desc
