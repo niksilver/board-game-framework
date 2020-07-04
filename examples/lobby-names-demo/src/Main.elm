@@ -514,8 +514,8 @@ view model =
   { title = "Lobby demo"
   , body =
       List.singleton
-      <| El.layout [El.padding (UI.fontSize * 3 // 2)]
-      <| El.column [El.spacing (UI.fontSize * 3 // 2)]
+      <| El.layout [El.padding (UI.scaledInt 2)]
+      <| El.column [El.spacing (UI.scaledInt 2)]
       <| List.concat
       <| case model.game of
           Gathering state ->

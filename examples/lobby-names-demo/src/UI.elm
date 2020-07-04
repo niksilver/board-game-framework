@@ -3,7 +3,7 @@
 -- Licensed under the GPL v3.0. See file LICENCE.txt for details.
 
 
-module UI exposing (button, fontSize)
+module UI exposing (scaled, scaledInt, button)
 
 
 import Element as El
@@ -15,6 +15,16 @@ import Element.Font as Font
 
 fontSize : Int
 fontSize = 12
+
+
+scaled : Int -> Float
+scaled =
+  El.modular (toFloat fontSize) 1.5
+
+
+scaledInt : Int -> Int
+scaledInt =
+  scaled >> round
 
 
 button : { enabled : Bool, onPress : Maybe msg, label : El.Element msg } -> El.Element msg
