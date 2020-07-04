@@ -514,8 +514,8 @@ view model =
   { title = "Lobby demo"
   , body =
       List.singleton
-      <| El.layout [El.padding (UI.scaledInt 2)]
-      <| El.column [El.spacing (UI.scaledInt 2)]
+      <| UI.layout
+      <| El.column [El.spacing (UI.scaledInt 1)]
       <| List.concat
       <| case model.game of
           Gathering state ->
@@ -552,13 +552,12 @@ viewWelcome =
 
 viewJoin : Model -> List (El.Element Msg)
 viewJoin model =
-  [ El.text "Here is the code for this game."
-  , El.row []
+  [ UI.inputRow
     [ Input.text []
       { text = model.draftGameId
       , onChange = DraftGameIdChange
       , placeholder = El.text "Game code" |> Input.placeholder [] |> Just
-      , label = El.text "Code" |> Input.labelLeft []
+      , label = El.text "The code for this game is" |> Input.labelLeft []
       }
     , UI.button
       { onPress = Just JoinClick
@@ -570,7 +569,7 @@ viewJoin model =
     [ El.text "Tell others to join you by "
     , El.text "typing the code into their box and hitting Join, or they can "
     , El.text " go to "
-    , El.link []
+    , UI.link
       { url = Url.toString model.url
       , label = El.text (Url.toString model.url)
       }
@@ -627,7 +626,7 @@ viewConnectivity model =
 
 viewMyName : String -> GatherState -> List (El.Element Msg)
 viewMyName draftMyName state =
-  [ El.row []
+  [ UI.inputRow
     [ Input.text []
       { onChange = DraftMyNameChange
       , text = draftMyName
@@ -668,7 +667,7 @@ nicePlayerName myId id name =
 
 viewEnterOffer : GatherState -> List (El.Element Msg)
 viewEnterOffer state =
-  [ El.row []
+  [ UI.inputRow
     [ El.text "When everyone has announced themselves... "
     , UI.button
       { enabled = canEnter state
@@ -702,7 +701,7 @@ viewFooter model =
     url = model.url
     baseUrl = { url | fragment = Nothing }
   in
-  [ El.link []
+  [ UI.link
     { url = Url.toString baseUrl
     , label = El.text "Click here to try a new game"
     }

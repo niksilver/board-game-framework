@@ -3,9 +3,10 @@
 -- Licensed under the GPL v3.0. See file LICENCE.txt for details.
 
 
-module UI exposing (scaled, scaledInt, button)
+module UI exposing (scaled, scaledInt, layout, link, button, inputRow)
 
 
+import Html
 import Element as El
 import Element.Input as Input
 import Element.Background as Background
@@ -14,7 +15,7 @@ import Element.Font as Font
 
 
 fontSize : Int
-fontSize = 12
+fontSize = 20
 
 
 scaled : Int -> Float
@@ -25,6 +26,22 @@ scaled =
 scaledInt : Int -> Int
 scaledInt =
   scaled >> round
+
+
+layout : El.Element msg -> Html.Html msg
+layout els =
+  El.layout
+  [ El.padding (scaledInt 1)
+  , Font.size fontSize
+  ]
+  els
+
+
+link : { url : String, label : El.Element msg } -> El.Element msg
+link desc =
+  El.link
+  [ Font.underline
+  ] desc
 
 
 button : { enabled : Bool, onPress : Maybe msg, label : El.Element msg } -> El.Element msg
@@ -54,9 +71,17 @@ button desc =
   , Border.color attrs.borderColor
   , Border.width 1
   , Border.rounded 4
-  , El.padding fontSize
+  , El.padding (scaledInt -1)
   , El.mouseOver attrs.mouseOver
   ]
   { onPress = if desc.enabled then desc.onPress else Nothing
   , label = El.el [Font.color attrs.textColor] desc.label
   }
+
+
+inputRow : List (El.Element msg) -> El.Element msg
+inputRow els =
+  El.row
+  [ El.spacing (scaledInt 1)
+  ]
+  els
