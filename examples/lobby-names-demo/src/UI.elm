@@ -3,7 +3,7 @@
 -- Licensed under the GPL v3.0. See file LICENCE.txt for details.
 
 
-module UI exposing (..)
+module UI exposing (button, fontSize)
 
 
 import Element as El
@@ -15,6 +15,7 @@ import Element.Font as Font
 
 fontSize : Int
 fontSize = 12
+
 
 button : { enabled : Bool, onPress : Maybe msg, label : El.Element msg } -> El.Element msg
 button desc =

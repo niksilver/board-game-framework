@@ -515,7 +515,7 @@ view model =
   , body =
       List.singleton
       <| El.layout []
-      <| El.column []
+      <| El.column [El.spacing (UI.fontSize * 3 // 2)]
       <| List.concat
       <| case model.game of
           Gathering state ->
@@ -669,10 +669,10 @@ nicePlayerName myId id name =
 viewEnterOffer : GatherState -> List (El.Element Msg)
 viewEnterOffer state =
   [ El.row []
-    [ El.text "When everyone is here... "
-    , Input.button []
-      -- Attr.disabled <| not(canEnter state)
-      { onPress = Just EnterClick
+    [ El.text "When everyone has announced themselves... "
+    , UI.button
+      { enabled = canEnter state
+      , onPress = Just EnterClick
       , label = El.text "Enter"
       }
     ]
