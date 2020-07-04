@@ -19,6 +19,8 @@ import Random
 import Tuple
 import Url
 
+import Element as UI
+import Element.Input as Input
 import BoardGameFramework as BGF
 
 
@@ -508,59 +510,73 @@ decodeEnvelope v =
 
 view : Model -> Browser.Document Msg
 view model =
-  { title = "Lobby"
+  { title = "Lobby demo"
   , body =
-      case model.game of
-        Gathering state ->
-          if state.entered then
-            List.concat
-            [ viewPlayers state
-            , viewError state
-            , viewFooter model
-            ]
+      List.singleton
+      <| UI.layout []
+      <| UI.column []
+      <| List.concat
+      <| case model.game of
+          Gathering state ->
+            if state.entered then
+              [ viewWelcome
+              , viewPlayers state
+              , viewError state
+              , viewFooter model
+              ]
 
-          else
-            List.concat
+            else
+              [ viewJoin model
+              , viewConnectivity model
+              , viewMyName model.draftMyName state
+              , viewPlayers state
+              , viewEnterOffer state
+              , viewError state
+              , viewFooter model
+              ]
+
+          _ ->
             [ viewJoin model
             , viewConnectivity model
-            , viewMyName model.draftMyName state
-            , viewPlayers state
-            , viewEnterOffer state
-            , viewError state
             , viewFooter model
             ]
-
-        _ ->
-          List.concat
-          [ viewJoin model
-          , viewConnectivity model
-          , viewFooter model
-          ]
   }
 
 
-viewJoin : Model -> List (Html Msg)
+viewWelcome : List (UI.Element Msg)
+viewWelcome =
+  [ UI.text "Welcome"
+  ]
+
+
+viewJoin : Model -> List (UI.Element Msg)
 viewJoin model =
-  [ p []
-    [ text "This is the code for this game. Tell others to join you by "
-    , text "typing the code into their box and hitting Join, or they can "
-    , text " go to "
-    , a [Attr.href <| Url.toString model.url]
-      [ text <| Url.toString model.url ], text ". "
-    , text "You can join their game by typing their code into the box and "
-    , text "hitting Join, or by going to the address they give you."
+  [ UI.text "Here is the code for this game."
+  , UI.row []
+    [ Input.text []
+      { text = model.draftGameId
+      , onChange = DraftGameIdChange
+      , placeholder = UI.text "Game code" |> Input.placeholder [] |> Just
+      , label = UI.text "Code" |> Input.labelLeft []
+      }
+    , Input.button []
+      -- Attr.disabled <| not(joinEnabled model)
+      { onPress = Just JoinClick
+      , label = UI.text "Join"
+      }
     ]
-  , input
-    [ Attr.type_ "text", Attr.size 30
-    , Attr.value model.draftGameId
-    , Events.onInput DraftGameIdChange
-    ] []
-  , text " "
-  , button
-    [ Attr.disabled <| not(joinEnabled model)
-    , Events.onClick JoinClick
+  , UI.paragraph []
+    [ UI.text "Tell others to join you by "
+    , UI.text "typing the code into their box and hitting Join, or they can "
+    , UI.text " go to "
+    , UI.link []
+      { url = Url.toString model.url
+      , label = UI.text (Url.toString model.url)
+      }
+    , UI.text ". "
+    , UI.text "You can join their game by typing their code into the box and "
+    , UI.text "hitting Join, or by going to the address they give you."
     ]
-    [text "Join"]
   ]
 
 
@@ -598,40 +614,32 @@ isConnected game =
       state.connected == Connected
 
 
-viewConnectivity : Model -> List (Html Msg)
+viewConnectivity : Model -> List (UI.Element Msg)
 viewConnectivity model =
   case isConnected model.game of
     True ->
-      [ p [] [text "Connected"] ]
+      [ UI.text "Connected" ]
 
     False ->
-      [ p [] [text "Disconnected"] ]
+      [ UI.text "Disconnected" ]
 
 
-viewMyName : String -> GatherState -> List (Html Msg)
+viewMyName : String -> GatherState -> List (UI.Element Msg)
 viewMyName draftMyName state =
-  if not(state.entered) then
-    let
-      myName = Dict.get state.myId state.players
-    in
-    [ p []
-      [ text "Your name: "
-      , input
-        [ Attr.type_ "text", Attr.size 15
-        , Attr.value draftMyName
-        , Events.onInput DraftMyNameChange
-        ] []
-      , text " "
-      , button
-        [ Attr.disabled <| not(goodName draftMyName)
-        , Events.onClick ConfirmNameClick
-        ]
-        [ text "Confirm" ]
-      ]
+  [ UI.row []
+    [ Input.text []
+      { onChange = DraftMyNameChange
+      , text = draftMyName
+      , placeholder = UI.text "Enter name" |> Input.placeholder [] |> Just
+      , label = UI.text "Your name" |> Input.labelLeft []
+      }
+    , Input.button []
+      -- Attr.disabled <| not(goodName draftMyName)
+      { onPress = Just ConfirmNameClick
+      , label = UI.text "Confirm"
+      }
     ]
-
-  else
-    []
+  ]
 
 
 goodName : String -> Bool
@@ -639,17 +647,16 @@ goodName name =
   String.length (String.trim name) >= 3
 
 
-viewPlayers : GatherState -> List (Html Msg)
+viewPlayers : GatherState -> List (UI.Element Msg)
 viewPlayers state =
   state.players
   |> Dict.toList
   |> List.map
     (\(id, name) ->
-      nicePlayerName state.myId id name
-      |> text
-      |> List.singleton
-      |> p []
+      UI.text (nicePlayerName state.myId id name)
     )
+  |> UI.column []
+  |> List.singleton
 
 
 nicePlayerName : String -> String -> String -> String
@@ -658,15 +665,15 @@ nicePlayerName myId id name =
   ++ (if id == myId then " (you)" else "")
 
 
-viewEnterOffer : GatherState -> List (Html Msg)
+viewEnterOffer : GatherState -> List (UI.Element Msg)
 viewEnterOffer state =
-  [ p []
-    [ text "When everyone is here... "
-    , button
-      [ Attr.disabled <| not(canEnter state)
-      , Events.onClick EnterClick
-      ]
-      [ text "Enter" ]
+  [ UI.row []
+    [ UI.text "When everyone is here... "
+    , Input.button []
+      -- Attr.disabled <| not(canEnter state)
+      { onPress = Just EnterClick
+      , label = UI.text "Enter"
+      }
     ]
   ]
 
@@ -677,26 +684,25 @@ canEnter state =
   && List.all goodName (Dict.values state.players)
 
 
-viewError : GatherState -> List (Html Msg)
+viewError : GatherState -> List (UI.Element Msg)
 viewError state =
   case state.error of
     Just desc ->
-      [ p [] [ "Error: " ++ desc |> text ]
+      [ UI.text ("Error: " ++ desc)
       ]
 
     Nothing ->
       []
 
 
-viewFooter : Model -> List (Html Msg)
+viewFooter : Model -> List (UI.Element Msg)
 viewFooter model =
   let
     url = model.url
     baseUrl = { url | fragment = Nothing }
   in
-  [ p []
-    [ a [Attr.href <| Url.toString baseUrl]
-      [ text "Click here to try a new game"
-      ]
-    ]
+  [ UI.link []
+    { url = Url.toString baseUrl
+    , label = UI.text "Click here to try a new game"
+    }
   ]
