@@ -514,7 +514,7 @@ view model =
   { title = "Lobby demo"
   , body =
       List.singleton
-      <| El.layout []
+      <| El.layout [El.padding (UI.fontSize * 3 // 2)]
       <| El.column [El.spacing (UI.fontSize * 3 // 2)]
       <| List.concat
       <| case model.game of
