@@ -3,7 +3,7 @@
 -- Licensed under the GPL v3.0. See file LICENCE.txt for details.
 
 
-module UI exposing (scaled, scaledInt, layout, link, button, inputRow)
+module UI exposing (fontSize, scaled, scaledInt, layout, link, button, inputRow)
 
 
 import Html

@@ -516,7 +516,6 @@ view model =
       List.singleton
       <| UI.layout
       <| El.column [El.spacing (UI.scaledInt 1)]
-      <| List.concat
       <| case model.game of
           Gathering state ->
             if state.entered then
@@ -529,8 +528,10 @@ view model =
             else
               [ viewJoin model
               , viewConnectivity model
-              , viewMyName model.draftMyName state
-              , viewPlayers state
+              , El.row [El.width El.fill]
+                [ viewMyName model.draftMyName state
+                , viewPlayers state
+                ]
               , viewEnterOffer state
               , viewError state
               , viewFooter model
@@ -544,14 +545,14 @@ view model =
   }
 
 
-viewWelcome : List (El.Element Msg)
+viewWelcome : El.Element Msg
 viewWelcome =
-  [ El.text "Welcome"
-  ]
+  El.text "Welcome"
 
 
-viewJoin : Model -> List (El.Element Msg)
+viewJoin : Model -> El.Element Msg
 viewJoin model =
+  El.column []
   [ UI.inputRow
     [ Input.text []
       { text = model.draftGameId
@@ -614,31 +615,30 @@ isConnected game =
       state.connected == Connected
 
 
-viewConnectivity : Model -> List (El.Element Msg)
+viewConnectivity : Model -> El.Element Msg
 viewConnectivity model =
   case isConnected model.game of
     True ->
-      [ El.text "Connected" ]
+      El.text "Connected"
 
     False ->
-      [ El.text "Disconnected" ]
+      El.text "Disconnected"
 
 
-viewMyName : String -> GatherState -> List (El.Element Msg)
+viewMyName : String -> GatherState -> El.Element Msg
 viewMyName draftMyName state =
-  [ UI.inputRow
-    [ Input.text []
-      { onChange = DraftMyNameChange
-      , text = draftMyName
-      , placeholder = El.text "Enter name" |> Input.placeholder [] |> Just
-      , label = El.text "Your name" |> Input.labelLeft []
-      }
-    , UI.button
-      { onPress = Just ConfirmNameClick
-      , enabled = goodName draftMyName
-      , label = El.text "Confirm"
-      }
-    ]
+  UI.inputRow
+  [ Input.text [El.width (UI.scaledInt 7 |> El.px)]
+    { onChange = DraftMyNameChange
+    , text = draftMyName
+    , placeholder = El.text "Enter name" |> Input.placeholder [] |> Just
+    , label = El.text "Your name" |> Input.labelLeft []
+    }
+  , UI.button
+    { onPress = Just ConfirmNameClick
+    , enabled = goodName draftMyName
+    , label = El.text "Confirm"
+    }
   ]
 
 
@@ -647,7 +647,7 @@ goodName name =
   String.length (String.trim name) >= 3
 
 
-viewPlayers : GatherState -> List (El.Element Msg)
+viewPlayers : GatherState -> El.Element Msg
 viewPlayers state =
   state.players
   |> Dict.toList
@@ -655,8 +655,7 @@ viewPlayers state =
     (\(id, name) ->
       El.text (nicePlayerName state.myId id name)
     )
-  |> El.column []
-  |> List.singleton
+  |> El.column [El.centerX]
 
 
 nicePlayerName : String -> String -> String -> String
@@ -665,16 +664,15 @@ nicePlayerName myId id name =
   ++ (if id == myId then " (you)" else "")
 
 
-viewEnterOffer : GatherState -> List (El.Element Msg)
+viewEnterOffer : GatherState -> El.Element Msg
 viewEnterOffer state =
-  [ UI.inputRow
-    [ El.text "When everyone has announced themselves... "
-    , UI.button
-      { enabled = canEnter state
-      , onPress = Just EnterClick
-      , label = El.text "Enter"
-      }
-    ]
+  UI.inputRow
+  [ El.text "When everyone has announced themselves... "
+  , UI.button
+    { enabled = canEnter state
+    , onPress = Just EnterClick
+    , label = El.text "Enter"
+    }
   ]
 
 
@@ -684,25 +682,23 @@ canEnter state =
   && List.all goodName (Dict.values state.players)
 
 
-viewError : GatherState -> List (El.Element Msg)
+viewError : GatherState -> El.Element Msg
 viewError state =
   case state.error of
     Just desc ->
-      [ El.text ("Error: " ++ desc)
-      ]
+      El.text ("Error: " ++ desc)
 
     Nothing ->
-      []
+      El.none
 
 
-viewFooter : Model -> List (El.Element Msg)
+viewFooter : Model -> El.Element Msg
 viewFooter model =
   let
     url = model.url
     baseUrl = { url | fragment = Nothing }
   in
-  [ UI.link
-    { url = Url.toString baseUrl
-    , label = El.text "Click here to try a new game"
-    }
-  ]
+  UI.link
+  { url = Url.toString baseUrl
+  , label = El.text "Click here to try a new game"
+  }
