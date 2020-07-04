@@ -19,10 +19,9 @@ import Random
 import Tuple
 import Url
 
+import UI
 import Element as El
 import Element.Input as Input
-import Element.Background as Background
-import Element.Border as Border
 import BoardGameFramework as BGF
 
 
@@ -561,9 +560,9 @@ viewJoin model =
       , placeholder = El.text "Game code" |> Input.placeholder [] |> Just
       , label = El.text "Code" |> Input.labelLeft []
       }
-    , button
-      -- Attr.disabled <| not(joinEnabled model)
+    , UI.button
       { onPress = Just JoinClick
+      , enabled = joinEnabled model
       , label = El.text "Join"
       }
     ]
@@ -635,9 +634,9 @@ viewMyName draftMyName state =
       , placeholder = El.text "Enter name" |> Input.placeholder [] |> Just
       , label = El.text "Your name" |> Input.labelLeft []
       }
-    , button
-      -- Attr.disabled <| not(goodName draftMyName)
+    , UI.button
       { onPress = Just ConfirmNameClick
+      , enabled = goodName draftMyName
       , label = El.text "Confirm"
       }
     ]
@@ -708,21 +707,3 @@ viewFooter model =
     , label = El.text "Click here to try a new game"
     }
   ]
-
-
-fontSize : Int
-fontSize = 12
-
-button : { onPress : Maybe msg, label : El.Element msg } -> El.Element msg
-button desc =
-  Input.button
-  [ Background.color (El.rgb 0.9 0.9 0.9)
-  , Border.color (El.rgb 0.5 0.5 0.5)
-  , Border.width 1
-  , Border.rounded 4
-  , El.padding fontSize
-  , El.mouseOver
-    [ Background.color (El.rgb 0.8 0.8 0.8)
-    ]
-  ]
-  desc
