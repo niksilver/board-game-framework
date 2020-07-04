@@ -21,6 +21,8 @@ import Url
 
 import Element as UI
 import Element.Input as Input
+import Element.Background as Background
+import Element.Border as Border
 import BoardGameFramework as BGF
 
 
@@ -559,7 +561,7 @@ viewJoin model =
       , placeholder = UI.text "Game code" |> Input.placeholder [] |> Just
       , label = UI.text "Code" |> Input.labelLeft []
       }
-    , Input.button []
+    , button
       -- Attr.disabled <| not(joinEnabled model)
       { onPress = Just JoinClick
       , label = UI.text "Join"
@@ -633,7 +635,7 @@ viewMyName draftMyName state =
       , placeholder = UI.text "Enter name" |> Input.placeholder [] |> Just
       , label = UI.text "Your name" |> Input.labelLeft []
       }
-    , Input.button []
+    , button
       -- Attr.disabled <| not(goodName draftMyName)
       { onPress = Just ConfirmNameClick
       , label = UI.text "Confirm"
@@ -706,3 +708,21 @@ viewFooter model =
     , label = UI.text "Click here to try a new game"
     }
   ]
+
+
+fontSize : Int
+fontSize = 12
+
+button : { onPress : Maybe msg, label : UI.Element msg } -> UI.Element msg
+button desc =
+  Input.button
+  [ Background.color (UI.rgb 0.9 0.9 0.9)
+  , Border.color (UI.rgb 0.5 0.5 0.5)
+  , Border.width 1
+  , Border.rounded 4
+  , UI.padding fontSize
+  , UI.mouseOver
+    [ Background.color (UI.rgb 0.8 0.8 0.8)
+    ]
+  ]
+  desc
