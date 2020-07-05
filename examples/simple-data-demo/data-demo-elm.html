@@ -16,14 +16,17 @@
             node: document.getElementById('app')
         });
 
+        // Set up an instance of our connectivity library
+        var bgf = new BoardGameFramework();
+
         // Link incoming envelopes to our app
-        boardgameframework.toapp = function(env) {
+        bgf.toapp = function(env) {
             app.ports.incoming.send(env);
         };
 
         // List out for data coming out of our Elm app
         app.ports.outgoing.subscribe(function(data) {
-            boardgameframework.act(data);
+            bgf.act(data);
         });
     </script>
 </html>

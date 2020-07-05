@@ -3,37 +3,37 @@
 // Licensed under the GPL v3.0. See file LICENCE.txt for details.
 
 // The layer from our application to the plumbing
-var boardgameframework = {
+function BoardGameFramework() {
     // Our websocket
-    _ws: null,
+    this._ws = null;
 
     // Base URL we've most recently tried to open, and which we may need to
     // reconnect to
-    _baseURL: null,
+    this._baseURL = null;
 
     // The URL to open next, if we try to open a connection while we've still
     // got one
-    _nextOpen : null,
+    this._nextOpen = null;
 
     // Client ID, if known
-    _id: null,
+    this._id = null;
 
     // Last num received
-    _num : -1,
+    this._num = -1;
 
     // Reconnection attempt counter. If we reconnect we go 3, 2, 1, 0.
     // If this is 0 it means we are trying a new connection, not a
     // reconnection.
-    _reconnCounter: 0,
+    this._reconnCounter = 0;
 
     // Send an envelope of data to the main application.
     // Replace this default implementation in your app.
-    toapp: function(env) {
+    this.toapp = function(env) {
         console.log("toapp(env). Replace this with your own implementation");
-    },
+    };
 
     // Act on an instruction from the main app: Open, Close, Send
-    act: function(data) {
+    this.act = function(data) {
         switch (data.instruction) {
             case 'Open':
                 // Open a new connection, not a reconnection
@@ -72,13 +72,13 @@ var boardgameframework = {
                 this.toapp({error: "Unrecognised instruction"});
                 return;
         }
-    },
+    };
 
     // Open a websocket and set up the event handlers.
     // Opening a second websocket will close the first one.
-    open: function(url) {
+    this.open = function(url) {
         parent = this;
-        this._ws = new WebSocket(url);
+        this._ws = this._newWebSocket(url);
         console.log("open: Opened url " + url);
         this._ws.onopen = function(evt) {
             console.log("open.open: Got event");
@@ -133,11 +133,16 @@ var boardgameframework = {
                 parent.toapp({error: "Websocket error"});
             }
         }
-    },
+    };
+
+    // Return a new websocket connection. To be overridden in tests.
+    this._newWebSocket = function(url) {
+        return new WebSocket(url);
+    };
 
     // Make a connection URL using some URL, but also what we know
     // about whether we're reconnecting and the last num received.
-    _makeConnURL: function(url) {
+    this._makeConnURL = function(url) {
         params = new URLSearchParams();
         if (this._id != null) {
             params.set('id', this._id);
@@ -148,12 +153,12 @@ var boardgameframework = {
         }
         // It's a reconnection
         return url + "?" + params.toString();
-    },
+    };
 
     // Calculate a delay for reconnecting. The first reconnection should
     // be immediate. Later ones should get further apart. There should
     // also be some randomness in it.
-    _delay: function() {
+    this._delay = function() {
         switch (this._reconnCounter) {
             case 3:
                 return 0;
@@ -164,6 +169,6 @@ var boardgameframework = {
             default:
                 return 1500 + Math.random()*1000;
         }
-    }
+    };
 
 };

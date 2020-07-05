@@ -30,14 +30,17 @@
             // On our page, show the URL we're using
             document.getElementById("serverURL").textContent = serverURL;
 
+            // An instance of our connectivity layer
+            var bgf = new BoardGameFramework();
+
             // This is what we'll do when the framework sends data to our app
-            boardgameframework.toapp = function(env) {
+            bgf.toapp = function(env) {
                 print(JSON.stringify(env));
             }
 
             // Event for our application
             document.getElementById("open").onclick = function(evt) {
-                boardgameframework.act({
+                bgf.act({
                     instruction: "Open",
                     url: serverURL + "/g/" + gameid.value,
                 });
@@ -50,11 +53,11 @@
                     wholenumber: parseInt(wholenumber.value)
 
                 };
-                boardgameframework.act({instruction: "Send", body: msg});
+                bgf.act({instruction: "Send", body: msg});
                 return false;
             };
             document.getElementById("close").onclick = function(evt) {
-                boardgameframework.act({instruction: "Close" });
+                bgf.act({instruction: "Close" });
                 return false;
             };
         });
