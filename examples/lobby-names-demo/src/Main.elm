@@ -69,7 +69,7 @@ type alias GatherState =
   , gameId : String
   , players : Dict String String
   , entered : Bool
-  , error : Maybe String
+  , error : Maybe BGF.Error
   , connected : Connectivity
   }
 
@@ -209,7 +209,7 @@ type Msg =
   | DraftMyNameChange String
   | ConfirmNameClick
   | EnterClick
-  | Received (Result String Envelope)
+  | Received (Result BGF.Error Envelope)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -692,11 +692,17 @@ canEnter state =
 viewError : GatherState -> El.Element Msg
 viewError state =
   case state.error of
-    Just desc ->
+    Just (BGF.LowLevel desc) ->
+        UI.amberLight ("Low level error: " ++ desc)
+
+    Just (BGF.Json err) ->
+      let
+        desc = Dec.errorToString err
+      in
       if String.length desc > 20 then
-        UI.amberLight ("Error: " ++ (String.left 20 desc) ++ "...")
+        UI.amberLight ("JSON error: " ++ (String.left 20 desc) ++ "...")
       else
-        UI.amberLight ("Error: " ++ desc)
+        UI.amberLight ("JSON error: " ++ desc)
 
     Nothing ->
       El.none

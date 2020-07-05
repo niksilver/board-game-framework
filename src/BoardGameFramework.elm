@@ -112,6 +112,44 @@ singletonStringDecoder =
   |> Dec.andThen singleDecoder
 
 
+{-| Decode an incoming envelope.
+
+In this example we expect our envelope body to be a JSON object
+containing a `"players"` field (which is a map of strings to strings)
+and an `"entered"` field (which is a boolean).
+
+    import Dict exposing (Dict)
+    import Json.Decode as Dec
+    import Json.Encode as Enc
+    import BoardGameFramework as BGF
+
+
+    type alias Body =
+      { players : Dict String String
+      , entered : Bool
+      }
+
+
+    type alias Envelope = BGF.Envelope Body
+
+
+    bodyDecoder : Dec.Decoder Body
+    bodyDecoder =
+      let
+        playersDec =
+          Dec.field "players" (Dec.dict Dec.string)
+        enteredDec =
+          Dec.field "entered" Dec.bool
+      in
+        Dec.map2 Body
+          playersDec
+          enteredDec
+
+
+    result : Enc.value -> Result BGF.Error Envelope
+    result v =
+      BGF.decodeEnvelope bodyDecoder v
+-}
 decodeEnvelope : Dec.Decoder a -> Enc.Value -> Result Error (Envelope a)
 decodeEnvelope bodyDecoder v =
   let
@@ -233,6 +271,9 @@ decodeEnvelope bodyDecoder v =
       Err (Json desc)
 
 
+{-| Request to be sent through a port.
+Open a connection to a game, send a message, or close the connection.
+-}
 type Request a =
   Open String
   | Send a
