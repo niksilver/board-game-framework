@@ -297,7 +297,7 @@ decodeEnvelopeTest =
         \_ ->
           Enc.object [ ("error", Enc.string "This is my error") ]
           |> decodeEnvelope simpleDecoder
-          |> Expect.equal (Err "This is my error")
+          |> Expect.equal (Err (LowLevel "This is my error"))
 
       , testWontParse "Error isn't a string" <|
           Enc.object [ ("error", Enc.int 333) ]
@@ -305,13 +305,28 @@ decodeEnvelopeTest =
       ]
 
     , describe "Nonsense envelope" <|
-      [ testWontParse "Intent doesn't make sense" <|
+      [ test "Intent doesn't make sense" <|
+        \_ ->
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234"])
           , ("To", Enc.list Enc.string ["123.456"])
           , ("Time", Enc.int 987654)
           , ("Intent", Enc.string "Peculiar")
           ]
+          |> decodeEnvelope simpleDecoder
+          |> \res ->
+            case res of
+              Err (LowLevel desc) ->
+                if desc |> String.contains "intent" then
+                  Expect.pass
+                else
+                  Expect.fail <| "Wrong error description: " ++ desc
+
+              Err (Json _) ->
+                Expect.fail "Got error, but it was a JSON error"
+
+              Ok _ ->
+                Expect.fail "Was okay, but expected error"
 
       , testWontParse "Envelope isn't an object" <|
           Enc.int 222
@@ -326,8 +341,10 @@ testWontParse desc json =
   test desc <|
   \_ ->
     case decodeEnvelope simpleDecoder json of
-      Err _ ->
+      Err (Json _) ->
         Expect.pass
+      Err (LowLevel str) ->
+        Expect.fail <| "Wrongly got low level error: " ++ str
       Ok env ->
         Expect.fail <| "Wrongly parsed Ok: " ++ (Debug.toString env)
 

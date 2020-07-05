@@ -5,7 +5,7 @@
 
 module BoardGameFramework exposing (
   idGenerator, isGoodGameId, isGoodGameIdMaybe, goodGameId, goodGameIdMaybe
-  , Envelope(..), Request(..), encode, decodeEnvelope
+  , Envelope(..), Error(..), Request(..), encode, decodeEnvelope
   )
 
 {-| Types and functions help create remote multiplayer board games
@@ -20,7 +20,7 @@ in preparation for starting a game.
 
 # Communication
 Sending to and receiving from other players.
-@docs Envelope, Request, encode
+@docs Envelope, Request, encode, decodeEnvelope
 -}
 
 
@@ -88,6 +88,17 @@ type Envelope a =
   | Closed
 
 
+{-| Errors reading the incoming envelope. If an error bubbles up from
+the connection library, or if the envelope intent is something unexpected,
+that's a `LowLevel` error. If we can't decode
+the JSON with the given decoder, that's a `Json` error, with the
+specific error coming from the `Json.Decode` package.
+-}
+type Error =
+  LowLevel String
+  | Json Dec.Error
+
+
 -- Singleton string list decoder.
 -- Expect a singleton string list, and output the value
 singletonStringDecoder : Dec.Decoder String
@@ -101,7 +112,7 @@ singletonStringDecoder =
   |> Dec.andThen singleDecoder
 
 
-decodeEnvelope : Dec.Decoder a -> Enc.Value -> Result String (Envelope a)
+decodeEnvelope : Dec.Decoder a -> Enc.Value -> Result Error (Envelope a)
 decodeEnvelope bodyDecoder v =
   let
     sayClosed = Dec.succeed "closed"
@@ -128,7 +139,7 @@ decodeEnvelope bodyDecoder v =
           }
       in
         Result.map4 make toRes fromRes numRes timeRes
-        |> Result.mapError Dec.errorToString
+        |> Result.mapError Json
 
     Ok "Peer" ->
       let
@@ -147,7 +158,7 @@ decodeEnvelope bodyDecoder v =
           }
       in
         Result.map5 make toRes fromRes numRes timeRes bodyRes
-        |> Result.mapError Dec.errorToString
+        |> Result.mapError Json
 
     Ok "Receipt" ->
       let
@@ -166,7 +177,7 @@ decodeEnvelope bodyDecoder v =
           }
       in
         Result.map5 make toRes fromRes numRes timeRes bodyRes
-        |> Result.mapError Dec.errorToString
+        |> Result.mapError Json
 
     Ok "Joiner" ->
       let
@@ -183,7 +194,7 @@ decodeEnvelope bodyDecoder v =
           }
       in
         Result.map4 make toRes fromRes numRes timeRes
-        |> Result.mapError Dec.errorToString
+        |> Result.mapError Json
 
     Ok "Leaver" ->
       let
@@ -200,7 +211,7 @@ decodeEnvelope bodyDecoder v =
           }
       in
         Result.map4 make toRes fromRes numRes timeRes
-        |> Result.mapError Dec.errorToString
+        |> Result.mapError Json
 
     Ok "closed" ->
       Ok Closed
@@ -211,15 +222,15 @@ decodeEnvelope bodyDecoder v =
       in
         case errorRes of
           Ok str ->
-            Err str
+            Err (LowLevel str)
           Err e ->
-            Err (Dec.errorToString e)
+            Err (Json e)
 
     Ok intent ->
-      Err <| "Got unknown intent: '" ++ intent ++ "'"
+      Err (LowLevel <| "Unknown intent: '" ++ intent ++ "'")
 
     Err desc ->
-      Err (Dec.errorToString desc)
+      Err (Json desc)
 
 
 type Request a =
