@@ -3,7 +3,11 @@
 -- Licensed under the GPL v3.0. See file LICENCE.txt for details.
 
 
-module UI exposing (fontSize, scaled, scaledInt, layout, link, button, inputRow)
+module UI exposing
+  ( fontSize, scaled, scaledInt
+  , layout
+  , redLight, amberLight, greenLight, link, button, inputRow
+  )
 
 
 import Html
@@ -35,6 +39,36 @@ layout els =
   , Font.size fontSize
   ]
   els
+
+
+redLight : String -> El.Element msg
+redLight text =
+  El.el
+  [ Background.color (El.rgb 1.0 0.8 0.8)
+  , Border.rounded 4
+  , El.padding (scaledInt -1)
+  ]
+  (El.text text)
+
+
+amberLight : String -> El.Element msg
+amberLight text =
+  El.el
+  [ Background.color (El.rgb 1.0 1.0 0.7)
+  , Border.rounded 4
+  , El.padding (scaledInt -1)
+  ]
+  (El.text text)
+
+
+greenLight : String -> El.Element msg
+greenLight text =
+  El.el
+  [ Background.color (El.rgb 0.8 1.0 0.8)
+  , Border.rounded 4
+  , El.padding (scaledInt -1)
+  ]
+  (El.text text)
 
 
 link : { url : String, label : El.Element msg } -> El.Element msg

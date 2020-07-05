@@ -552,7 +552,7 @@ viewJoin : Model -> El.Element Msg
 viewJoin model =
   El.row
   [ El.spacing (UI.scaledInt 2)
-  , El.alignTop
+  --, El.alignTop
   ]
   [ El.column
     [ El.alignTop
@@ -573,7 +573,7 @@ viewJoin model =
       ]
     , viewConnectivity model
     ]
-  , El.paragraph []
+  , El.paragraph [El.alignTop]
     [ El.text "Tell others to join you by "
     , El.text "typing the code into their box and hitting Join, or they can "
     , El.text " go to "
@@ -626,10 +626,10 @@ viewConnectivity : Model -> El.Element Msg
 viewConnectivity model =
   case isConnected model.game of
     True ->
-      El.text "Connected"
+      UI.greenLight "Connected"
 
     False ->
-      El.text "Disconnected"
+      UI.redLight "Disconnected"
 
 
 viewMyName : String -> GatherState -> El.Element Msg
@@ -693,7 +693,10 @@ viewError : GatherState -> El.Element Msg
 viewError state =
   case state.error of
     Just desc ->
-      El.text ("Error: " ++ desc)
+      if String.length desc > 20 then
+        UI.amberLight ("Error: " ++ (String.left 20 desc) ++ "...")
+      else
+        UI.amberLight ("Error: " ++ desc)
 
     Nothing ->
       El.none
