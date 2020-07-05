@@ -527,7 +527,6 @@ view model =
 
             else
               [ viewJoin model
-              , viewConnectivity model
               , El.row [El.width El.fill]
                 [ viewMyName model.draftMyName state
                 , viewPlayers state
@@ -539,7 +538,6 @@ view model =
 
           _ ->
             [ viewJoin model
-            , viewConnectivity model
             , viewFooter model
             ]
   }
@@ -552,19 +550,28 @@ viewWelcome =
 
 viewJoin : Model -> El.Element Msg
 viewJoin model =
-  El.column []
-  [ UI.inputRow
-    [ Input.text []
-      { text = model.draftGameId
-      , onChange = DraftGameIdChange
-      , placeholder = El.text "Game code" |> Input.placeholder [] |> Just
-      , label = El.text "The code for this game is" |> Input.labelLeft []
-      }
-    , UI.button
-      { onPress = Just JoinClick
-      , enabled = joinEnabled model
-      , label = El.text "Join"
-      }
+  El.row
+  [ El.spacing (UI.scaledInt 2)
+  , El.alignTop
+  ]
+  [ El.column
+    [ El.alignTop
+    , El.spacing (UI.scaledInt 1)
+    ]
+    [ UI.inputRow
+      [ Input.text [El.width (UI.scaledInt 7 |> El.px)]
+        { text = model.draftGameId
+        , onChange = DraftGameIdChange
+        , placeholder = El.text "Game code" |> Input.placeholder [] |> Just
+        , label = El.text "The code for this game is" |> Input.labelLeft []
+        }
+      , UI.button
+        { onPress = Just JoinClick
+        , enabled = joinEnabled model
+        , label = El.text "Join"
+        }
+      ]
+    , viewConnectivity model
     ]
   , El.paragraph []
     [ El.text "Tell others to join you by "
