@@ -9,7 +9,7 @@ var boardgameframework = {
 
     // Base URL we've most recently tried to open, and which we may need to
     // reconnect to
-    _url: null,
+    _baseURL: null,
 
     // The URL to open next, if we try to open a connection while we've still
     // got one
@@ -47,8 +47,8 @@ var boardgameframework = {
                 }
                 this._num = -1;
                 this._reconnCounter = 0;
+                this._baseURL = data.url;
                 url = this._makeConnURL(data.url);
-                this._url = url;
                 this.open(url);
                 return;
             case 'Close':
@@ -79,16 +79,19 @@ var boardgameframework = {
     open: function(url) {
         parent = this;
         this._ws = new WebSocket(url);
+        console.log("open: Opened url " + url);
         this._ws.onopen = function(evt) {
+            console.log("open.open: Got event");
             // We've got an open connection.
             // Future connections will be reconnection
             parent._reconnCounter = 3;
         }
         this._ws.onclose = async function(evt) {
+            console.log("open.onclose: Got event");
             // We got a close; should we reconnect for the main app?
             if (parent._reconnCounter > 0) {
                 // Need to reconnect
-                url = parent._makeConnURL(parent._url);
+                url = parent._makeConnURL(parent._baseURL);
                 --parent._reconnCounter;
                 await new Promise(r => setTimeout(r, parent._delay()));
                 parent.open(url);
@@ -97,7 +100,7 @@ var boardgameframework = {
             // We accept this close
             parent.toapp({closed: true});
             parent._ws = null;
-            parent._url = null;
+            parent._baseURL = null;
             if (parent._nextOpen) {
                 url = parent._nextOpen;
                 parent._nextOpen = null;
@@ -105,6 +108,7 @@ var boardgameframework = {
             }
         }
         this._ws.onmessage = function(evt) {
+            console.log("open.onmessage: Got event");
             // Get the received envelope as structured data
             env = JSON.parse(evt.data);
             // If there's a body (base64 encoded) decode it
