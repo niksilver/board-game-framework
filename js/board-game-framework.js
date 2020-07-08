@@ -92,8 +92,8 @@ function BoardGameFramework() {
             if (parent._reconnCounter > 0) {
                 // Need to reconnect
                 url = parent._makeConnURL(parent._baseURL);
-                --parent._reconnCounter;
                 await new Promise(r => setTimeout(r, parent._delay()));
+                --parent._reconnCounter;
                 parent.open(url);
                 return;
             }

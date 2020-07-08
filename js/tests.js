@@ -1,6 +1,8 @@
 var test = require('tape');
 var BGF = require('./board-game-framework.js');
 
+// There's no application to receive envelopes
+
 // Constructor for a dummy websocket
 var EmptyWebSocket = function() {
     this.onopen = function(evt){};
@@ -44,20 +46,25 @@ test('Disconnection retries at least once', function(t) {
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
+    bgf.toapp = function(env) {};
     bgf._newWebSocket = function(url) {
         ++connections;
         websocket = new EmptyWebSocket();
         return websocket;
     };
 
-    // Do the open action, then cut the connection once
+    // Do the open action, register onopen, then cut the connection once
     bgf.act({ instruction: 'Open', url: 'wss://my.test.url'});
-    t.equal(connections, 1);
-    websocket.onclose({});
+    websocket.onopen({});
+
     t.equal(connections, 1);
 
-    // Tell tape we're done
-    t.end();
+    websocket.onclose({}).then(result => {
+        t.equal(connections, 2);
+
+        // Tell tape we're done
+        t.end();
+    });
 });
 
 test('Connecting with bad lastnum reconnects just a few times', function(t) {
