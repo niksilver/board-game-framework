@@ -143,7 +143,7 @@ function BoardGameFramework() {
     // Make a connection URL using some URL, but also what we know
     // about whether we're reconnecting and the last num received.
     this._makeConnURL = function(url) {
-        params = new URLSearchParams();
+        var params = new URLSearchParams();
         if (this._id != null) {
             params.set('id', this._id);
         }
@@ -151,8 +151,10 @@ function BoardGameFramework() {
             // It's a reconnection
             params.set('lastnum', this._num);
         }
+        // Only add a '?' if necessary
+        var query = params.toString() ? '?' : '';
         // It's a reconnection
-        return url + "?" + params.toString();
+        return url + query + params.toString();
     };
 
     // Calculate a delay for reconnecting. The first reconnection should
@@ -172,3 +174,8 @@ function BoardGameFramework() {
     };
 
 };
+
+// Export the object if we're calling this as a module (e.g. when testing).
+if (typeof exports !== 'undefined') {
+    exports.BoardGameFramework = BoardGameFramework;
+}
