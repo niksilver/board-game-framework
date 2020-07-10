@@ -14,9 +14,17 @@ There are three core components in the Go code:
   When a new client joins it gets its hub from the superhub.
   When a client disconnects it tells the superhub.
 
+## Client initialisation
+
+When the client starts it announces itself to the hub, and waits for
+either a initial queue of messages or an error. In the event of an
+error the websocket connection fails. Otherwise the websocket connection
+is created and the client starts its send and receive goroutines.
+
 ## Message flow
 
-Flow of messages (e.g. from the end user) is strictly
+After client initialisation, the
+flow of messages (e.g. from the end user) is strictly
 (i) into the client's receiveExt goroutine,
 (ii) into the hub's receiveInt goroutine,
 (iii) into the client's sendExt goroutine.
@@ -52,15 +60,17 @@ like to continue receiving envelopes from the next num onwards. As long as the
 hub can fulfill this request (i.e. it still has envelopes from
 that num onwards for that client ID) then the connection will be
 successful and the new client will receive envelopes in continuation.
-But if the hub cannot fulfill the request then it is
-is rejected and the connection is closed. The client will have to reconnect
+But if the hub cannot fulfill the request then the connection fails.
+The client will have to reconnect
 without a lastnum (and presumably using the same client ID) to start
 as a new client.
 
-This reconnection logic is managed between the hub and the superhub.
+In the server, this
+reconnection logic is managed between the hub and the superhub.
 When the hub sends a message to any client it also stores the message
 in a buffer.
-When a client tells the hub it's disconnected the hub shuts down the client
+When a client tells the hub it has been disconnected
+the hub shuts down the client
 but continues to remember it as a disconnected client. The hub will continue
 to buffer messages for the disconnected client just as it does for
 connected clients.

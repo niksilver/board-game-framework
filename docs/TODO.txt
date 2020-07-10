@@ -5,11 +5,8 @@
 - Join-in-the-lobby demo - collect names and enter.
 - Generate a game ID demo.
 - Generate a game ID, but check it with the server first.
-- Update documentation to include behind-the-scenes connectivity:
-  game name, annul cookie command.
 - Switch To/From/etc to to/from/etc for consistency with Elm conventions.
 - Pass Javascript errors into envelope for Elm app.
-- Ensure App Engine runs with only one instance.
 - Store game state locally.
 
 DONE:
@@ -77,3 +74,7 @@ DONE:
 - Get rid LostConnection branches from client.sendExt.
 - Have the JavaScript library attempt a reconnection on unexpected disconnect.
 - Switch client id creation to the client, coming via a query string.
+- Update documentation to include behind-the-scenes connectivity.
+- Ensure App Engine runs with only one instance.
+- Trying to connect with a bad lastnum or over the max clients limit
+  gets rejected before a websocket upgrade.

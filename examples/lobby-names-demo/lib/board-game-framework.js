@@ -4,6 +4,9 @@
 
 // The layer from our application to the plumbing
 function BoardGameFramework() {
+    // This function
+    var top = this;
+
     // Our websocket
     this._ws = null;
 
@@ -22,8 +25,7 @@ function BoardGameFramework() {
     this._num = -1;
 
     // Reconnection attempt counter. If we reconnect we go 3, 2, 1, 0.
-    // If this is 0 it means we are trying a new connection, not a
-    // reconnection.
+    // If this is 0 it means won't try to reconnect if the connection closes.
     this._reconnCounter = 0;
 
     // Send an envelope of data to the main application.
@@ -77,34 +79,33 @@ function BoardGameFramework() {
     // Open a websocket and set up the event handlers.
     // Opening a second websocket will close the first one.
     this.open = function(url) {
-        parent = this;
         this._ws = this._newWebSocket(url);
         console.log("open: Opened url " + url);
         this._ws.onopen = function(evt) {
             console.log("open.open: Got event");
             // We've got an open connection.
             // Future connections will be reconnection
-            parent._reconnCounter = 3;
+            top._reconnCounter = 3;
         }
         this._ws.onclose = async function(evt) {
             console.log("open.onclose: Got event");
             // We got a close; should we reconnect for the main app?
-            if (parent._reconnCounter > 0) {
+            if (top._reconnCounter > 0) {
                 // Need to reconnect
-                url = parent._makeConnURL(parent._baseURL);
-                --parent._reconnCounter;
-                await new Promise(r => setTimeout(r, parent._delay()));
-                parent.open(url);
+                url = top._makeConnURL(top._baseURL);
+                await new Promise(r => setTimeout(r, top._delay()));
+                --top._reconnCounter;
+                top.open(url);
                 return;
             }
             // We accept this close
-            parent.toapp({closed: true});
-            parent._ws = null;
-            parent._baseURL = null;
-            if (parent._nextOpen) {
-                url = parent._nextOpen;
-                parent._nextOpen = null;
-                parent.act({instruction: 'Open', url: url});
+            top.toapp({closed: true});
+            top._ws = null;
+            top._baseURL = null;
+            if (top._nextOpen) {
+                url = top._nextOpen;
+                top._nextOpen = null;
+                top.act({instruction: 'Open', url: url});
             }
         }
         this._ws.onmessage = function(evt) {
@@ -117,20 +118,20 @@ function BoardGameFramework() {
             }
             // Record the client ID and envelope num
             if (env.Intent == 'Welcome') {
-                parent._id = env.To[0];
+                top._id = env.To[0];
             }
             if (env.Num >= 0) {
-                parent._num = env.Num;
+                top._num = env.Num;
             }
-            parent.toapp(env);
+            top.toapp(env);
         }
         this._ws.onerror = function(evt) {
             // Error details can't be determined by design. See
             // https://stackoverflow.com/a/31003057/1830955
             // The browser will also close the websocket
             // Only pass on the error if wouldn't want to reconnect
-            if (parent._reconnCounter <= 0) {
-                parent.toapp({error: "Websocket error"});
+            if (top._reconnCounter <= 0) {
+                top.toapp({error: "Websocket error"});
             }
         }
     };
