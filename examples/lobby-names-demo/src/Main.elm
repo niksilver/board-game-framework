@@ -21,6 +21,8 @@ import Url
 
 import UI
 import Element as El
+import Element.Background as Background
+import Element.Font as Font
 import Element.Input as Input
 import BoardGameFramework as BGF
 
@@ -526,7 +528,7 @@ view model =
               ]
 
             else
-              [ viewJoin model
+              [ viewLobbyTop model
               , El.row [El.width El.fill]
                 [ viewMyName model.draftMyName state
                 , viewPlayers state
@@ -548,8 +550,26 @@ viewWelcome =
   El.text "Welcome"
 
 
+viewLobbyTop : Model -> El.Element Msg
+viewLobbyTop model =
+  let
+    mp = UI.miniPaletteThunderCloud
+  in
+  El.column
+  [ El.padding (UI.scaledInt 2)
+  , Background.color mp.background
+  , Font.color mp.text
+  ]
+  [ UI.heading "Lobby demo"
+  , viewJoin model
+  ]
+
+
 viewJoin : Model -> El.Element Msg
 viewJoin model =
+  let
+    mp = UI.miniPaletteThunderCloud
+  in
   El.row
   [ El.spacing (UI.scaledInt 2)
   --, El.alignTop
@@ -559,7 +579,11 @@ viewJoin model =
     , El.spacing (UI.scaledInt 1)
     ]
     [ UI.inputRow
-      [ Input.text [El.width (UI.scaledInt 7 |> El.px)]
+      [ Input.text
+        [ El.width (UI.scaledInt 7 |> El.px)
+        , Background.color mp.background
+        , Font.color mp.text
+        ]
         { text = model.draftGameId
         , onChange = DraftGameIdChange
         , placeholder = El.text "Game code" |> Input.placeholder [] |> Just
@@ -569,6 +593,7 @@ viewJoin model =
         { onPress = Just JoinClick
         , enabled = joinEnabled model
         , label = El.text "Join"
+        , miniPalette = mp
         }
       ]
     , viewConnectivity model
@@ -582,8 +607,6 @@ viewJoin model =
       , label = El.text (Url.toString model.url)
       }
     , El.text ". "
-    , El.text "You can join their game by typing their code into the box and "
-    , El.text "hitting Join, or by going to the address they give you."
     ]
   ]
 
@@ -645,6 +668,7 @@ viewMyName draftMyName state =
     { onPress = Just ConfirmNameClick
     , enabled = goodName draftMyName
     , label = El.text "Confirm"
+    , miniPalette = UI.miniPaletteWhite
     }
   ]
 
@@ -679,6 +703,7 @@ viewEnterOffer state =
     { enabled = canEnter state
     , onPress = Just EnterClick
     , label = El.text "Enter"
+    , miniPalette = UI.miniPaletteWhite
     }
   ]
 
