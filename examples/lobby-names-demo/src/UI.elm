@@ -137,7 +137,7 @@ heading text =
   El.el
   [ Font.family [ Font.serif ]
   , Font.color (El.rgb 1.0 1.0 1.0)
-  , Font.size (fontSize * 2)
+  , Font.size (fontSize * 3)
   , El.centerX
   ]
   (El.text text)

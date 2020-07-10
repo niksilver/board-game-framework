@@ -557,6 +557,7 @@ viewLobbyTop model =
   in
   El.column
   [ El.padding (UI.scaledInt 2)
+  , El.spacing (UI.scaledInt 3)
   , Background.color mp.background
   , Font.color mp.text
   ]
@@ -571,12 +572,10 @@ viewJoin model =
     mp = UI.miniPaletteThunderCloud
   in
   El.row
-  [ El.spacing (UI.scaledInt 2)
-  --, El.alignTop
+  [ El.spacing (UI.scaledInt 3)
   ]
   [ El.column
-    [ El.alignTop
-    , El.spacing (UI.scaledInt 1)
+    [ El.spacing (UI.scaledInt 1)
     ]
     [ UI.inputRow
       [ Input.text
@@ -598,7 +597,11 @@ viewJoin model =
       ]
     , viewConnectivity model
     ]
-  , El.paragraph [El.alignTop]
+    |> El.el [El.width (El.fillPortion 1)]
+  , El.paragraph
+    [ El.width (El.fillPortion 1)
+    , El.alignTop
+    ]
     [ El.text "Tell others to join you by "
     , El.text "typing the code into their box and hitting Join, or they can "
     , El.text " go to "
@@ -621,7 +624,7 @@ joinEnabled model =
 
         _ ->
           False
-    goodId = 
+    goodId =
       BGF.isGoodGameId model.draftGameId
     draftIsThisGame =
       not(inGame model.draftGameId)
