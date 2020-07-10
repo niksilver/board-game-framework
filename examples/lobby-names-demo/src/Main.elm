@@ -561,7 +561,7 @@ viewLobbyTop model =
   , Background.color mp.background
   , Font.color mp.text
   ]
-  [ UI.heading "Lobby demo"
+  [ UI.heading "Lobby demo" 3
   , viewJoin model
   ]
 

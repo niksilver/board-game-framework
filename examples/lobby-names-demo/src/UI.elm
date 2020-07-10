@@ -132,12 +132,11 @@ layout els =
   els
 
 
-heading : String -> El.Element msg
-heading text =
+heading : String -> Int -> El.Element msg
+heading text size =
   El.el
   [ Font.family [ Font.serif ]
-  , Font.color (El.rgb 1.0 1.0 1.0)
-  , Font.size (fontSize * 3)
+  , Font.size (fontSize * size)
   , El.centerX
   ]
   (El.text text)
