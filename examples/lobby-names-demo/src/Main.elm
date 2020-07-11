@@ -582,7 +582,10 @@ viewJoin model =
         ]
         { text = model.draftGameId
         , onChange = DraftGameIdChange
-        , placeholder = El.text "Game code" |> Input.placeholder [] |> Just
+        , placeholder =
+          El.text "Game code"
+          |> Input.placeholder [Font.color mp.placeholder]
+          |> Just
         , label = El.text "The code for this game is" |> Input.labelLeft []
         }
       , UI.button
@@ -685,7 +688,10 @@ viewMyName draftMyName state =
     ]
     { onChange = DraftMyNameChange
     , text = draftMyName
-    , placeholder = El.text "Enter name" |> Input.placeholder [] |> Just
+    , placeholder =
+      El.text "Enter name"
+      |> Input.placeholder [Font.color mp.placeholder]
+      |> Just
     , label = El.text "Your name" |> Input.labelLeft []
     }
   , UI.button

@@ -55,14 +55,15 @@ type alias MiniPalette =
   { background : El.Color
   , title : El.Color
   , text : El.Color
-  , buttonEnabledBgColor : El.Color
-  , buttonEnabledTextColor : El.Color
-  , buttonEnabledBorderColor : El.Color
+  , buttonEnabledBg : El.Color
+  , buttonEnabledText : El.Color
+  , buttonEnabledBorder : El.Color
   , buttonEnabledMouseOver : List El.Decoration
-  , buttonDisabledBgColor : El.Color
-  , buttonDisabledTextColor : El.Color
-  , buttonDisabledBorderColor : El.Color
+  , buttonDisabledBg : El.Color
+  , buttonDisabledText : El.Color
+  , buttonDisabledBorder : El.Color
   , buttonDisabledMouseOver : List El.Decoration
+  , placeholder : El.Color
   }
 
 
@@ -74,14 +75,15 @@ miniPaletteWhite =
   { background = white
   , title = black
   , text = black
-  , buttonEnabledBgColor = closer black 0.9
-  , buttonEnabledTextColor = black
-  , buttonEnabledBorderColor = closer black 0.5
+  , buttonEnabledBg = closer black 0.9
+  , buttonEnabledText = black
+  , buttonEnabledBorder = closer black 0.5
   , buttonEnabledMouseOver = [ Background.color <| closer black 0.8 ]
-  , buttonDisabledBgColor = closer black 0.95
-  , buttonDisabledTextColor = closer black 0.75
-  , buttonDisabledBorderColor = closer black 0.9
+  , buttonDisabledBg = closer black 0.95
+  , buttonDisabledText = closer black 0.75
+  , buttonDisabledBorder = closer black 0.9
   , buttonDisabledMouseOver = []
+  , placeholder = closer black 0.8
   }
 
 
@@ -93,14 +95,15 @@ miniPaletteThunderCloud =
   { background = thunderCloud
   , title = white
   , text = white
-  , buttonEnabledBgColor = closer white 0.9
-  , buttonEnabledTextColor = white
-  , buttonEnabledBorderColor = closer white 0.5
+  , buttonEnabledBg = closer white 0.9
+  , buttonEnabledText = white
+  , buttonEnabledBorder = closer white 0.5
   , buttonEnabledMouseOver = [ Background.color <| closer white 0.8 ]
-  , buttonDisabledBgColor = closer white 0.8
-  , buttonDisabledTextColor = closer white 0.6
-  , buttonDisabledBorderColor = closer white 0.9
+  , buttonDisabledBg = closer white 0.8
+  , buttonDisabledText = closer white 0.6
+  , buttonDisabledBorder = closer white 0.9
   , buttonDisabledMouseOver = []
+  , placeholder = closer white 0.7
   }
 
 
@@ -112,14 +115,15 @@ miniPaletteWaterfall =
   { background = waterfall
   , title = white
   , text = white
-  , buttonEnabledBgColor = closer white 0.8
-  , buttonEnabledTextColor = white
-  , buttonEnabledBorderColor = closer white 0.5
+  , buttonEnabledBg = closer white 0.8
+  , buttonEnabledText = white
+  , buttonEnabledBorder = closer white 0.5
   , buttonEnabledMouseOver = [ Background.color <| closer white 0.7 ]
-  , buttonDisabledBgColor = closer white 0.7
-  , buttonDisabledTextColor = closer white 0.5
-  , buttonDisabledBorderColor = closer white 0.9
+  , buttonDisabledBg = closer white 0.7
+  , buttonDisabledText = closer white 0.5
+  , buttonDisabledBorder = closer white 0.9
   , buttonDisabledMouseOver = []
+  , placeholder = closer white 0.7
   }
 
 
@@ -253,16 +257,16 @@ button desc =
     attrs =
       case desc.enabled of
         True ->
-          { bgColor = mp.buttonEnabledBgColor
-          , textColor = mp.buttonEnabledTextColor
-          , borderColor = mp.buttonEnabledBorderColor
+          { bgColor = mp.buttonEnabledBg
+          , textColor = mp.buttonEnabledText
+          , borderColor = mp.buttonEnabledBorder
           , mouseOver = mp.buttonEnabledMouseOver
           }
 
         False ->
-          { bgColor = mp.buttonDisabledBgColor
-          , textColor = mp.buttonDisabledTextColor
-          , borderColor = mp.buttonDisabledBorderColor
+          { bgColor = mp.buttonDisabledBg
+          , textColor = mp.buttonDisabledText
+          , borderColor = mp.buttonDisabledBorder
           , mouseOver = mp.buttonDisabledMouseOver
           }
   in
