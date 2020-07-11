@@ -6,7 +6,7 @@
 module UI exposing
   ( fontSize, scaled, scaledInt
   , layout
-  , miniPaletteThunderCloud , miniPaletteWhite
+  , miniPaletteWhite, miniPaletteThunderCloud, miniPaletteWaterfall
   , heading, redLight, amberLight, greenLight, link, button
   , inputRow
   )
@@ -104,6 +104,25 @@ miniPaletteThunderCloud =
   }
 
 
+miniPaletteWaterfall : MiniPalette
+miniPaletteWaterfall =
+  let
+    closer = darken waterfall
+  in
+  { background = waterfall
+  , title = white
+  , text = white
+  , buttonEnabledBgColor = closer white 0.8
+  , buttonEnabledTextColor = white
+  , buttonEnabledBorderColor = closer white 0.5
+  , buttonEnabledMouseOver = [ Background.color <| closer white 0.7 ]
+  , buttonDisabledBgColor = closer white 0.7
+  , buttonDisabledTextColor = closer white 0.5
+  , buttonDisabledBorderColor = closer white 0.9
+  , buttonDisabledMouseOver = []
+  }
+
+
 -- Takes a paint colour (second parameter) and darkens it by some degree
 -- to be closer to the base colour (first parameter).
 -- Giving it a float of 0.0 leaves the paint colour unchanged;
@@ -155,11 +174,12 @@ lighten base paint degree =
 -- Elements
 
 
-layout : El.Element msg -> Html.Html msg
-layout els =
+layout : El.Color -> El.Element msg -> Html.Html msg
+layout bgColor els =
   El.layout
   [ El.padding 0
   , Font.size fontSize
+  , Background.color bgColor
   ]
   els
 
@@ -182,6 +202,8 @@ redLight text =
   , El.width (fontSize * 8 |> El.px)
   , Font.center
   , Border.rounded 4
+  , Border.color (El.rgb 1 1 1)
+  , Border.width 1
   , El.padding (scaledInt -1)
   ]
   (El.text text)
@@ -200,11 +222,13 @@ amberLight text =
 greenLight : String -> El.Element msg
 greenLight text =
   El.el
-  [ Background.color (El.rgb 0.4 1.0 0.4)
+  [ Background.color (El.rgb 0.3 0.9 0.3)
   , Font.color (El.rgb 0 0 0)
   , El.width (fontSize * 8 |> El.px)
   , Font.center
   , Border.rounded 4
+  , Border.color (El.rgb 1 1 1)
+  , Border.width 1
   , El.padding (scaledInt -1)
   ]
   (El.text text)

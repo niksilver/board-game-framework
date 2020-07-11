@@ -516,8 +516,8 @@ view model =
   { title = "Lobby demo"
   , body =
       List.singleton
-      <| UI.layout
-      <| El.column [El.spacing (UI.scaledInt 1)]
+      <| UI.layout UI.miniPaletteWaterfall.background
+      <| El.column [ El.spacing (UI.scaledInt 1) ]
       <| case model.game of
           Gathering state ->
             if state.entered then
@@ -529,10 +529,7 @@ view model =
 
             else
               [ viewLobbyTop model
-              , El.row [El.width El.fill]
-                [ viewMyName model.draftMyName state
-                , viewPlayers state
-                ]
+              , viewNameSelection model.draftMyName state
               , viewEnterOffer state
               , viewError state
               , viewFooter model
@@ -658,10 +655,34 @@ viewConnectivity model =
       UI.redLight "Disconnected"
 
 
+viewNameSelection : String -> GatherState -> El.Element Msg
+viewNameSelection draftMyName state =
+  let
+    mp = UI.miniPaletteWaterfall
+  in
+  El.row
+  [ El.width El.fill
+  , El.padding (UI.scaledInt 2)
+  , El.spacing (UI.scaledInt 3)
+  , Background.color mp.background
+  , Font.color mp.text
+  ]
+  [ viewMyName draftMyName state
+  , viewPlayers state
+  ]
+
+
 viewMyName : String -> GatherState -> El.Element Msg
 viewMyName draftMyName state =
+  let
+    mp = UI.miniPaletteWaterfall
+  in
   UI.inputRow
-  [ Input.text [El.width (UI.scaledInt 7 |> El.px)]
+  [ Input.text
+    [ El.width (UI.scaledInt 7 |> El.px)
+    , Background.color mp.background
+    , Font.color mp.text
+    ]
     { onChange = DraftMyNameChange
     , text = draftMyName
     , placeholder = El.text "Enter name" |> Input.placeholder [] |> Just
@@ -671,7 +692,7 @@ viewMyName draftMyName state =
     { onPress = Just ConfirmNameClick
     , enabled = goodName draftMyName
     , label = El.text "Confirm"
-    , miniPalette = UI.miniPaletteWhite
+    , miniPalette = mp
     }
   ]
 
