@@ -205,10 +205,9 @@ redLight text =
   , Font.color (El.rgb 1 1 1)
   , El.width (fontSize * 8 |> El.px)
   , Font.center
-  , Border.rounded 4
-  , Border.color (El.rgb 1 1 1)
-  , Border.width 1
-  , El.padding (scaledInt -1)
+  , Border.rounded 15
+  , Border.width 0
+  , El.padding (scaledInt -5)
   ]
   (El.text text)
 
@@ -230,10 +229,9 @@ greenLight text =
   , Font.color (El.rgb 0 0 0)
   , El.width (fontSize * 8 |> El.px)
   , Font.center
-  , Border.rounded 4
-  , Border.color (El.rgb 1 1 1)
-  , Border.width 1
-  , El.padding (scaledInt -1)
+  , Border.rounded 15
+  , Border.width 0
+  , El.padding (scaledInt -5)
   ]
   (El.text text)
 
