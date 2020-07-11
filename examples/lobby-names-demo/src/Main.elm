@@ -517,7 +517,7 @@ view model =
   , body =
       List.singleton
       <| UI.layout UI.miniPaletteWaterfall.background
-      <| El.column [ El.spacing (UI.scaledInt 1) ]
+      <| El.column []
       <| case model.game of
           Gathering state ->
             if state.entered then
@@ -593,7 +593,7 @@ viewJoin model =
       ]
     , viewConnectivity model |> El.el [El.alignRight]
     ]
-    |> El.el [El.width (El.fillPortion 1)]
+    |> El.el [El.width (El.fillPortion 1), El.alignTop]
   , El.paragraph
     [ El.width (El.fillPortion 1)
     , El.alignTop
@@ -693,6 +693,10 @@ viewMyName draftMyName state =
     , miniPalette = mp
     }
   ]
+  |> El.el
+    [ El.alignTop
+    , El.width (El.fillPortion 1)
+    ]
 
 
 goodName : String -> Bool
@@ -710,14 +714,19 @@ viewPlayers state =
         (\(id, name) ->
           El.text (nicePlayerName state.myId id name)
         )
+      |> El.column [El.centerX]
     heading =
       UI.heading "Players" 2
-      |> El.el [ El.padding (UI.scaledInt 2) ]
   in
   El.column
   [ El.centerX
+  , El.alignTop
+  , El.width (El.fillPortion 1)
+  , El.spacing (UI.scaledInt 1)
   ]
-  ( heading :: players)
+  [ heading
+  , players
+  ]
 
 
 nicePlayerName : String -> String -> String -> String
