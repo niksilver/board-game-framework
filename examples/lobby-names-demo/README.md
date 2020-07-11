@@ -1,14 +1,11 @@
 # Lobby names demo
 
 This is to demonstrate how multiple players might gather together in a lobby
-and give their screen names before all entering the game.
+and give their screen names.
 Interesting features are:
 * The game ID is randomly generated;
-* Once one player decides the players should enter the game, the
-  game state changes for everyone;
-* Anyone who joins after the players have entered just see a list of players.
-
-After entering, there is no actual game - it's just a live list of players.
+* Each game has a unique URL which can be shared for others to join;
+* Leavers and joiners are all listed live.
 
 ## Files and compilation
 

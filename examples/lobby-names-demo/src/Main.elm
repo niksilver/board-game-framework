@@ -54,7 +54,7 @@ type alias Model =
 -- There are these game states:
 --   Everything is unknown
 --   We know we're in a game (with a good ID), but nothing else
---   Players are gathering, and maybe have even entered the game.
+--   Players are gathering.
 type Game =
  Unknown
   | KnowGameIdOnly String Connectivity
@@ -70,7 +70,6 @@ type alias GatherState =
   { myId : String
   , gameId : String
   , players : Dict String String
-  , entered : Bool
   , error : Maybe BGF.Error
   , connected : Connectivity
   }
@@ -132,7 +131,6 @@ setGameId gameId game =
           { myId = myId
           , gameId = gameId
           , players = Dict.empty
-          , entered = False
           , error = Nothing
           , connected = connected
           }
@@ -144,7 +142,6 @@ setGameId gameId game =
           { myId = old.myId
           , gameId = gameId
           , players = Dict.empty
-          , entered = False
           , error = Nothing
           , connected = old.connected
           }
@@ -171,7 +168,6 @@ openCmd gameId =
 
 type alias Body =
   { players : Dict String String
-  , entered : Bool
   }
 
 
@@ -182,7 +178,6 @@ bodyEncoder : Body -> Enc.Value
 bodyEncoder body =
   Enc.object
   [ ("players" , Enc.dict identity Enc.string body.players)
-  , ("entered", Enc.bool body.entered)
   ]
 
 
@@ -191,12 +186,9 @@ bodyDecoder =
   let
     playersDec =
       Dec.field "players" (Dec.dict Dec.string)
-    enteredDec =
-      Dec.field "entered" Dec.bool
   in
-    Dec.map2 Body
+    Dec.map Body
       playersDec
-      enteredDec
 
 
 -- Update the model with a message
@@ -210,7 +202,6 @@ type Msg =
   | JoinClick
   | DraftMyNameChange String
   | ConfirmNameClick
-  | EnterClick
   | Received (Result BGF.Error Envelope)
 
 
@@ -277,31 +268,14 @@ update msg model =
       -- update our game state and tell our peers
       case model.game of
         Gathering state ->
-          if not(state.entered) then
-            let
-              myId = state.myId
-              myName = model.draftMyName
-              players = state.players |> Dict.insert myId myName
-              game = Gathering { state | players = players }
-            in
-            ( { model | game = game }
-            , sendBodyCmd { players = players, entered = state.entered }
-            )
-          else
-            (model, Cmd.none)
-
-        _ ->
-          (model, Cmd.none)
-
-    EnterClick ->
-      -- If we're entering the game, tell our peers
-      case model.game of
-        Gathering state ->
           let
-            game = Gathering { state | entered = True }
+            myId = state.myId
+            myName = model.draftMyName
+            players = state.players |> Dict.insert myId myName
+            game = Gathering { state | players = players }
           in
           ( { model | game = game }
-          , sendBodyCmd { players = state.players, entered = True }
+          , sendBodyCmd { players = players }
           )
 
         _ ->
@@ -355,7 +329,6 @@ updateWithEnvelope env model =
               { myId = w.me
               , gameId = gameId
               , players = Dict.singleton w.me ""
-              , entered = False
               , error = Nothing
               , connected = Connected
               }
@@ -392,7 +365,6 @@ updateWithEnvelope env model =
               Gathering
               { state
               | players = p.body.players
-              , entered = p.body.entered
               }
             }
           , Cmd.none
@@ -412,10 +384,7 @@ updateWithEnvelope env model =
         (model, Cmd.none)
 
     BGF.Joiner j ->
-      -- When a client joins,
-      -- (a) if the players are gathering, but not entered the game,
-      --     record their ID and;
-      -- (b) tell them the game state
+      -- When a client joins, record their ID and tell them the game state.
       let
         _ = Debug.log "Got joiner" j
       in
@@ -423,15 +392,12 @@ updateWithEnvelope env model =
         Gathering state ->
           let
             players =
-              if state.entered then
-                state.players
-              else
-                state.players |> Dict.insert j.joiner ""
+              state.players |> Dict.insert j.joiner ""
           in
           ( { model
             | game = Gathering { state | players = players }
             }
-          , sendBodyCmd { players = players, entered = state.entered }
+          , sendBodyCmd { players = players }
           )
 
         _ ->
@@ -441,8 +407,7 @@ updateWithEnvelope env model =
           (model, Cmd.none)
 
     BGF.Leaver l ->
-      -- When a client leaves, if the players have not entered the game,
-      -- remove the leaver's name from the players table
+      -- When a client leaves remove their name from the players table
       let
         _ = Debug.log "Got leaver" l
       in
@@ -450,10 +415,7 @@ updateWithEnvelope env model =
         Gathering state ->
           let
             players =
-              if state.entered then
-                state.players
-              else
-                state.players |> Dict.remove l.leaver
+              state.players |> Dict.remove l.leaver
           in
           ( { model
             | game = Gathering { state | players = players }
@@ -520,20 +482,11 @@ view model =
       <| El.column []
       <| case model.game of
           Gathering state ->
-            if state.entered then
-              [ viewWelcome
-              , viewPlayers state
-              , viewError state
-              , viewFooter model
-              ]
-
-            else
-              [ viewLobbyTop model
-              , viewNameSelection model.draftMyName state
-              , viewEnterOffer state
-              , viewError state
-              , viewFooter model
-              ]
+            [ viewLobbyTop model
+            , viewNameSelection model.draftMyName state
+            , viewError state
+            , viewFooter model
+            ]
 
           _ ->
             [ viewJoin model
@@ -735,25 +688,6 @@ nicePlayerName myId id name =
   ++ (if id == myId then " (you)" else "")
 
 
-viewEnterOffer : GatherState -> El.Element Msg
-viewEnterOffer state =
-  UI.inputRow
-  [ El.text "When everyone has announced themselves... "
-  , UI.button
-    { enabled = canEnter state
-    , onPress = Just EnterClick
-    , label = "Enter"
-    , miniPalette = UI.miniPaletteWhite
-    }
-  ]
-
-
-canEnter : GatherState -> Bool
-canEnter state =
-  not(state.entered)
-  && List.all goodName (Dict.values state.players)
-
-
 viewError : GatherState -> El.Element Msg
 viewError state =
   case state.error of
@@ -778,8 +712,13 @@ viewFooter model =
   let
     url = model.url
     baseUrl = { url | fragment = Nothing }
+    mp = UI.miniPaletteWaterfall
   in
   UI.link
   { url = Url.toString baseUrl
   , label = El.text "Click here to try a new game"
   }
+  |> El.el
+    [ Font.color mp.text
+    , El.centerX
+    ]
