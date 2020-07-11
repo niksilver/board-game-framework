@@ -595,7 +595,7 @@ viewJoin model =
         , miniPalette = mp
         }
       ]
-    , viewConnectivity model
+    , viewConnectivity model |> El.el [El.alignRight]
     ]
     |> El.el [El.width (El.fillPortion 1)]
   , El.paragraph
