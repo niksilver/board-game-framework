@@ -50,36 +50,64 @@ moss = rgbHex "aebd38"
 meadow = rgbHex "598234"
 
 
--- A colour palette for a single-coloured area. The `closer` function
--- takes a contrasting colour and brings it closer to the base colour.
--- Giving it a float of 1.0 makes it the base colour;
--- giving it a float of 0.0 leaves it unchanged.
+-- A colour palette for a single-coloured area.
 type alias MiniPalette =
   { background : El.Color
   , title : El.Color
   , text : El.Color
-  , closer : El.Color -> Float -> El.Color
+  , buttonEnabledBgColor : El.Color
+  , buttonEnabledTextColor : El.Color
+  , buttonEnabledBorderColor : El.Color
+  , buttonEnabledMouseOver : List El.Decoration
+  , buttonDisabledBgColor : El.Color
+  , buttonDisabledTextColor : El.Color
+  , buttonDisabledBorderColor : El.Color
+  , buttonDisabledMouseOver : List El.Decoration
   }
 
 
 miniPaletteWhite : MiniPalette
 miniPaletteWhite =
+  let
+    closer = lighten white
+  in
   { background = white
   , title = black
   , text = black
-  , closer = lighten white
+  , buttonEnabledBgColor = closer black 0.9
+  , buttonEnabledTextColor = black
+  , buttonEnabledBorderColor = closer black 0.5
+  , buttonEnabledMouseOver = [ Background.color <| closer black 0.8 ]
+  , buttonDisabledBgColor = closer black 0.95
+  , buttonDisabledTextColor = closer black 0.75
+  , buttonDisabledBorderColor = closer black 0.9
+  , buttonDisabledMouseOver = []
   }
 
 
 miniPaletteThunderCloud : MiniPalette
 miniPaletteThunderCloud =
+  let
+    closer = darken thunderCloud
+  in
   { background = thunderCloud
   , title = white
   , text = white
-  , closer = darken thunderCloud
+  , buttonEnabledBgColor = closer white 0.9
+  , buttonEnabledTextColor = white
+  , buttonEnabledBorderColor = closer white 0.5
+  , buttonEnabledMouseOver = [ Background.color <| closer white 0.8 ]
+  , buttonDisabledBgColor = closer white 0.8
+  , buttonDisabledTextColor = closer white 0.6
+  , buttonDisabledBorderColor = closer white 0.9
+  , buttonDisabledMouseOver = []
   }
 
 
+-- Takes a paint colour (second parameter) and darkens it by some degree
+-- to be closer to the base colour (first parameter).
+-- Giving it a float of 0.0 leaves the paint colour unchanged;
+-- giving it a float of 1.0 makes it the base colour;
 darken : El.Color -> El.Color -> Float -> El.Color
 darken base paint degree =
   let
@@ -100,6 +128,10 @@ darken base paint degree =
   |> El.fromRgb
 
 
+-- Takes a paint colour (second parameter) and lightens it by some degree
+-- to be closer to the base colour (first parameter).
+-- Giving it a float of 0.0 leaves the paint colour unchanged;
+-- giving it a float of 1.0 makes it the base colour;
 lighten : El.Color -> El.Color -> Float -> El.Color
 lighten base paint degree =
   let
@@ -191,19 +223,17 @@ button desc =
     attrs =
       case desc.enabled of
         True ->
-          { bgColor = mp.closer mp.text 0.9 --El.rgb 0.9 0.9 0.9
-          , textColor = mp.text -- El.rgb 0.0 0.0 0.0
-          , borderColor = mp.closer mp.text 0.5 --El.rgb 0.5 0.5 0.5
-          , mouseOver =
-            [ Background.color <| mp.closer mp.text 0.8 -- (El.rgb 0.8 0.8 0.8)
-            ]
+          { bgColor = mp.buttonEnabledBgColor
+          , textColor = mp.buttonEnabledTextColor
+          , borderColor = mp.buttonEnabledBorderColor
+          , mouseOver = mp.buttonEnabledMouseOver
           }
 
         False ->
-          { bgColor = mp.closer mp.text 0.90 --El.rgb 0.95 0.95 0.95
-          , textColor = mp.closer mp.text 0.75 --El.rgb 0.8 0.8 0.8
-          , borderColor = mp.closer mp.text 0.9 --El.rgb 0.9 0.9 0.9
-          , mouseOver = []
+          { bgColor = mp.buttonDisabledBgColor
+          , textColor = mp.buttonDisabledTextColor
+          , borderColor = mp.buttonDisabledBorderColor
+          , mouseOver = mp.buttonDisabledMouseOver
           }
   in
   Input.button
