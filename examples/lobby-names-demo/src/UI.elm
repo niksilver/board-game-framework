@@ -177,7 +177,10 @@ heading text size =
 redLight : String -> El.Element msg
 redLight text =
   El.el
-  [ Background.color (El.rgb 1.0 0.8 0.8)
+  [ Background.color (El.rgb 1.0 0.3 0.3)
+  , Font.color (El.rgb 1 1 1)
+  , El.width (fontSize * 8 |> El.px)
+  , Font.center
   , Border.rounded 4
   , El.padding (scaledInt -1)
   ]
@@ -197,7 +200,10 @@ amberLight text =
 greenLight : String -> El.Element msg
 greenLight text =
   El.el
-  [ Background.color (El.rgb 0.8 1.0 0.8)
+  [ Background.color (El.rgb 0.4 1.0 0.4)
+  , Font.color (El.rgb 0 0 0)
+  , El.width (fontSize * 8 |> El.px)
+  , Font.center
   , Border.rounded 4
   , El.padding (scaledInt -1)
   ]
