@@ -7,8 +7,8 @@ module UI exposing
   ( fontSize, scaled, scaledInt
   , layout
   , miniPaletteWhite, miniPaletteThunderCloud, miniPaletteWaterfall
-  , heading, redLight, amberLight, greenLight, link, button
-  , inputRow
+  , heading, redLight, amberLight, greenLight, link
+  , button, inputText, inputRow
   )
 
 
@@ -248,7 +248,7 @@ link desc =
 button :
   { enabled : Bool
   , onPress : Maybe msg
-  , label : El.Element msg
+  , label : String
   , miniPalette: MiniPalette
   } -> El.Element msg
 button desc =
@@ -280,7 +280,7 @@ button desc =
   , El.mouseOver attrs.mouseOver
   ]
   { onPress = if desc.enabled then desc.onPress else Nothing
-  , label = El.el [Font.color attrs.textColor] desc.label
+  , label = El.el [Font.color attrs.textColor] (El.text desc.label)
   }
 
 
@@ -290,6 +290,33 @@ inputRow els =
   [ El.spacing (scaledInt 1)
   ]
   els
+
+
+inputText :
+  { onChange : String -> msg
+  , text : String
+  , placeholderText : String
+  , label : String
+  , fontScale : Int
+  , miniPalette : MiniPalette
+  } -> El.Element msg
+inputText desc =
+  let
+    mp = desc.miniPalette
+  in
+  Input.text
+  [ El.width (scaledInt desc.fontScale |> El.px)
+  , Background.color mp.background
+  , Font.color mp.text
+  ]
+  { onChange = desc.onChange
+  , text = desc.text
+  , placeholder =
+    El.text desc.placeholderText
+    |> Input.placeholder [Font.color mp.placeholder]
+    |> Just
+  , label = El.text desc.label |> Input.labelLeft []
+  }
 
 
 -- Utilities

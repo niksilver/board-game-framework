@@ -575,23 +575,19 @@ viewJoin model =
     [ El.spacing (UI.scaledInt 1)
     ]
     [ UI.inputRow
-      [ Input.text
-        [ El.width (UI.scaledInt 7 |> El.px)
-        , Background.color mp.background
-        , Font.color mp.text
-        ]
-        { text = model.draftGameId
-        , onChange = DraftGameIdChange
-        , placeholder =
-          El.text "Game code"
-          |> Input.placeholder [Font.color mp.placeholder]
-          |> Just
-        , label = El.text "The code for this game is" |> Input.labelLeft []
+      [ UI.inputText
+        { onChange = DraftGameIdChange
+        , text = model.draftGameId
+        , placeholderText = "Game code"
+        , label = "The code for this game is"
+        , fontScale = 7
+        , miniPalette = mp
         }
+      , El.text " "
       , UI.button
         { onPress = Just JoinClick
         , enabled = joinEnabled model
-        , label = El.text "Join"
+        , label = "Join"
         , miniPalette = mp
         }
       ]
@@ -681,23 +677,19 @@ viewMyName draftMyName state =
     mp = UI.miniPaletteWaterfall
   in
   UI.inputRow
-  [ Input.text
-    [ El.width (UI.scaledInt 7 |> El.px)
-    , Background.color mp.background
-    , Font.color mp.text
-    ]
+  [ UI.inputText
     { onChange = DraftMyNameChange
     , text = draftMyName
-    , placeholder =
-      El.text "Enter name"
-      |> Input.placeholder [Font.color mp.placeholder]
-      |> Just
-    , label = El.text "Your name" |> Input.labelLeft []
+    , placeholderText = "Enter name"
+    , label = "Your name"
+    , fontScale = 7
+    , miniPalette = mp
     }
+  , El.text " "
   , UI.button
     { onPress = Just ConfirmNameClick
     , enabled = goodName draftMyName
-    , label = El.text "Confirm"
+    , label = "Confirm"
     , miniPalette = mp
     }
   ]
@@ -732,7 +724,7 @@ viewEnterOffer state =
   , UI.button
     { enabled = canEnter state
     , onPress = Just EnterClick
-    , label = El.text "Enter"
+    , label = "Enter"
     , miniPalette = UI.miniPaletteWhite
     }
   ]
