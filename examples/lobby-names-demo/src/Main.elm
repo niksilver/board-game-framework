@@ -580,7 +580,7 @@ viewJoin model =
         , text = model.draftGameId
         , placeholderText = "Game code"
         , label = "The code for this game is"
-        , fontScale = 7
+        , fontScale = 12
         , miniPalette = mp
         }
       , El.text " "
@@ -682,7 +682,7 @@ viewMyName draftMyName state =
     , text = draftMyName
     , placeholderText = "Enter name"
     , label = "Your name"
-    , fontScale = 7
+    , fontScale = 12
     , miniPalette = mp
     }
   , El.text " "
@@ -702,13 +702,22 @@ goodName name =
 
 viewPlayers : GatherState -> El.Element Msg
 viewPlayers state =
-  state.players
-  |> Dict.toList
-  |> List.map
-    (\(id, name) ->
-      El.text (nicePlayerName state.myId id name)
-    )
-  |> El.column [El.centerX]
+  let
+    players =
+      state.players
+      |> Dict.toList
+      |> List.map
+        (\(id, name) ->
+          El.text (nicePlayerName state.myId id name)
+        )
+    heading =
+      UI.heading "Players" 2
+      |> El.el [ El.padding (UI.scaledInt 2) ]
+  in
+  El.column
+  [ El.centerX
+  ]
+  ( heading :: players)
 
 
 nicePlayerName : String -> String -> String -> String

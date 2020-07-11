@@ -305,7 +305,7 @@ inputText desc =
     mp = desc.miniPalette
   in
   Input.text
-  [ El.width (scaledInt desc.fontScale |> El.px)
+  [ El.width (fontSize * desc.fontScale |> El.px)
   , Background.color mp.background
   , Font.color mp.text
   ]
