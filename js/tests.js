@@ -98,15 +98,19 @@ test('Disconnection means continuous retries', function(t) {
         await websocket.onclose({});
 
         t.equal(connections, 2);
+        websocket.onopen({});
         await websocket.onclose({});
 
         t.equal(connections, 3);
+        websocket.onopen({});
         await websocket.onclose({});
 
         t.equal(connections, 4);
+        websocket.onopen({});
         await websocket.onclose({});
 
         t.equal(connections, 5);
+        websocket.onopen({});
         await websocket.onclose({});
 
         t.equal(connections, 6);
@@ -195,12 +199,15 @@ test('Sends reconnecting envelope just once when reconnecting', function(t) {
             'Expected to receive reconnecting envelope');
         envelope = 'Dummy untouched value';
 
+        websocket.onopen({});
         await websocket.onclose({});
         t.equal(envelope, 'Dummy untouched value');
 
+        websocket.onopen({});
         await websocket.onclose({});
         t.equal(envelope, 'Dummy untouched value');
 
+        websocket.onopen({});
         await websocket.onclose({});
         t.equal(envelope, 'Dummy untouched value');
     };
@@ -243,6 +250,7 @@ test('Sends second reconnecting env after stable connection', function(t) {
             'Expected to receive reconnecting envelope');
         envelope = 'Dummy untouched value';
 
+        websocket.onopen({});
         await websocket.onclose({});
         t.equal(envelope, 'Dummy untouched value');
 
