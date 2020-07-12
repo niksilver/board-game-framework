@@ -164,8 +164,102 @@ test('Connecting with bad lastnum reconnects as new', function(t) {
     });
 });
 
-test('Sends Reconnecting envelope just once when reconnecting', function(t) {
-    // Tell tape we're done
-    t.end();
+test('Sends reconnecting envelope just once when reconnecting', function(t) {
+    // Track the last envelope sent to the client
+    let envelope = null;
+    let websocket;
+
+    // Create a BGF with a stub websocket
+    bgf = new BGF.BoardGameFramework();
+    bgf.toapp = function(env) {
+        envelope = env;
+    };
+    bgf._newWebSocket = function(url) {
+        websocket = new EmptyWebSocket();
+        return websocket;
+    };
+    bgf._delay = function(){ return 1; };
+
+    // Do the open action, register onopen, then cut the connection once
+    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+    websocket.onopen({});
+
+    // We will repeatedly close the connection and expect to get
+    // an envelope saying we're reconnecting. Then we'll check there
+    // are no more after that.
+
+    let tests = async function() {
+        await websocket.onclose({});
+        t.deepEqual(envelope,
+            {reconnecting: true},
+            'Expected to receive reconnecting envelope');
+        envelope = 'Dummy untouched value';
+
+        await websocket.onclose({});
+        t.equal(envelope, 'Dummy untouched value');
+
+        await websocket.onclose({});
+        t.equal(envelope, 'Dummy untouched value');
+
+        await websocket.onclose({});
+        t.equal(envelope, 'Dummy untouched value');
+    };
+
+    tests().then(result => {
+        // Tell tape we're done
+        t.end();
+    });
+});
+
+test('Sends second reconnecting env after stable connection', function(t) {
+    // Track the last envelope sent to the client
+    let envelope = null;
+    let websocket;
+
+    // Create a BGF with a stub websocket
+    bgf = new BGF.BoardGameFramework();
+    bgf._stablePeriod = 500;
+    bgf.toapp = function(env) {
+        envelope = env;
+    };
+    bgf._newWebSocket = function(url) {
+        websocket = new EmptyWebSocket();
+        return websocket;
+    };
+    bgf._delay = function(){ return 1; };
+
+    // Do the open action, register onopen, then cut the connection once
+    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+    websocket.onopen({});
+
+    // We will repeatedly close the connection and expect to get
+    // an envelope saying we're reconnecting. Then we'll check there
+    // are no more after that.
+
+    let tests = async function() {
+        await websocket.onclose({});
+        t.deepEqual(envelope,
+            {reconnecting: true},
+            'Expected to receive reconnecting envelope');
+        envelope = 'Dummy untouched value';
+
+        await websocket.onclose({});
+        t.equal(envelope, 'Dummy untouched value');
+
+        // Confirm the connection, then wait for it to become stable
+        console.log("Test: Calling second onopen");
+        websocket.onopen({});
+        await new Promise(r => setTimeout(r, bgf._stablePeriod * 1.5));
+
+        await websocket.onclose({});
+        t.deepEqual(envelope,
+            {reconnecting: true},
+            'Expected to receive second reconnecting envelope');
+    };
+
+    tests().then(result => {
+        // Tell tape we're done
+        t.end();
+    });
 });
 

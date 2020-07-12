@@ -26,6 +26,17 @@ function BoardGameFramework() {
     // Last num received. -1 means there was no last num received.
     this._num = -1;
 
+    // True if we're in the middle of reconnecting
+    this._reconnecting = false;
+
+    // A timeout ID for a function that fires when the timeout is stable;
+    // possibly null.
+    this._stableTimeoutID = null;
+
+    // How long a connection needs to be stable for us to say
+    // we're connected (in milliseconds).
+    this._stablePeriod = 2000;
+
     // Send an envelope of data to the main application.
     // Replace this default implementation in your app.
     this.toapp = function(env) {
@@ -78,10 +89,19 @@ function BoardGameFramework() {
     this.open = function(url) {
         this._ws = this._newWebSocket(url);
         console.log("open: Opened url " + url);
+
         this._ws.onopen = function(evt) {
-            console.log("open.open: Got event");
-            // We've got an open connection.
+            console.log("open.onopen: Got event");
+            // We've got an open connection
+            // Take action when this connection is deemed stable
+            console.log('open.onopen: setting stableTimeout');
+            top._stableTimeOutID =
+                setTimeout(function() {
+                    console.log('open.onopen.setTimeout: fired');
+                    top._reconnecting = false;
+                }, top._stablePeriod);
         }
+
         this._ws.onclose = async function(evt) {
             // We've got an close connection.
             console.log("open.onclose: Got event");
@@ -95,9 +115,13 @@ function BoardGameFramework() {
             if (top._baseURL != null) {
                 // Need to reconnect
                 console.log('open.onclose: Need to reconnect');
+                // Tell the app we're reconnecting if it's our first time
+                if (!top._reconnecting) {
+                    top.toapp({reconnecting: true});
+                    top._reconnecting = true;
+                }
                 url = top._makeConnURL(top._baseURL);
                 await new Promise(r => setTimeout(r, top._delay()));
-                //--top._reconnCounter;
                 top.open(url);
                 return;
             }
@@ -113,6 +137,7 @@ function BoardGameFramework() {
                 top.act({instruction: 'Open', url: url});
             }
         }
+
         this._ws.onmessage = function(evt) {
             console.log("open.onmessage: Got event");
             // Get the received envelope as structured data
@@ -130,6 +155,7 @@ function BoardGameFramework() {
             }
             top.toapp(env);
         }
+
         this._ws.onerror = function(evt) {
             // REMOVE THIS - IT'S JUST HERE FOR TESTING!
             for (const [key, value] of Object.entries(evt)) {
