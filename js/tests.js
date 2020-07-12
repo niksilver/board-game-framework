@@ -67,9 +67,9 @@ test('Disconnection means a retry at least once', function(t) {
     });
 });
 
-test('Disconnection means max 4 retries', function(t) {
-    // Count the number of connections; first will succeed, then
-    // we'll cut it; second will succeed.
+test('Disconnection means continuous retries', function(t) {
+    // Count the number of connections; first will succeed, then we'll
+    // keep refusing
     var connections = 0;
     var websocket;
 
@@ -89,8 +89,7 @@ test('Disconnection means max 4 retries', function(t) {
     t.equal(connections, 1);
 
     // We will repeatedly (a) check we tried to reconnect, and (b) close
-    // the connection. Eventually we should stop trying to reconnect,
-    // as indicated by the connection counter no longer incrementing.
+    // the connection. We should see the connection counter incrementing.
 
     var tests = async function() {
         await websocket.onclose({});
@@ -104,8 +103,10 @@ test('Disconnection means max 4 retries', function(t) {
         t.equal(connections, 4);
         await websocket.onclose({});
 
-        // Check we've not tried to connect again - same connection count
-        t.equal(connections, 4);
+        t.equal(connections, 5);
+        await websocket.onclose({});
+
+        t.equal(connections, 6);
     };
 
     tests().then(result => {
@@ -114,7 +115,7 @@ test('Disconnection means max 4 retries', function(t) {
     });
 });
 
-test('Connecting with bad lastnum reconnects just a few times', function(t) {
+test('Connecting with bad lastnum reconnects as new', function(t) {
     // Tell tape we're done
     t.end();
 });

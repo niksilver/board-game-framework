@@ -11,7 +11,9 @@ function BoardGameFramework() {
     this._ws = null;
 
     // Base URL we've most recently tried to open, and which we may need to
-    // reconnect to
+    // reconnect to.
+    // As long as this is not null it tells us we should attempt to
+    // reconnect after a connection close.
     this._baseURL = null;
 
     // The URL to open next, if we try to open a connection while we've still
@@ -23,10 +25,6 @@ function BoardGameFramework() {
 
     // Last num received
     this._num = -1;
-
-    // Reconnection attempt counter. If we reconnect we go 3, 2, 1, 0.
-    // If this is 0 it means won't try to reconnect if the connection closes.
-    this._reconnCounter = 0;
 
     // Send an envelope of data to the main application.
     // Replace this default implementation in your app.
@@ -43,12 +41,11 @@ function BoardGameFramework() {
                     // Already open, so line up the URL to be opened next,
                     // and close the current connection.
                     this._nextOpen = data.url;
-                    this._reconnCounter = 0;
+                    this._baseURL = null;
                     this._ws.close();
                     return;
                 }
                 this._num = -1;
-                this._reconnCounter = 0;
                 this._baseURL = data.url;
                 url = this._makeConnURL(data.url);
                 this.open(url);
@@ -60,7 +57,7 @@ function BoardGameFramework() {
                 }
                 // This is a requested close, so we don't want to
                 // reconnect
-                this._reconnCounter = 0;
+                this._baseURL = null;
                 this._ws.close();
                 return;
             case 'Send':
@@ -84,17 +81,15 @@ function BoardGameFramework() {
         this._ws.onopen = function(evt) {
             console.log("open.open: Got event");
             // We've got an open connection.
-            // Future connections will be reconnection
-            top._reconnCounter = 3;
         }
         this._ws.onclose = async function(evt) {
             console.log("open.onclose: Got event");
             // We got a close; should we reconnect for the main app?
-            if (top._reconnCounter > 0) {
+            if (top._baseURL != null) {
                 // Need to reconnect
-                url = top._makeConnURL(top._baseURL);
+                //url = top._makeConnURL(top._baseURL);
                 await new Promise(r => setTimeout(r, top._delay()));
-                --top._reconnCounter;
+                //--top._reconnCounter;
                 top.open(url);
                 return;
             }
@@ -130,7 +125,7 @@ function BoardGameFramework() {
             // https://stackoverflow.com/a/31003057/1830955
             // The browser will also close the websocket
             // Only pass on the error if wouldn't want to reconnect
-            if (top._reconnCounter <= 0) {
+            if (top._baseURL == null) {
                 top.toapp({error: "Websocket error"});
             }
         }
@@ -148,7 +143,7 @@ function BoardGameFramework() {
         if (this._id != null) {
             params.set('id', this._id);
         }
-        if (this._reconnCounter > 0) {
+        if (this._baseURL != null && this._num >= 0) {
             // It's a reconnection
             params.set('lastnum', this._num);
         }
@@ -162,16 +157,7 @@ function BoardGameFramework() {
     // be immediate. Later ones should get further apart. There should
     // also be some randomness in it.
     this._delay = function() {
-        switch (this._reconnCounter) {
-            case 3:
-                return 0;
-            case 2:
-                return 750 + Math.random()*500;
-            case 1:
-                return 1500 + Math.random()*1000;
-            default:
-                return 1500 + Math.random()*1000;
-        }
+        return 750 + Math.random()*500;
     };
 
 };

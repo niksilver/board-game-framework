@@ -1,3 +1,5 @@
+- JavaScript framework to keep trying to reconnect, and send a
+  "reconnecting" envelope.
 - Have client-side client ID stored in local storage.
 - Create an "actioned data" demo, which uses the structured data.
 - Noughts and crosses demo.
