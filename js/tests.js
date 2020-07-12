@@ -271,3 +271,7 @@ test('Sends second reconnecting env after stable connection', function(t) {
     });
 });
 
+test('Some tests to check Connected envelopes...', function(t) {
+    // Tell tape we're done
+    t.end();
+});
