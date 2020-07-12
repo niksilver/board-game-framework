@@ -27,6 +27,7 @@ test('Open action creates websocket', function(t) {
         urlUsed = url;
         return new EmptyWebSocket();
     };
+    bgf._delay = function(){ return 1; };
 
     // Do the open action
     bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
@@ -52,6 +53,7 @@ test('Disconnection means a retry at least once', function(t) {
         websocket = new EmptyWebSocket();
         return websocket;
     };
+    bgf._delay = function(){ return 1; };
 
     // Do the open action, register onopen, then cut the connection once
     bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
@@ -81,6 +83,7 @@ test('Disconnection means continuous retries', function(t) {
         websocket = new EmptyWebSocket();
         return websocket;
     };
+    bgf._delay = function(){ return 1; };
 
     // Do the open action, register onopen, then cut the connection once
     bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
@@ -128,6 +131,7 @@ test('Connecting with bad lastnum reconnects as new', function(t) {
         websocket = new EmptyWebSocket();
         return websocket;
     };
+    bgf._delay = function(){ return 1; };
 
     // Do the open action, then simulate the server closing the websocket
     // with a bad lastnum
