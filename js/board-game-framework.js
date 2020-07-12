@@ -23,7 +23,7 @@ function BoardGameFramework() {
     // Client ID, if known
     this._id = null;
 
-    // Last num received
+    // Last num received. -1 means there was no last num received.
     this._num = -1;
 
     // Send an envelope of data to the main application.
@@ -83,11 +83,19 @@ function BoardGameFramework() {
             // We've got an open connection.
         }
         this._ws.onclose = async function(evt) {
+            // We've got an close connection.
             console.log("open.onclose: Got event");
+            // Reset the lastnum if we've been told it's bad
+            if (evt.code == 4000 ||
+                (typeof evt.reason == 'string' &&
+                    evt.reason.includes('lastnum'))) {
+                top._num = -1;
+            }
             // We got a close; should we reconnect for the main app?
             if (top._baseURL != null) {
                 // Need to reconnect
-                //url = top._makeConnURL(top._baseURL);
+                console.log('open.onclose: Need to reconnect');
+                url = top._makeConnURL(top._baseURL);
                 await new Promise(r => setTimeout(r, top._delay()));
                 //--top._reconnCounter;
                 top.open(url);
@@ -97,6 +105,8 @@ function BoardGameFramework() {
             top.toapp({closed: true});
             top._ws = null;
             top._baseURL = null;
+            top._num = -1;
+            // Open the next connection if there is one
             if (top._nextOpen) {
                 url = top._nextOpen;
                 top._nextOpen = null;
@@ -121,6 +131,10 @@ function BoardGameFramework() {
             top.toapp(env);
         }
         this._ws.onerror = function(evt) {
+            // REMOVE THIS - IT'S JUST HERE FOR TESTING!
+            for (const [key, value] of Object.entries(evt)) {
+                console.log("open.onerror: " + key + "=" + value);
+            }
             // Error details can't be determined by design. See
             // https://stackoverflow.com/a/31003057/1830955
             // The browser will also close the websocket

@@ -29,10 +29,10 @@ test('Open action creates websocket', function(t) {
     };
 
     // Do the open action
-    bgf.act({ instruction: 'Open', url: 'wss://my.test.url'});
+    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
 
     // Check the websocket was created
-    t.equal(urlUsed, 'wss://my.test.url');
+    t.equal(urlUsed, 'wss://my.test.url/g/my-id');
 
     // Tell tape we're done
     t.end();
@@ -54,7 +54,7 @@ test('Disconnection means a retry at least once', function(t) {
     };
 
     // Do the open action, register onopen, then cut the connection once
-    bgf.act({ instruction: 'Open', url: 'wss://my.test.url'});
+    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
     websocket.onopen({});
 
     t.equal(connections, 1);
@@ -83,7 +83,7 @@ test('Disconnection means continuous retries', function(t) {
     };
 
     // Do the open action, register onopen, then cut the connection once
-    bgf.act({ instruction: 'Open', url: 'wss://my.test.url'});
+    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
     websocket.onopen({});
 
     t.equal(connections, 1);
@@ -116,6 +116,52 @@ test('Disconnection means continuous retries', function(t) {
 });
 
 test('Connecting with bad lastnum reconnects as new', function(t) {
+    // Last URL connected
+    let lastURL = null;
+
+    // Create a BGF with a stub websocket
+    bgf = new BGF.BoardGameFramework();
+    bgf.toapp = function(env) {};
+    bgf._newWebSocket = function(url) {
+        lastURL = url;
+        console.log("fn: url = " + url);
+        websocket = new EmptyWebSocket();
+        return websocket;
+    };
+
+    // Do the open action, then simulate the server closing the websocket
+    // with a bad lastnum
+    // Connect okay; close for some reason; ensure we reconnect with a
+    // bad lastnum; expect a reconnection with no lastnum.
+    bgf.act({ instruction: 'Open', url: 'ws://my.test.server/g/gameid'});
+
+    let tests = async function() {
+        // Open, increase the num to a bad value, close
+        websocket.onopen({});
+        bgf._num = 1000;
+        await websocket.onclose({});
+
+        // Check we've reconnected with the lastnum, then close
+        // due to bad lastnum
+        t.match(lastURL, /lastnum=1000/);
+        websocket.onopen({});
+        await websocket.onclose({ code: 4000, reason: 'Bad lastnum' });
+
+        // Check we've reconnected with no lastnum
+        if (lastURL.includes('lastnum')) {
+            t.fail("Wwbsocket reconnection with bad lastnum. URL is " +
+                lastURL);
+        }
+    };
+
+    tests().then(result => {
+        // Tell tape we're done
+        t.end();
+    });
+});
+
+test('Sends Reconnecting envelope just once when reconnecting', function(t) {
     // Tell tape we're done
     t.end();
 });
+
