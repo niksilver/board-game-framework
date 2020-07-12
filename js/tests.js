@@ -19,7 +19,7 @@ test('example test', function(t) {
 
 test('Open action creates websocket', function(t) {
     // To check we called open, and used the right URL
-    var urlUsed = null;
+    let urlUsed = null;
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
@@ -41,8 +41,8 @@ test('Open action creates websocket', function(t) {
 test('Disconnection means a retry at least once', function(t) {
     // Count the number of connections; first will succeed, then
     // we'll cut it; second will succeed.
-    var connections = 0;
-    var websocket;
+    let connections = 0;
+    let websocket;
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
@@ -70,8 +70,8 @@ test('Disconnection means a retry at least once', function(t) {
 test('Disconnection means continuous retries', function(t) {
     // Count the number of connections; first will succeed, then we'll
     // keep refusing
-    var connections = 0;
-    var websocket;
+    let connections = 0;
+    let websocket;
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
@@ -91,7 +91,7 @@ test('Disconnection means continuous retries', function(t) {
     // We will repeatedly (a) check we tried to reconnect, and (b) close
     // the connection. We should see the connection counter incrementing.
 
-    var tests = async function() {
+    let tests = async function() {
         await websocket.onclose({});
 
         t.equal(connections, 2);
