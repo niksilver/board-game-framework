@@ -21,7 +21,7 @@ test.skip('example test', function(t) {
     t.end();
 });
 
-test.skip('Open action creates websocket', function(t) {
+test('Open action creates websocket', function(t) {
     // To check we called open, and used the right URL
     let urlUsed = null;
 
@@ -43,7 +43,7 @@ test.skip('Open action creates websocket', function(t) {
     t.end();
 });
 
-test.skip('Disconnection means a retry at least once', function(t) {
+test('Disconnection means a retry at least once', function(t) {
     // Count the number of connections; first will succeed, then
     // we'll cut it; second will succeed.
     let connections = 0;
@@ -76,7 +76,7 @@ test.skip('Disconnection means a retry at least once', function(t) {
     });
 });
 
-test.skip('Opened envelope sent only after stable period', function(t) {
+test('Opened envelope sent only after stable period', function(t) {
     // Count the number of connections
     let connections = 0;
     // Last envelope sent to application
@@ -231,7 +231,7 @@ test('Disconnection means continuous retries', function(t) {
     });
 });
 
-test.skip('Connecting with bad lastnum reconnects as new', function(t) {
+test('Connecting with bad lastnum reconnects as new', function(t) {
     // Last URL connected
     let lastURL = null;
 
@@ -277,7 +277,7 @@ test.skip('Connecting with bad lastnum reconnects as new', function(t) {
     });
 });
 
-test.skip('Sends reconnecting envelope just once when reconnecting', function(t) {
+test('Sends reconnecting envelope just once when reconnecting', function(t) {
     // Track the last envelope sent to the client
     let envelope = null;
     let websocket;
