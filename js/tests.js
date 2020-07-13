@@ -10,14 +10,14 @@ var EmptyWebSocket = function() {
     this.onmessage = function(evt){};
 }
 
-test('example test', function(t) {
+test.skip('example test', function(t) {
     t.equal(2+2, 4);
 
     // Tell tape we're done
     t.end();
 });
 
-test('Open action creates websocket', function(t) {
+test.skip('Open action creates websocket', function(t) {
     // To check we called open, and used the right URL
     let urlUsed = null;
 
@@ -55,21 +55,24 @@ test('Disconnection means a retry at least once', function(t) {
     };
     bgf._delay = function(){ return 1; };
 
-    // Do the open action, register onopen, then cut the connection once
-    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
-    websocket.onopen({});
+    let tests = async function() {
+        // Do the open action, register onopen, then cut the connection once
+        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        websocket.onopen({});
 
-    t.equal(connections, 1);
+        t.equal(connections, 1);
 
-    websocket.onclose({}).then(result => {
+        await websocket.onclose({});
         t.equal(connections, 2);
+    };
 
+    tests().then(result => {
         // Tell tape we're done
         t.end();
     });
 });
 
-test('Disconnection means continuous retries', function(t) {
+test.skip('Disconnection means continuous retries', function(t) {
     // Count the number of connections; first will succeed, then we'll
     // keep refusing
     let connections = 0;
@@ -122,7 +125,7 @@ test('Disconnection means continuous retries', function(t) {
     });
 });
 
-test('Connecting with bad lastnum reconnects as new', function(t) {
+test.skip('Connecting with bad lastnum reconnects as new', function(t) {
     // Last URL connected
     let lastURL = null;
 
@@ -168,7 +171,7 @@ test('Connecting with bad lastnum reconnects as new', function(t) {
     });
 });
 
-test('Sends reconnecting envelope just once when reconnecting', function(t) {
+test.skip('Sends reconnecting envelope just once when reconnecting', function(t) {
     // Track the last envelope sent to the client
     let envelope = null;
     let websocket;
@@ -218,7 +221,7 @@ test('Sends reconnecting envelope just once when reconnecting', function(t) {
     });
 });
 
-test('Sends second reconnecting env after stable connection', function(t) {
+test.skip('Sends second reconnecting env after stable connection', function(t) {
     // Track the last envelope sent to the client
     let envelope = null;
     let websocket;
@@ -271,7 +274,7 @@ test('Sends second reconnecting env after stable connection', function(t) {
     });
 });
 
-test('Some tests to check Connected envelopes...', function(t) {
+test.skip('Some tests to check Connected envelopes...', function(t) {
     // Tell tape we're done
     t.end();
 });
