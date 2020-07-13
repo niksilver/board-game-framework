@@ -142,6 +142,11 @@ function BoardGameFramework() {
 
         this._ws.onmessage = function(evt) {
             console.log("open.onmessage: Got event");
+            // We've got a stable connection
+            // Prove we need this: clearTimeout(top._stableTimeout);
+            // Prove we need if _reconnecting...
+            top.toapp({opened: true});
+
             // Get the received envelope as structured data
             env = JSON.parse(evt.data);
             // If there's a body (base64 encoded) decode it
