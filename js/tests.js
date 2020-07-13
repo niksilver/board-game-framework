@@ -1,6 +1,10 @@
 var test = require('tape');
 var BGF = require('./board-game-framework.js');
 
+function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+}
+
 // There's no application to receive envelopes
 
 // Constructor for a dummy websocket
@@ -39,7 +43,7 @@ test.skip('Open action creates websocket', function(t) {
     t.end();
 });
 
-test('Disconnection means a retry at least once', function(t) {
+test.skip('Disconnection means a retry at least once', function(t) {
     // Count the number of connections; first will succeed, then
     // we'll cut it; second will succeed.
     let connections = 0;
@@ -72,9 +76,8 @@ test('Disconnection means a retry at least once', function(t) {
     });
 });
 
-test('Opened envelope sent only after stable period', function(t) {
-    // Count the number of connections; first will succeed, then
-    // we'll cut it; second will succeed.
+test.skip('Opened envelope sent only after stable period', function(t) {
+    // Count the number of connections
     let connections = 0;
     // Last envelope sent to application
     let lastEnv = 'Untouched';
@@ -101,8 +104,72 @@ test('Opened envelope sent only after stable period', function(t) {
 
         // No 'opened' envelope yet... but should be after the stable period
         t.equal(lastEnv, 'Untouched');
-        await new Promise(r => setTimeout(r, bgf._stablePeriod * 1.5));
+        await sleep(bgf._stablePeriod * 1.5);
         t.deepEqual(lastEnv, {opened: true});
+    };
+
+    tests().then(result => {
+        // Tell tape we're done
+        t.end();
+    });
+});
+
+test('Opened envelope not sent while reconnecting', function(t) {
+    // Count the number of connections
+    let connections = 0;
+    // Last envelope sent to application
+    let lastEnv = 'Untouched';
+    let websocket;
+
+    // Create a BGF with a stub websocket
+    bgf = new BGF.BoardGameFramework();
+    bgf._stablePeriod = 300;
+    bgf.toapp = function(env) { lastEnv = env; };
+    bgf._newWebSocket = function(url) {
+        ++connections;
+        websocket = new EmptyWebSocket();
+        return websocket;
+    };
+    bgf._delay = function(){ return 1; };
+
+    let tests = async function() {
+        // Do the open action, register onopen, the expect the 'opened'
+        // envelope only after the stable period.
+        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        websocket.onopen({});
+
+        t.equal(connections, 1);
+
+        // No 'opened' envelope yet... and we'll cut the connection
+        // before the stable period, repeatedly.
+
+        t.equal(lastEnv, 'Untouched');
+        lastEnv = 'Untouched'
+        await sleep(bgf._stablePeriod * 0.5);
+        await websocket.onclose({});
+
+        t.equal(connections, 2);
+        websocket.onopen({});
+        t.deepEqual(lastEnv, {reconnecting: true});
+        lastEnv = 'Untouched'
+        await sleep(bgf._stablePeriod * 0.5);
+        await websocket.onclose({});
+
+        t.equal(connections, 3);
+        websocket.onopen({});
+        t.equal(lastEnv, 'Untouched');
+        lastEnv = 'Untouched'
+        await sleep(bgf._stablePeriod * 0.5);
+        await websocket.onclose({});
+
+        // Should get one (and only one) 'opened' envelope
+        t.equal(connections, 4);
+        websocket.onopen({});
+        await sleep(bgf._stablePeriod * 1.5);
+        t.deepEqual(lastEnv, {opened: true});
+        lastEnv = 'Untouched'
+        await sleep(bgf._stablePeriod * 1.5);
+        t.deepEqual(lastEnv, 'Untouched');
     };
 
     tests().then(result => {

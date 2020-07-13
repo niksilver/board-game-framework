@@ -91,14 +91,13 @@ function BoardGameFramework() {
         console.log("open: Opened url " + url);
 
         this._ws.onopen = function(evt) {
-            console.log("open.onopen: Got event");
             // We've got an open connection
+            console.log("open.onopen: Got event");
             // Take action when this connection is deemed stable
-            console.log('open.onopen: setting stableTimeout');
-            top._stableTimeOutID =
+            top._stableTimeoutID =
                 setTimeout(function() {
                     console.log('open.onopen.setTimeout: fired');
-                    top._reconnecting = false;
+                    top._reconnecting = true;
                     top.toapp({opened: true});
                 }, top._stablePeriod);
         }
@@ -106,6 +105,8 @@ function BoardGameFramework() {
         this._ws.onclose = async function(evt) {
             // We've got an close connection.
             console.log("open.onclose: Got event");
+            // Can't claim we've got a stable connection
+            clearTimeout(top._stableTimeoutID);
             // Reset the lastnum if we've been told it's bad
             if (evt.code == 4000 ||
                 (typeof evt.reason == 'string' &&
