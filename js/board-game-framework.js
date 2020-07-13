@@ -97,7 +97,7 @@ function BoardGameFramework() {
             top._stableTimeoutID =
                 setTimeout(function() {
                     console.log('open.onopen.setTimeout: fired');
-                    top._reconnecting = true;
+                    top._reconnecting = false;
                     top.toapp({opened: true});
                 }, top._stablePeriod);
         }

@@ -14,6 +14,9 @@ var EmptyWebSocket = function() {
     this.onmessage = function(evt){};
 }
 
+// In the tests below we have to simulate when the websocket would
+// call an onopen, onclose, etc.
+
 test.skip('example test', function(t) {
     t.equal(2+2, 4);
 
@@ -327,9 +330,11 @@ test('Sends reconnecting envelope just once when reconnecting', function(t) {
     });
 });
 
-test.skip('Sends second reconnecting env after stable connection', function(t) {
+test('Sends second reconnecting env after stable connection', function(t) {
     // Track the last envelope sent to the client
     let envelope = null;
+    // Flag if we've created a new websocket
+    let newWS = false;
     let websocket;
 
     // Create a BGF with a stub websocket
@@ -339,6 +344,7 @@ test.skip('Sends second reconnecting env after stable connection', function(t) {
         envelope = env;
     };
     bgf._newWebSocket = function(url) {
+        newWS = true;
         websocket = new EmptyWebSocket();
         return websocket;
     };
@@ -359,12 +365,20 @@ test.skip('Sends second reconnecting env after stable connection', function(t) {
             'Expected to receive reconnecting envelope');
         envelope = 'Dummy untouched value';
 
+        // Check we've created a new websocket, then reset the flag
+        t.equal(newWS, true);
+        newWS = false;
+
+        // Acknowledge the connection, then cut it
         websocket.onopen({});
         await websocket.onclose({});
         t.equal(envelope, 'Dummy untouched value');
 
-        // Confirm the connection, then wait for it to become stable
-        console.log("Test: Calling second onopen");
+        // Check we've created a new websocket, then reset the flag
+        t.equal(newWS, true);
+        newWS = false;
+
+        // Acknowledge the connection, then wait for it to become stable
         websocket.onopen({});
         await new Promise(r => setTimeout(r, bgf._stablePeriod * 1.5));
 
