@@ -99,6 +99,7 @@ function BoardGameFramework() {
                 setTimeout(function() {
                     console.log('open.onopen.setTimeout: fired');
                     top._reconnecting = false;
+                    top.toapp({opened: true});
                 }, top._stablePeriod);
         }
 
