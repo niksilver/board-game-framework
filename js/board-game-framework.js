@@ -143,7 +143,7 @@ function BoardGameFramework() {
         this._ws.onmessage = function(evt) {
             console.log("open.onmessage: Got event");
             // We've got a stable connection
-            // Prove we need this: clearTimeout(top._stableTimeout);
+            clearTimeout(top._stableTimeoutID);
             // Prove we need if _reconnecting...
             top.toapp({opened: true});
 
