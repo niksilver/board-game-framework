@@ -108,7 +108,7 @@ test('Opened envelope sent only after stable period', function(t) {
         // No 'opened' envelope yet... but should be after the stable period
         t.equal(lastEnv, 'Untouched');
         await sleep(bgf._stablePeriod * 1.5);
-        t.deepEqual(lastEnv, {opened: true});
+        t.deepEqual(lastEnv, {connection: 'opened'});
     };
 
     tests().then(result => {
@@ -148,7 +148,7 @@ test('Opened envelope sent as soon as message received', function(t) {
         // Should get an 'opened' envelope as soon as a message is received
         // message is received
         websocket.onmessage({data: '{"my": "Test message"}'});
-        t.deepEqual(envelopes, [{opened: true}, {my: 'Test message'}]);
+        t.deepEqual(envelopes, [{connection: 'opened'}, {my: 'Test message'}]);
     };
 
     tests().then(result => {
@@ -188,13 +188,59 @@ test('Should not get second Opened envelope after message received', function(t)
         // Should get an 'opened' envelope as soon as a message is received
         // message is received
         websocket.onmessage({data: '{"my": "Test message"}'});
-        t.deepEqual(envelopes, [{opened: true}, {my: 'Test message'}]);
+        t.deepEqual(envelopes, [{connection: 'opened'}, {my: 'Test message'}]);
 
         // Shouldn't get another 'opened' envelope (e.g. from the original
         // onopen being declared stable).
         envelopes = [];
         await sleep(bgf._stablePeriod * 1.5);
         t.deepEqual(envelopes, []);
+    };
+
+    tests().then(result => {
+        // Tell tape we're done
+        t.end();
+    });
+});
+
+test('Should not get second Opened envelope after second message', function(t) {
+    // Count the number of connections
+    let connections = 0;
+    // List of envelopes sent to application
+    let envelopes = [];
+    let websocket;
+
+    // Create a BGF with a stub websocket
+    bgf = new BGF.BoardGameFramework();
+    bgf._stablePeriod = 500;
+    bgf.toapp = function(env) { envelopes.push(env); };
+    bgf._newWebSocket = function(url) {
+        ++connections;
+        websocket = new EmptyWebSocket();
+        return websocket;
+    };
+    bgf._delay = function(){ return 1; };
+
+    let tests = async function() {
+        // Do the open action, register onopen, the expect the 'opened'
+        // envelope only after the stable period.
+        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        websocket.onopen({});
+
+        // Should have a connection, but no envelope yet
+        t.equal(connections, 1);
+        t.deepEqual(envelopes, []);
+
+        // Should get an 'opened' envelope as soon as a message is received
+        // message is received
+        websocket.onmessage({data: '{"my": "Test message"}'});
+        t.deepEqual(envelopes, [{connection: 'opened'}, {my: 'Test message'}]);
+
+        // Shouldn't get another 'opened' envelope, even if we get
+        // another message.
+        envelopes = [];
+        websocket.onmessage({data: '{"my": "Second message"}'});
+        t.deepEqual(envelopes, [{my: 'Second message'}]);
     };
 
     tests().then(result => {
@@ -239,7 +285,7 @@ test('Opened envelope not sent while reconnecting', function(t) {
 
         t.equal(connections, 2);
         websocket.onopen({});
-        t.deepEqual(lastEnv, {reconnecting: true});
+        t.deepEqual(lastEnv, {connection: 'reconnecting'});
         lastEnv = 'Untouched'
         await sleep(bgf._stablePeriod * 0.5);
         await websocket.onclose({});
@@ -255,7 +301,7 @@ test('Opened envelope not sent while reconnecting', function(t) {
         t.equal(connections, 4);
         websocket.onopen({});
         await sleep(bgf._stablePeriod * 1.5);
-        t.deepEqual(lastEnv, {opened: true});
+        t.deepEqual(lastEnv, {connection: 'opened'});
         lastEnv = 'Untouched'
         await sleep(bgf._stablePeriod * 1.5);
         t.deepEqual(lastEnv, 'Untouched');
@@ -393,7 +439,7 @@ test('Sends reconnecting envelope just once when reconnecting', function(t) {
     let tests = async function() {
         await websocket.onclose({});
         t.deepEqual(envelope,
-            {reconnecting: true},
+            {connection: 'reconnecting'},
             'Expected to receive reconnecting envelope');
         envelope = 'Dummy untouched value';
 
@@ -447,7 +493,7 @@ test('Sends second reconnecting env after stable connection', function(t) {
     let tests = async function() {
         await websocket.onclose({});
         t.deepEqual(envelope,
-            {reconnecting: true},
+            {connection: 'reconnecting'},
             'Expected to receive reconnecting envelope');
         envelope = 'Dummy untouched value';
 
@@ -470,7 +516,7 @@ test('Sends second reconnecting env after stable connection', function(t) {
 
         await websocket.onclose({});
         t.deepEqual(envelope,
-            {reconnecting: true},
+            {connection: 'reconnecting'},
             'Expected to receive second reconnecting envelope');
     };
 

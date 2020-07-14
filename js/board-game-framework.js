@@ -26,8 +26,8 @@ function BoardGameFramework() {
     // Last num received. -1 means there was no last num received.
     this._num = -1;
 
-    // True if we're in the middle of reconnecting
-    this._reconnecting = false;
+    // The string in the last connection envelope we've sent
+    this._lastConnEnv = null;
 
     // A timeout ID for a function that fires when the timeout is stable;
     // possibly null.
@@ -97,8 +97,7 @@ function BoardGameFramework() {
             top._stableTimeoutID =
                 setTimeout(function() {
                     console.log('open.onopen.setTimeout: fired');
-                    top._reconnecting = false;
-                    top.toapp({opened: true});
+                    top._sendConnEnv('opened');
                 }, top._stablePeriod);
         }
 
@@ -118,9 +117,8 @@ function BoardGameFramework() {
                 // Need to reconnect
                 console.log('open.onclose: Need to reconnect');
                 // Tell the app we're reconnecting if it's our first time
-                if (!top._reconnecting) {
-                    top.toapp({reconnecting: true});
-                    top._reconnecting = true;
+                if (top._lastConnEnv != 'reconnecting') {
+                    top._sendConnEnv('reconnecting');
                 }
                 url = top._makeConnURL(top._baseURL);
                 await new Promise(r => setTimeout(r, top._delay()));
@@ -128,7 +126,7 @@ function BoardGameFramework() {
                 return;
             }
             // We accept this close
-            top.toapp({closed: true});
+            top._sendConnEnv('closed');
             top._ws = null;
             top._baseURL = null;
             top._num = -1;
@@ -141,11 +139,13 @@ function BoardGameFramework() {
         }
 
         this._ws.onmessage = function(evt) {
+            // We've got an envelope from the server
             console.log("open.onmessage: Got event");
-            // We've got a stable connection
-            clearTimeout(top._stableTimeoutID);
-            // Prove we need if _reconnecting...
-            top.toapp({opened: true});
+            // An envelope means we've got a stable connection
+            if (top._lastConnEnv != 'opened') {
+                clearTimeout(top._stableTimeoutID);
+                top._sendConnEnv('opened');
+            }
 
             // Get the received envelope as structured data
             env = JSON.parse(evt.data);
@@ -207,6 +207,11 @@ function BoardGameFramework() {
         return 750 + Math.random()*500;
     };
 
+    // Send a connection envelope to the app
+    this._sendConnEnv = function(label) {
+        top.toapp({connection: label});
+        top._lastConnEnv = label;
+    };
 };
 
 // Export the object if we're calling this as a module (e.g. when testing).
