@@ -32,7 +32,8 @@ function BoardGameFramework() {
     // Last num received. -1 means there was no last num received.
     this._num = -1;
 
-    // The string in the last connection envelope we've sent
+    // The string in the last connection envelope we've sent:
+    // opened, connecting, or closed.
     this._lastConnEnv = null;
 
     // A timeout ID for a function that fires when the timeout is stable;
@@ -88,9 +89,9 @@ function BoardGameFramework() {
     // Opening a second websocket will close the first one.
     this.open = function(url) {
         this._ws = this._newWebSocket(url);
+        top._sendConnEnv('connecting');
 
         this._ws.onopen = function(evt) {
-            console.log("onopen");
             // We've got an open connection
 
             // Take action when this connection is deemed stable
@@ -101,7 +102,6 @@ function BoardGameFramework() {
         }
 
         this._ws.onclose = async function(evt) {
-            console.log("onclose");
             // We've got an close connection.
 
             // Can't claim we've got a stable connection
@@ -115,11 +115,8 @@ function BoardGameFramework() {
 
             // We got a close; should we reconnect for the main app?
             if (top._baseURL != null) {
-                // Need to reconnect
-                // Tell the app we're reconnecting if it's our first time
-                if (top._lastConnEnv != 'reconnecting') {
-                    top._sendConnEnv('reconnecting');
-                }
+                // Need to reconnect; tell the app
+                top._sendConnEnv('connecting');
                 url = top._makeConnURL(top._baseURL);
                 await new Promise(r => setTimeout(r, top._delay()));
                 top.open(url);
@@ -141,14 +138,11 @@ function BoardGameFramework() {
         }
 
         this._ws.onmessage = function(evt) {
-            console.log("onmessage");
             // We've got an envelope from the server
 
             // An envelope means we've got a stable connection
-            if (top._lastConnEnv != 'opened') {
-                clearTimeout(top._stableTimeoutID);
-                top._sendConnEnv('opened');
-            }
+            clearTimeout(top._stableTimeoutID);
+            top._sendConnEnv('opened');
 
             // Get the received envelope as structured data
             env = JSON.parse(evt.data);
@@ -167,7 +161,6 @@ function BoardGameFramework() {
         }
 
         this._ws.onerror = function(evt) {
-            console.log("onerror");
             // We've got an error from the websocket.
 
             // Error details can't be determined by design. See
@@ -182,7 +175,6 @@ function BoardGameFramework() {
 
     // Return a new websocket connection. To be overridden in tests.
     this._newWebSocket = function(url) {
-        console.log("new WebSocket: " + url);
         return new WebSocket(url);
     };
 
@@ -210,10 +202,13 @@ function BoardGameFramework() {
         return 750 + Math.random()*500;
     };
 
-    // Send a connection envelope to the app
-    this._sendConnEnv = function(label) {
-        top.toApp({connection: label});
-        top._lastConnEnv = label;
+    // Send a connection envelope to the app, but each message should
+    // only be sent once in succession.
+    this._sendConnEnv = function(state) {
+        if (top._lastConnEnv != state) {
+            top.toApp({connection: state});
+            top._lastConnEnv = state;
+        }
     };
 };
 

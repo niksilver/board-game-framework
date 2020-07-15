@@ -598,8 +598,8 @@ viewConnectivity model =
     BGF.Opened ->
       UI.greenLight "Connected"
 
-    BGF.Reconnecting ->
-      UI.redLight "Reconnecting"
+    BGF.Connecting ->
+      UI.redLight "Connecting"
 
     BGF.Closed ->
       UI.redLight "Disconnected"
