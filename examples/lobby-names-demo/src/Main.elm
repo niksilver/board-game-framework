@@ -57,13 +57,8 @@ type alias Model =
 --   Players are gathering.
 type Game =
  Unknown
-  | KnowGameIdOnly String Connectivity
+  | KnowGameIdOnly String BGF.Connectivity
   | Gathering GatherState
-
-
-type Connectivity =
-  Connected
-  | Disconnected
 
 
 type alias GatherState =
@@ -71,7 +66,7 @@ type alias GatherState =
   , gameId : String
   , players : Dict String String
   , error : Maybe BGF.Error
-  , connected : Connectivity
+  , connected : BGF.Connectivity
   }
 
 
@@ -83,7 +78,7 @@ init _ url key =
         , url = url
         , draftGameId = id
         , draftMyName = ""
-        , game = KnowGameIdOnly id Disconnected
+        , game = KnowGameIdOnly id BGF.Closed
         }
         , openCmd id
       )
@@ -122,7 +117,7 @@ setGameId gameId game =
   else
     case game of
       Unknown ->
-        ( KnowGameIdOnly gameId Disconnected
+        ( KnowGameIdOnly gameId BGF.Closed
         , True
         )
 
@@ -232,7 +227,7 @@ update msg model =
       let
         frag = Maybe.withDefault "" url.fragment
         (game, changed) = model.game |> setGameId frag
-        disconnected = not(isConnected model.game)
+        disconnected = (connectivity model.game /= BGF.Opened)
         cmd =
           if changed || disconnected then
             openCmd frag
@@ -330,7 +325,7 @@ updateWithEnvelope env model =
               , gameId = gameId
               , players = Dict.singleton w.me ""
               , error = Nothing
-              , connected = Connected
+              , connected = BGF.Opened
               }
             }
           , Cmd.none
@@ -347,7 +342,7 @@ updateWithEnvelope env model =
                 myId = w.me
               , players = Dict.singleton w.me myName
               , error = Nothing
-              , connected = Connected
+              , connected = BGF.Opened
               }
             }
           , Cmd.none
@@ -429,10 +424,10 @@ updateWithEnvelope env model =
           in
           (model, Cmd.none)
 
-    BGF.Closed ->
-      -- The connection has closed
+    BGF.Connection conn ->
+      -- The connection state has changed
       let
-        _ = Debug.log "Got closed envelope" True
+        _ = Debug.log "Got connection envelope" conn
       in
       case model.game of
         Unknown ->
@@ -440,14 +435,14 @@ updateWithEnvelope env model =
 
         KnowGameIdOnly gameId _ ->
           ( { model
-            | game = KnowGameIdOnly gameId Disconnected
+            | game = KnowGameIdOnly gameId conn
             }
           , Cmd.none
           )
 
         Gathering state ->
           ( { model
-            | game = Gathering { state | connected = Disconnected }
+            | game = Gathering { state | connected = conn }
             }
           , Cmd.none
           )
@@ -578,32 +573,35 @@ joinEnabled model =
     draftIsThisGame =
       not(inGame model.draftGameId)
     disconnected =
-      not(isConnected model.game)
+      (connectivity model.game /= BGF.Opened)
   in
   goodId
   && (draftIsThisGame || disconnected)
 
 
-isConnected : Game -> Bool
-isConnected game =
+connectivity : Game -> BGF.Connectivity
+connectivity game =
   case game of
     Unknown ->
-      False
+      BGF.Closed
 
     KnowGameIdOnly _ c ->
-      c == Connected
+      c
 
     Gathering state ->
-      state.connected == Connected
+      state.connected
 
 
 viewConnectivity : Model -> El.Element Msg
 viewConnectivity model =
-  case isConnected model.game of
-    True ->
+  case connectivity model.game of
+    BGF.Opened ->
       UI.greenLight "Connected"
 
-    False ->
+    BGF.Reconnecting ->
+      UI.redLight "Reconnecting"
+
+    BGF.Closed ->
       UI.redLight "Disconnected"
 
 
