@@ -160,18 +160,17 @@ and an `"entered"` field (which is a boolean).
 decodeEnvelope : Dec.Decoder a -> Enc.Value -> Result Error (Envelope a)
 decodeEnvelope bodyDecoder v =
   let
-    --sayError = Dec.succeed "error"
-    intentDec =
-      Dec.field "Intent" (Dec.map (\a -> ("intent", a)) Dec.string)
-    connectionDec =
-      Dec.field "connection" (Dec.map (\a -> ("connection", a)) Dec.string)
-    errorDec =
-      Dec.field "error" (Dec.map (\a -> ("error", a)) Dec.string)
+    stringFieldDec field =
+      Dec.field field Dec.string
+      |> Dec.map (\val -> (field, val))
+    intentDec = stringFieldDec "Intent"
+    connectionDec = stringFieldDec "connection"
+    errorDec = stringFieldDec "error"
     purposeDec = Dec.oneOf [intentDec, connectionDec, errorDec]
     purpose = Dec.decodeValue purposeDec v
   in
   case purpose of
-    Ok ("intent", "Welcome") ->
+    Ok ("Intent", "Welcome") ->
       let
         toRes = Dec.decodeValue (Dec.field "To" singletonStringDecoder) v
         fromRes = Dec.decodeValue (Dec.field "From" (Dec.list Dec.string)) v
@@ -188,7 +187,7 @@ decodeEnvelope bodyDecoder v =
         Result.map4 make toRes fromRes numRes timeRes
         |> Result.mapError Json
 
-    Ok ("intent", "Peer") ->
+    Ok ("Intent", "Peer") ->
       let
         fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
@@ -207,7 +206,7 @@ decodeEnvelope bodyDecoder v =
         Result.map5 make toRes fromRes numRes timeRes bodyRes
         |> Result.mapError Json
 
-    Ok ("intent", "Receipt") ->
+    Ok ("Intent", "Receipt") ->
       let
         fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
@@ -226,7 +225,7 @@ decodeEnvelope bodyDecoder v =
         Result.map5 make toRes fromRes numRes timeRes bodyRes
         |> Result.mapError Json
 
-    Ok ("intent", "Joiner") ->
+    Ok ("Intent", "Joiner") ->
       let
         fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
@@ -243,7 +242,7 @@ decodeEnvelope bodyDecoder v =
         Result.map4 make toRes fromRes numRes timeRes
         |> Result.mapError Json
 
-    Ok ("intent", "Leaver") ->
+    Ok ("Intent", "Leaver") ->
       let
         fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
         toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
@@ -280,7 +279,7 @@ decodeEnvelope bodyDecoder v =
             Err (Json e)-}
 
     Ok (field, val) ->
-      Err (LowLevel <| "Unknown " ++ field ++ ": '" ++ val ++ "'")
+      Err (LowLevel <| "Unrecognised " ++ field ++ ": '" ++ val ++ "'")
 
     Err desc ->
       Err (Json desc)

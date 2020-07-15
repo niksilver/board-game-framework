@@ -300,7 +300,7 @@ decodeEnvelopeTest =
         \_ ->
           Enc.object [ ("connection", Enc.string "garbage") ]
           |> decodeEnvelope simpleDecoder
-          |> Expect.equal (Err (LowLevel "Unknown connection: 'garbage'"))
+          |> Expect.equal (Err (LowLevel "Unrecognised connection: 'garbage'"))
 
       , test "Bad connection (non-string)" <|
         \_ ->
@@ -328,7 +328,7 @@ decodeEnvelopeTest =
       ]
 
     , describe "Nonsense envelope" <|
-      [ test "Intent doesn't make sense" <|
+      [ test "Intent not recognised" <|
         \_ ->
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234"])
@@ -337,19 +337,26 @@ decodeEnvelopeTest =
           , ("Intent", Enc.string "Peculiar")
           ]
           |> decodeEnvelope simpleDecoder
+          |> Expect.equal (Err (LowLevel "Unrecognised Intent: 'Peculiar'"))
+
+      , test "Not of recognised format" <|
+        \_ ->
+          Enc.object
+          [ ("Frim", Enc.list Enc.string ["222.234"])
+          , ("Tx", Enc.list Enc.string ["123.456"])
+          , ("Tome", Enc.int 987654)
+          , ("Ontint", Enc.string "Peculiar")
+          ]
+          |> decodeEnvelope simpleDecoder
           |> \res ->
             case res of
-              Err (LowLevel desc) ->
-                if desc |> String.contains "intent" then
-                  Expect.pass
-                else
-                  Expect.fail <| "Wrong error description: " ++ desc
-
               Err (Json _) ->
-                Expect.fail "Got error, but it was a JSON error"
-
+                Expect.pass
+              Err (LowLevel desc) ->
+                Expect.fail ("Expected JSON error but got low level: " ++ desc)
               Ok _ ->
-                Expect.fail "Was okay, but expected error"
+                Expect.fail "Expected JSON error but got Ok"
+
 
       , testWontParse "Envelope isn't an object" <|
           Enc.int 222
