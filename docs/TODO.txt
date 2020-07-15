@@ -1,5 +1,3 @@
-- JavaScript framework to keep trying to reconnect, and send a
-  "reconnecting" envelope.
 - Have client-side client ID stored in local storage.
 - Create an "actioned data" demo, which uses the structured data.
 - Noughts and crosses demo.
@@ -80,3 +78,5 @@ DONE:
 - Ensure App Engine runs with only one instance.
 - Trying to connect with a bad lastnum or over the max clients limit
   gets rejected before a websocket upgrade.
+- JavaScript framework to keep trying to reconnect, and send a
+  "connecting" envelope.

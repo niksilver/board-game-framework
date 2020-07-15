@@ -14,28 +14,36 @@ There are three core components in the Go code:
   When a new client joins it gets its hub from the superhub.
   When a client disconnects it tells the superhub.
 
+## Initial request
+
+An initial request from an end user comes in as an HTTP request
+asking to upgrade to a websocket. The request is to
+`https://some.server.name/g/some-game-id`.
+The `/g/` path prefix tells the server the request is to join a game,
+and `some-game-id` is the ID of the game. All clients that join
+with the same game ID join the same game.
+
 ## Client initialisation
 
 When the client starts it announces itself to the hub, and waits for
 either a initial queue of messages or an error. In the event of an
-error the websocket connection fails. Otherwise the websocket connection
-is created and the client starts its send and receive goroutines.
+error the websocket connection closes.
+Otherwise client starts its send and receive goroutines.
 
 ## Message flow
 
 After client initialisation, the
-flow of messages (e.g. from the end user) is strictly
+flow of messages (from the end user) is strictly
 (i) into the client's receiveExt goroutine,
 (ii) into the hub's receiveInt goroutine,
 (iii) into the client's sendExt goroutine.
 
 The only way the sendExt goroutine can communicate with the receiveExt
-goroutine is by closing the websocket connection. receiveExt will then
-pick this up and trigger a shutdown.
-
-If receiveExt notices its connection is closed it sends a message to the
-hub. The hub tells sendExt by closing the message channel between them.
-Then the client can shut down.
+goroutine is by closing the websocket connection. receiveExt will
+pick this up and trigger a shutdown of itself.
+It does this by first sending a message to the hub.
+The hub tells sendExt about a shutdown by closing the message channel
+to sendExt. Then the client can shut down.
 
 ## Clients in the hub
 
@@ -70,8 +78,8 @@ reconnection logic is managed between the hub and the superhub.
 When the hub sends a message to any client it also stores the message
 in a buffer.
 When a client tells the hub it has been disconnected
-the hub shuts down the client
-but continues to remember it as a disconnected client. The hub will continue
+the hub shuts down the client but
+continues to remember it as a disconnected client. The hub will continue
 to buffer messages for the disconnected client just as it does for
 connected clients.
 
@@ -92,7 +100,7 @@ request in one of two circumstances.
   a lastnum, in which case it gets a welcome message, and other clients
   are told about a new joiner.
 * A client connects with a lastnum,
-  and the hub had buffered messages from the next num onwards for that
+  and the hub has buffered messages from the next num onwards for that
   client ID. In this case the new client joins without any welcome or joiner
   messages, and it just receives envelopes with the next num onwards.
   If there was a previous client connected with that client ID then it

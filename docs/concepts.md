@@ -8,13 +8,14 @@ described in general terms, independent of programming language.
 
 Once a client connects to the server it can send and receive messages.
 A client sends a simple message (almost certainly JSON).
-The server wraps it in an envelope,
-with some metadata, and sends that out to all the cliens. The server
-also sends envelopes when clients leave and join the game.
+The server wraps it in an envelope with some metadata,
+and sends that out to all the clients,
+including the client which originally sent it.
+The server also sends envelopes when clients leave and join the game.
 
-Each envelope has an "intent", which describes the nature of the
-envelope contents. These are the envelope intents that a client can
-receive:
+Each envelope sent by the server has an "intent",
+which describes the nature of the envelope contents.
+These are the envelope intents that a client can receive:
 
 * Welcome. Received by a client when it joins.
 * Joiner. Received by a client when a new client joins the game.
@@ -22,12 +23,11 @@ receive:
 * Peer. Containing a message sent by another client.
 * Receipt. Containing the client's own message when it sends one.
 
-Additionally there are two other kinds of messages, which are presented
-differently depending on which layer we're considering.
+A JavaScript small layer sits between a client application and the server
+to make connectivity easier. It adds two other kinds of messages for clients:
 
-* Closed. When the connection closes.
+* Connection. Provides a simple update when the connection status changes.
 * Error. If there is some error either decoding JSON or with the connection.
-  A connection error is always followed by a Closed.
 
 ## Connecting to the server
 
@@ -209,7 +209,7 @@ Peer/Receipt envelopes will all have the same values in the
 `Num` and `Time` fields. This is to aid synchronisation.
 
 
-### Error and Closed
+### Connection messages
 
 See documentaton on the Elm and Javascript libraries for more on these,
 as the details are specific to each library.
