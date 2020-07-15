@@ -277,12 +277,41 @@ decodeEnvelopeTest =
 
        ]
 
-    , describe "Decode closed" <|
-      [ test "Good closed" <|
+    , describe "Decode connection" <|
+      [ test "Good opened" <|
+        \_ ->
+          Enc.object [ ("connection", Enc.string "opened") ]
+          |> decodeEnvelope simpleDecoder
+          |> Expect.equal (Ok (Connection Opened))
+
+      , test "Good reconnecting" <|
+        \_ ->
+          Enc.object [ ("connection", Enc.string "reconnecting") ]
+          |> decodeEnvelope simpleDecoder
+          |> Expect.equal (Ok (Connection Reconnecting))
+
+      , test "Good closed" <|
         \_ ->
           Enc.object [ ("connection", Enc.string "closed") ]
           |> decodeEnvelope simpleDecoder
           |> Expect.equal (Ok (Connection Closed))
+
+      , test "Bad connection (string)" <|
+        \_ ->
+          Enc.object [ ("connection", Enc.string "garbage") ]
+          |> decodeEnvelope simpleDecoder
+          |> Expect.equal (Err (LowLevel "Unknown connection: 'garbage'"))
+
+      , test "Bad connection (non-string)" <|
+        \_ ->
+          Enc.object [ ("connection", Enc.int 667) ]
+          |> decodeEnvelope simpleDecoder
+          |> \res ->
+            case res of
+              Err (Json _) ->
+                Expect.pass
+              _ ->
+                Expect.fail "Expected JSON error, but got something else"
 
       ]
 
