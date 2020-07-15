@@ -88,7 +88,6 @@ function BoardGameFramework() {
     // Opening a second websocket will close the first one.
     this.open = function(url) {
         this._ws = this._newWebSocket(url);
-        console.log("open: Opened url " + url);
 
         this._ws.onopen = function(evt) {
             // We've got an open connection
@@ -96,7 +95,6 @@ function BoardGameFramework() {
             // Take action when this connection is deemed stable
             top._stableTimeoutID =
                 setTimeout(function() {
-                    console.log('open.onopen.setTimeout: fired');
                     top._sendConnEnv('opened');
                 }, top._stablePeriod);
         }
@@ -115,7 +113,6 @@ function BoardGameFramework() {
             // We got a close; should we reconnect for the main app?
             if (top._baseURL != null) {
                 // Need to reconnect
-                console.log('open.onclose: Need to reconnect');
                 // Tell the app we're reconnecting if it's our first time
                 if (top._lastConnEnv != 'reconnecting') {
                     top._sendConnEnv('reconnecting');
@@ -164,10 +161,8 @@ function BoardGameFramework() {
         }
 
         this._ws.onerror = function(evt) {
-            // REMOVE THIS - IT'S JUST HERE FOR TESTING!
-            for (const [key, value] of Object.entries(evt)) {
-                console.log("open.onerror: " + key + "=" + value);
-            }
+            // We've got an error from the websocket;
+            console.log("open.onmessage: Got event");
             // Error details can't be determined by design. See
             // https://stackoverflow.com/a/31003057/1830955
             // The browser will also close the websocket

@@ -280,15 +280,9 @@ decodeEnvelopeTest =
     , describe "Decode closed" <|
       [ test "Good closed" <|
         \_ ->
-          Enc.object [ ("closed", Enc.bool True) ]
+          Enc.object [ ("connection", Enc.string "closed") ]
           |> decodeEnvelope simpleDecoder
-          |> Expect.equal (Ok Closed)
-
-      , test "Unusual closed" <|
-        \_ ->
-          Enc.object [ ("closed", Enc.int 27) ]
-          |> decodeEnvelope simpleDecoder
-          |> Expect.equal (Ok Closed)
+          |> Expect.equal (Ok (Connection Closed))
 
       ]
 

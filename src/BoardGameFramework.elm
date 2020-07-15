@@ -5,7 +5,8 @@
 
 module BoardGameFramework exposing (
   idGenerator, isGoodGameId, isGoodGameIdMaybe, goodGameId, goodGameIdMaybe
-  , Envelope(..), Error(..), Request(..), encode, decodeEnvelope
+  , Envelope(..), Connectivity(..), Error(..), Request(..)
+  , encode, decodeEnvelope
   )
 
 {-| Types and functions help create remote multiplayer board games
@@ -20,7 +21,7 @@ in preparation for starting a game.
 
 # Communication
 Sending to and receiving from other players.
-@docs Envelope, Request, encode, decodeEnvelope
+@docs Envelope, Connectivity, Error, Request, encode, decodeEnvelope
 -}
 
 
@@ -85,7 +86,11 @@ type Envelope a =
   | Receipt {from: String, to: List String, num: Int, time: Int, body: a}
   | Joiner {joiner: String, to: List String, num: Int, time: Int}
   | Leaver {leaver: String, to: List String, num: Int, time: Int}
-  | Closed
+  | Connection Connectivity
+
+
+type Connectivity =
+  Closed
 
 
 {-| Errors reading the incoming envelope. If an error bubbles up from
@@ -156,7 +161,7 @@ decodeEnvelope bodyDecoder v =
     sayClosed = Dec.succeed "closed"
     sayError = Dec.succeed "error"
     intentDec = Dec.field "Intent" Dec.string
-    closedDec = Dec.field "closed" sayClosed
+    closedDec = Dec.field "connection" sayClosed
     errorDec = Dec.field "error" sayError
     purposeDec = Dec.oneOf [intentDec, closedDec, errorDec]
     purpose = Dec.decodeValue purposeDec v
@@ -252,7 +257,7 @@ decodeEnvelope bodyDecoder v =
         |> Result.mapError Json
 
     Ok "closed" ->
-      Ok Closed
+      Ok (Connection Closed)
 
     Ok "error" ->
       let
