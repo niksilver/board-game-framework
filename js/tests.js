@@ -30,6 +30,7 @@ test('Open action creates websocket', function(t) {
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
+    bgf.toApp = function(env){};
     bgf._newWebSocket = function(url) {
         urlUsed = url;
         return new EmptyWebSocket();
