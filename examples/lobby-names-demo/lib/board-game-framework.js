@@ -90,6 +90,7 @@ function BoardGameFramework() {
         this._ws = this._newWebSocket(url);
 
         this._ws.onopen = function(evt) {
+            console.log("onopen");
             // We've got an open connection
 
             // Take action when this connection is deemed stable
@@ -100,6 +101,7 @@ function BoardGameFramework() {
         }
 
         this._ws.onclose = async function(evt) {
+            console.log("onclose");
             // We've got an close connection.
 
             // Can't claim we've got a stable connection
@@ -139,6 +141,7 @@ function BoardGameFramework() {
         }
 
         this._ws.onmessage = function(evt) {
+            console.log("onmessage");
             // We've got an envelope from the server
 
             // An envelope means we've got a stable connection
@@ -164,6 +167,7 @@ function BoardGameFramework() {
         }
 
         this._ws.onerror = function(evt) {
+            console.log("onerror");
             // We've got an error from the websocket.
 
             // Error details can't be determined by design. See
@@ -178,6 +182,7 @@ function BoardGameFramework() {
 
     // Return a new websocket connection. To be overridden in tests.
     this._newWebSocket = function(url) {
+        console.log("new WebSocket: " + url);
         return new WebSocket(url);
     };
 

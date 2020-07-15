@@ -484,7 +484,7 @@ view model =
             ]
 
           _ ->
-            [ viewJoin model
+            [ viewLobbyTop model
             , viewFooter model
             ]
   }

@@ -284,11 +284,11 @@ decodeEnvelopeTest =
           |> decodeEnvelope simpleDecoder
           |> Expect.equal (Ok (Connection Opened))
 
-      , test "Good reconnecting" <|
+      , test "Good connecting" <|
         \_ ->
-          Enc.object [ ("connection", Enc.string "reconnecting") ]
+          Enc.object [ ("connection", Enc.string "connecting") ]
           |> decodeEnvelope simpleDecoder
-          |> Expect.equal (Ok (Connection Reconnecting))
+          |> Expect.equal (Ok (Connection Connecting))
 
       , test "Good closed" <|
         \_ ->

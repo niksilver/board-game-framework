@@ -32,7 +32,8 @@ function BoardGameFramework() {
     // Last num received. -1 means there was no last num received.
     this._num = -1;
 
-    // The string in the last connection envelope we've sent
+    // The string in the last connection envelope we've sent:
+    // opened, connecting, or closed.
     this._lastConnEnv = null;
 
     // A timeout ID for a function that fires when the timeout is stable;
@@ -88,6 +89,9 @@ function BoardGameFramework() {
     // Opening a second websocket will close the first one.
     this.open = function(url) {
         this._ws = this._newWebSocket(url);
+        if (top._lastConnEnv != 'connecting') {
+            top._sendConnEnv('connecting');
+        }
 
         this._ws.onopen = function(evt) {
             // We've got an open connection
@@ -115,8 +119,8 @@ function BoardGameFramework() {
             if (top._baseURL != null) {
                 // Need to reconnect
                 // Tell the app we're reconnecting if it's our first time
-                if (top._lastConnEnv != 'reconnecting') {
-                    top._sendConnEnv('reconnecting');
+                if (top._lastConnEnv != 'connecting') {
+                    top._sendConnEnv('connecting');
                 }
                 url = top._makeConnURL(top._baseURL);
                 await new Promise(r => setTimeout(r, top._delay()));

@@ -91,7 +91,7 @@ type Envelope a =
 
 type Connectivity =
   Opened
-  | Reconnecting
+  | Connecting
   | Closed
 
 
@@ -262,8 +262,8 @@ decodeEnvelope bodyDecoder v =
     Ok ("connection", "opened") ->
       Ok (Connection Opened)
 
-    Ok ("connection", "reconnecting") ->
-      Ok (Connection Reconnecting)
+    Ok ("connection", "connecting") ->
+      Ok (Connection Connecting)
 
     Ok ("connection", "closed") ->
       Ok (Connection Closed)

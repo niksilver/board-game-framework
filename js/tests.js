@@ -46,6 +46,31 @@ test('Open action creates websocket', function(t) {
     t.end();
 });
 
+test('Open action sends connecting envelope', function(t) {
+    // To check we called open, and used the right URL
+    let urlUsed = null;
+    // The last envelope sent to the web app
+    let envelope = 'Not set';
+
+    // Create a BGF with a stub websocket
+    bgf = new BGF.BoardGameFramework();
+    bgf.toApp = function(env) { envelope = env; };
+    bgf._newWebSocket = function(url) {
+        urlUsed = url;
+        return new EmptyWebSocket();
+    };
+    bgf._delay = function(){ return 1; };
+
+    // Do the open action
+    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+
+    // Check connecting envelope was sent
+    t.deepEqual({connection: 'connecting'}, envelope);
+
+    // Tell tape we're done
+    t.end();
+});
+
 test('Disconnection means a retry at least once', function(t) {
     // Count the number of connections; first will succeed, then
     // we'll cut it; second will succeed.
@@ -106,7 +131,7 @@ test('Opened envelope sent only after stable period', function(t) {
         t.equal(connections, 1);
 
         // No 'opened' envelope yet... but should be after the stable period
-        t.equal(lastEnv, 'Untouched');
+        t.deepEqual(lastEnv, {connection: 'connecting'});
         await sleep(bgf._stablePeriod * 1.5);
         t.deepEqual(lastEnv, {connection: 'opened'});
     };
@@ -136,12 +161,15 @@ test('Opened envelope sent as soon as message received', function(t) {
     bgf._delay = function(){ return 1; };
 
     let tests = async function() {
-        // Do the open action, register onopen, the expect the 'opened'
+        // Do the open action, expect it to say it's connecting,
+        // register onopen, then expect the 'opened'
         // envelope only after the stable period.
         bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        t.deepEqual(envelopes, [{connection: 'connecting'}]);
+        envelopes = [];
         websocket.onopen({});
 
-        // Should have a connection, but no envelope yet
+        // Should have a connection, but no new envelope yet
         t.equal(connections, 1);
         t.deepEqual(envelopes, []);
 
@@ -176,12 +204,15 @@ test('Should not get second Opened envelope after message received', function(t)
     bgf._delay = function(){ return 1; };
 
     let tests = async function() {
-        // Do the open action, register onopen, the expect the 'opened'
+        // Do the open action, expect a 'connecting' message,
+        // register onopen, then expect the 'opened'
         // envelope only after the stable period.
         bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        t.deepEqual(envelopes, [{connection: 'connecting'}]);
+        envelopes = [];
         websocket.onopen({});
 
-        // Should have a connection, but no envelope yet
+        // Should have a connection, but no new envelope yet
         t.equal(connections, 1);
         t.deepEqual(envelopes, []);
 
@@ -222,12 +253,15 @@ test('Should not get second Opened envelope after second message', function(t) {
     bgf._delay = function(){ return 1; };
 
     let tests = async function() {
-        // Do the open action, register onopen, the expect the 'opened'
+        // Do the open action, expect a 'connecting' envelope,
+        // register onopen, then expect the 'opened'
         // envelope only after the stable period.
         bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        t.deepEqual(envelopes, [{connection: 'connecting'}]);
+        envelopes = [];
         websocket.onopen({});
 
-        // Should have a connection, but no envelope yet
+        // Should have a connection, but no new envelope yet
         t.equal(connections, 1);
         t.deepEqual(envelopes, []);
 
@@ -268,9 +302,12 @@ test('Opened envelope not sent while reconnecting', function(t) {
     bgf._delay = function(){ return 1; };
 
     let tests = async function() {
-        // Do the open action, register onopen, the expect the 'opened'
+        // Do the open action, expect a 'connecting' envelope,
+        // register onopen, the expect the 'opened'
         // envelope only after the stable period.
         bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        t.deepEqual(lastEnv, {connection: 'connecting'});
+        lastEnv = 'Untouched';
         websocket.onopen({});
 
         t.equal(connections, 1);
@@ -285,7 +322,7 @@ test('Opened envelope not sent while reconnecting', function(t) {
 
         t.equal(connections, 2);
         websocket.onopen({});
-        t.deepEqual(lastEnv, {connection: 'reconnecting'});
+        t.equal(lastEnv, 'Untouched');
         lastEnv = 'Untouched'
         await sleep(bgf._stablePeriod * 0.5);
         await websocket.onclose({});
@@ -411,7 +448,7 @@ test('Connecting with bad lastnum reconnects as new', function(t) {
     });
 });
 
-test('Sends reconnecting envelope just once when reconnecting', function(t) {
+test('Sends connecting envelope just once when reconnecting', function(t) {
     // Track the last envelope sent to the client
     let envelope = null;
     let websocket;
@@ -427,19 +464,20 @@ test('Sends reconnecting envelope just once when reconnecting', function(t) {
     };
     bgf._delay = function(){ return 1; };
 
-    // Do the open action, register onopen, then cut the connection once
-    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
-    websocket.onopen({});
-
-    // We will repeatedly close the connection and expect to get
-    // an envelope saying we're reconnecting. Then we'll check there
-    // are no more after that.
-
     let tests = async function() {
+        // Do the open action, expect a 'connecting' envelope,
+        // register onopen, then cut the connection once
+        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        t.deepEqual(envelope, {connection: 'connecting'});
+        envelope = 'Dummy untouched value';
+        websocket.onopen({});
+
+        // We will repeatedly close the connection and expect to get
+        // an envelope saying we're (re)connecting. Then we'll check there
+        // are no more after that.
+
         await websocket.onclose({});
-        t.deepEqual(envelope,
-            {connection: 'reconnecting'},
-            'Expected to receive reconnecting envelope');
+        t.equal(envelope, 'Dummy untouched value');
         envelope = 'Dummy untouched value';
 
         websocket.onopen({});
@@ -461,7 +499,7 @@ test('Sends reconnecting envelope just once when reconnecting', function(t) {
     });
 });
 
-test('Sends second reconnecting env after stable connection', function(t) {
+test('Sends second connecting env after stable connection', function(t) {
     // Track the last envelope sent to the client
     let envelope = null;
     // Flag if we've created a new websocket
@@ -486,14 +524,14 @@ test('Sends second reconnecting env after stable connection', function(t) {
     websocket.onopen({});
 
     // We will repeatedly close the connection and expect to get
-    // an envelope saying we're reconnecting. Then we'll check there
+    // an envelope saying we're (re)connecting. Then we'll check there
     // are no more after that.
 
     let tests = async function() {
         await websocket.onclose({});
         t.deepEqual(envelope,
-            {connection: 'reconnecting'},
-            'Expected to receive reconnecting envelope');
+            {connection: 'connecting'},
+            'Expected to receive connecting envelope');
         envelope = 'Dummy untouched value';
 
         // Check we've created a new websocket, then reset the flag
@@ -515,8 +553,8 @@ test('Sends second reconnecting env after stable connection', function(t) {
 
         await websocket.onclose({});
         t.deepEqual(envelope,
-            {connection: 'reconnecting'},
-            'Expected to receive second reconnecting envelope');
+            {connection: 'connecting'},
+            'Expected to receive second connecting envelope');
     };
 
     tests().then(result => {
