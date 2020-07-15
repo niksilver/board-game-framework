@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <!-- Load the Javascript library for our board game framework -->
     <script type="text/javascript" src="lib/board-game-framework.js"></script>
-    <script>  
+    <script>
         // Application-specific code
 
         serverURL = "wss://boardgamefwk.nw.r.appspot.com";
@@ -35,7 +35,7 @@
             var bgf = new BoardGameFramework();
 
             // This is what we'll do when the framework sends data to our app
-            bgf.toapp = function(env) {
+            bgf.toApp = function(env) {
                 print(JSON.stringify(env));
             }
 

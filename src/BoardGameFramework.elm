@@ -270,13 +270,6 @@ decodeEnvelope bodyDecoder v =
 
     Ok ("error", str) ->
       Err (LowLevel str)
-      {- let
-        errorRes = Dec.decodeValue (Dec.field "error" Dec.string) v
-      in
-        case errorRes of
-          Ok str ->
-          Err e ->
-            Err (Json e)-}
 
     Ok (field, val) ->
       Err (LowLevel <| "Unrecognised " ++ field ++ ": '" ++ val ++ "'")

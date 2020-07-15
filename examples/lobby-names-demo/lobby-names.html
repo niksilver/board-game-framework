@@ -15,7 +15,7 @@
         var bgf = new BoardGameFramework();
 
         // Link incoming envelopes to our app
-        bgf.toapp = function(env) {
+        bgf.toApp = function(env) {
             app.ports.incoming.send(env);
         };
 

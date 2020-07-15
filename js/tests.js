@@ -54,7 +54,7 @@ test('Disconnection means a retry at least once', function(t) {
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
-    bgf.toapp = function(env) {};
+    bgf.toApp = function(env) {};
     bgf._newWebSocket = function(url) {
         ++connections;
         websocket = new EmptyWebSocket();
@@ -88,8 +88,8 @@ test('Opened envelope sent only after stable period', function(t) {
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
+    bgf.toApp = function(env) { lastEnv = env; };
     bgf._stablePeriod = 500;
-    bgf.toapp = function(env) { lastEnv = env; };
     bgf._newWebSocket = function(url) {
         ++connections;
         websocket = new EmptyWebSocket();
@@ -126,8 +126,8 @@ test('Opened envelope sent as soon as message received', function(t) {
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
+    bgf.toApp = function(env) { envelopes.push(env); };
     bgf._stablePeriod = 500;
-    bgf.toapp = function(env) { envelopes.push(env); };
     bgf._newWebSocket = function(url) {
         ++connections;
         websocket = new EmptyWebSocket();
@@ -166,8 +166,8 @@ test('Should not get second Opened envelope after message received', function(t)
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
+    bgf.toApp = function(env) { envelopes.push(env); };
     bgf._stablePeriod = 500;
-    bgf.toapp = function(env) { envelopes.push(env); };
     bgf._newWebSocket = function(url) {
         ++connections;
         websocket = new EmptyWebSocket();
@@ -212,8 +212,8 @@ test('Should not get second Opened envelope after second message', function(t) {
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
+    bgf.toApp = function(env) { envelopes.push(env); };
     bgf._stablePeriod = 500;
-    bgf.toapp = function(env) { envelopes.push(env); };
     bgf._newWebSocket = function(url) {
         ++connections;
         websocket = new EmptyWebSocket();
@@ -258,8 +258,8 @@ test('Opened envelope not sent while reconnecting', function(t) {
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
+    bgf.toApp = function(env) { lastEnv = env; };
     bgf._stablePeriod = 300;
-    bgf.toapp = function(env) { lastEnv = env; };
     bgf._newWebSocket = function(url) {
         ++connections;
         websocket = new EmptyWebSocket();
@@ -321,7 +321,7 @@ test('Disconnection means continuous retries', function(t) {
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
-    bgf.toapp = function(env) {};
+    bgf.toApp = function(env) {};
     bgf._newWebSocket = function(url) {
         ++connections;
         websocket = new EmptyWebSocket();
@@ -372,10 +372,9 @@ test('Connecting with bad lastnum reconnects as new', function(t) {
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
-    bgf.toapp = function(env) {};
+    bgf.toApp = function(env) {};
     bgf._newWebSocket = function(url) {
         lastURL = url;
-        console.log("fn: url = " + url);
         websocket = new EmptyWebSocket();
         return websocket;
     };
@@ -419,7 +418,7 @@ test('Sends reconnecting envelope just once when reconnecting', function(t) {
 
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
-    bgf.toapp = function(env) {
+    bgf.toApp = function(env) {
         envelope = env;
     };
     bgf._newWebSocket = function(url) {
@@ -472,7 +471,7 @@ test('Sends second reconnecting env after stable connection', function(t) {
     // Create a BGF with a stub websocket
     bgf = new BGF.BoardGameFramework();
     bgf._stablePeriod = 500;
-    bgf.toapp = function(env) {
+    bgf.toApp = function(env) {
         envelope = env;
     };
     bgf._newWebSocket = function(url) {

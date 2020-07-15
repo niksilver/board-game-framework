@@ -4,6 +4,12 @@
 
 // The layer from our application to the plumbing
 function BoardGameFramework() {
+    // Send an envelope of data to the main application.
+    // Replace this default implementation in your app.
+    this.toApp = function(env) {
+        console.log("toApp(env). Replace this with your own implementation");
+    };
+
     // This function
     var top = this;
 
@@ -37,12 +43,6 @@ function BoardGameFramework() {
     // we're connected (in milliseconds).
     this._stablePeriod = 2000;
 
-    // Send an envelope of data to the main application.
-    // Replace this default implementation in your app.
-    this.toapp = function(env) {
-        console.log("toapp(env). Replace this with your own implementation");
-    };
-
     // Act on an instruction from the main app: Open, Close, Send
     this.act = function(data) {
         switch (data.instruction) {
@@ -73,13 +73,13 @@ function BoardGameFramework() {
                 return;
             case 'Send':
                 if (!this._ws) {
-                    this.toapp({error: "Send: Websocket not configured"});
+                    this.toApp({error: "Send: Websocket not configured"});
                     return;
                 }
                 this._ws.send(JSON.stringify(data.body));
                 return;
             default:
-                this.toapp({error: "Unrecognised instruction"});
+                this.toApp({error: "Unrecognised instruction"});
                 return;
         }
     };
@@ -91,7 +91,7 @@ function BoardGameFramework() {
 
         this._ws.onopen = function(evt) {
             // We've got an open connection
-            console.log("open.onopen: Got event");
+
             // Take action when this connection is deemed stable
             top._stableTimeoutID =
                 setTimeout(function() {
@@ -101,7 +101,7 @@ function BoardGameFramework() {
 
         this._ws.onclose = async function(evt) {
             // We've got an close connection.
-            console.log("open.onclose: Got event");
+
             // Can't claim we've got a stable connection
             clearTimeout(top._stableTimeoutID);
             // Reset the lastnum if we've been told it's bad
@@ -110,6 +110,7 @@ function BoardGameFramework() {
                     evt.reason.includes('lastnum'))) {
                 top._num = -1;
             }
+
             // We got a close; should we reconnect for the main app?
             if (top._baseURL != null) {
                 // Need to reconnect
@@ -122,11 +123,13 @@ function BoardGameFramework() {
                 top.open(url);
                 return;
             }
+
             // We accept this close
             top._sendConnEnv('closed');
             top._ws = null;
             top._baseURL = null;
             top._num = -1;
+
             // Open the next connection if there is one
             if (top._nextOpen) {
                 url = top._nextOpen;
@@ -137,7 +140,7 @@ function BoardGameFramework() {
 
         this._ws.onmessage = function(evt) {
             // We've got an envelope from the server
-            console.log("open.onmessage: Got event");
+
             // An envelope means we've got a stable connection
             if (top._lastConnEnv != 'opened') {
                 clearTimeout(top._stableTimeoutID);
@@ -157,18 +160,18 @@ function BoardGameFramework() {
             if (env.Num >= 0) {
                 top._num = env.Num;
             }
-            top.toapp(env);
+            top.toApp(env);
         }
 
         this._ws.onerror = function(evt) {
-            // We've got an error from the websocket;
-            console.log("open.onmessage: Got event");
+            // We've got an error from the websocket.
+
             // Error details can't be determined by design. See
             // https://stackoverflow.com/a/31003057/1830955
             // The browser will also close the websocket
             // Only pass on the error if wouldn't want to reconnect
             if (top._baseURL == null) {
-                top.toapp({error: "Websocket error"});
+                top.toApp({error: "Websocket error"});
             }
         }
     };
@@ -204,7 +207,7 @@ function BoardGameFramework() {
 
     // Send a connection envelope to the app
     this._sendConnEnv = function(label) {
-        top.toapp({connection: label});
+        top.toApp({connection: label});
         top._lastConnEnv = label;
     };
 };
