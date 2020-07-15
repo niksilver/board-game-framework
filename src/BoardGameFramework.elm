@@ -50,20 +50,14 @@ idGenerator =
       Random.constant "xxx"
 
 
-isGoodGameIdMaybe : Maybe String -> Bool
-isGoodGameIdMaybe mId =
-  case mId of
-    Nothing -> False
+{-| A good game ID will have a good change of being unique and easy
+to communicate, especially in URLs.
+This test passes if it's at least five characters long and consists of just
+alphanumerics, dots and dashes.
 
-    Just id -> isGoodGameId id
-
-
-isGoodGameId : String -> Bool
-isGoodGameId id =
-  (String.length id >= 5) &&
-    String.all (\c -> Char.isAlphaNum c || c == '-' || c == '.') id
-
-
+    goodGameId "pancake-road" == Just "pancake-road"
+    goodGameId "#345#" == Nothing
+-}
 goodGameId : String -> Maybe String
 goodGameId id =
   if isGoodGameId id then
@@ -72,6 +66,24 @@ goodGameId id =
     Nothing
 
 
+{-| The boolean version of `goodGameId`. The clue is that it starts with
+"is".
+
+    isGoodGameId "pancake-road" == True
+    isGoodGameId "#345#" == False
+-}
+isGoodGameId : String -> Bool
+isGoodGameId id =
+  (String.length id >= 5) &&
+    String.all (\c -> Char.isAlphaNum c || c == '-' || c == '.') id
+
+
+{-| Like `goodGameId`, but considers the input as a `Maybe`.
+
+    isGoodGameId (Just "pancake-road") == Just "pancake-road"
+    isGoodGameId (Just "#345#") == Nothing
+    isGoodGameId Nothing == Nothing
+-}
 goodGameIdMaybe : Maybe String -> Maybe String
 goodGameIdMaybe mId =
   case mId of
@@ -80,15 +92,53 @@ goodGameIdMaybe mId =
     Nothing -> Nothing
 
 
+{-| Like `goodGameId`, but considers the input as a `Maybe` and its output
+as a boolean.
+
+    isGoodGameId (Just "pancake-road") == True
+    isGoodGameId (Just "#345#") == False
+    isGoodGameId Nothing == False
+-}
+isGoodGameIdMaybe : Maybe String -> Bool
+isGoodGameIdMaybe mId =
+  case mId of
+    Nothing -> False
+
+    Just id -> isGoodGameId id
+
+
+{-| A message from the server, or the connection layer.
+See [the concepts document](https://github.com/niksilver/board-game-framework/blob/master/docs/concepts.md)
+for many more details.
+
+The field names have consistent types and meaning:
+* `me`: a string indicating our client's own ID.
+* `others`: the IDs of all other clients currently in the game.
+* `from`: the ID of the client (not us) who sent the message.
+* `to`: the IDs of the clients to whom a message was sent, including us.
+* `joiner`: the ID of a client who has just joined.
+* `leaver`: the ID of a client who has just left.
+* `num`: the ID of the envelope. After a Welcomem envelope, nums will
+  be consecutive.
+* `time`: when the envelope was sent, in milliseconds since the epoch.
+* `body`: the application-specific message sent by the client.
+  The message is of type `a`.
+-}
 type Envelope a =
   Welcome {me: String, others: List String, num: Int, time: Int}
+  | Receipt {me: String, others: List String, num: Int, time: Int, body: a}
   | Peer {from: String, to: List String, num: Int, time: Int, body: a}
-  | Receipt {from: String, to: List String, num: Int, time: Int, body: a}
   | Joiner {joiner: String, to: List String, num: Int, time: Int}
   | Leaver {leaver: String, to: List String, num: Int, time: Int}
   | Connection Connectivity
 
 
+{-| The current connectivity state, sent when it changes.
+`Connecting` can also be interpretted as "reconnecting", because
+if the connection is lost then the underlying JavaScript will try to
+reconnect. `Closed` will only be received if the client explicitly
+asks for the connection to be closed.
+-}
 type Connectivity =
   Opened
   | Connecting
@@ -96,7 +146,7 @@ type Connectivity =
 
 
 {-| Errors reading the incoming envelope. If an error bubbles up from
-the connection library, or if the envelope intent is something unexpected,
+the JavaScript library, or if the envelope intent is something unexpected,
 that's a `LowLevel` error. If we can't decode
 the JSON with the given decoder, that's a `Json` error, with the
 specific error coming from the `Json.Decode` package.
@@ -119,7 +169,11 @@ singletonStringDecoder =
   |> Dec.andThen singleDecoder
 
 
-{-| Decode an incoming envelope.
+{-| Decode an incoming envelope. Messages from our peers (other clients)
+will be of some type `a` of our choosing. They will be encoded as
+JSON, so we need to provide a JSON decoder to decode any envelope.
+A successful decoding of an envelope will produce a
+`Ok (Envelope a)`. If there is a problem we will get an `Err Error`.
 
 In this example we expect our envelope body to be a JSON object
 containing a `"players"` field (which is a map of strings to strings)
@@ -137,9 +191,10 @@ and an `"entered"` field (which is a boolean).
       }
 
 
-    type alias Envelope = BGF.Envelope Body
+    type alias MyEnvelope = BGF.Envelope Body
 
 
+    -- A JSON decoder which transforms our JSON object into a Body.
     bodyDecoder : Dec.Decoder Body
     bodyDecoder =
       let
@@ -153,7 +208,8 @@ and an `"entered"` field (which is a boolean).
           enteredDec
 
 
-    result : Enc.value -> Result BGF.Error Envelope
+    -- Parse an envelope, which is some JSON value `v`.
+    result : Enc.value -> Result BGF.Error MyEnvelope
     result v =
       BGF.decodeEnvelope bodyDecoder v
 -}
@@ -208,21 +264,21 @@ decodeEnvelope bodyDecoder v =
 
     Ok ("Intent", "Receipt") ->
       let
-        fromRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
-        toRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
+        meRes = Dec.decodeValue (Dec.field "From" singletonStringDecoder) v
+        othersRes = Dec.decodeValue (Dec.field "To" (Dec.list Dec.string)) v
         numRes = Dec.decodeValue (Dec.field "Num" Dec.int) v
         timeRes = Dec.decodeValue (Dec.field "Time" Dec.int) v
         bodyRes = Dec.decodeValue (Dec.field "Body" bodyDecoder) v
-        make to from num time body =
+        make me others num time body =
           Receipt
-          { from = from
-          , to = to
+          { me = me
+          , others = others
           , num = num
           , time = time
           , body = body
           }
       in
-        Result.map5 make toRes fromRes numRes timeRes bodyRes
+        Result.map5 make meRes othersRes numRes timeRes bodyRes
         |> Result.mapError Json
 
     Ok ("Intent", "Joiner") ->
@@ -279,7 +335,7 @@ decodeEnvelope bodyDecoder v =
 
 
 {-| Request to be sent through a port.
-Open a connection to a game, send a message, or close the connection.
+We can open a connection to a game, send a message, or close the connection.
 -}
 type Request a =
   Open String

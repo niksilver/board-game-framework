@@ -176,8 +176,8 @@ decodeEnvelopeTest =
           case decodeEnvelope simpleDecoder j of
             Ok (Receipt data) ->
               Expect.all
-              [ \d -> Expect.equal "222.234" d.from
-              , \d -> Expect.equal ["123.456", "333.345"] d.to
+              [ \d -> Expect.equal "222.234" d.me
+              , \d -> Expect.equal ["123.456", "333.345"] d.others
               , \d -> Expect.equal 30 d.num
               , \d -> Expect.equal 8765432 d.time
               , \d -> Expect.equal {colour = "Red"} d.body
