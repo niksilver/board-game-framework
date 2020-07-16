@@ -165,10 +165,18 @@ type Envelope a =
 
 
 {-| The current connectivity state, sent when it changes.
+
 `Connecting` can also be interpretted as "reconnecting", because
 if the connection is lost then the underlying JavaScript will try to
-reconnect. `Closed` will only be received if the client explicitly
-asks for the connection to be closed.
+reconnect.
+
+`Closed` will only be received if the client explicitly
+asks for the connection to be closed; otherwise if a closed connection
+is detected the JavaScript will retry to reconnect.
+
+Both `Connecting` and `Closed` mean there isn't a server connection,
+but `Closed` means that the underlying JavaScript isn't attempting to
+change that.
 -}
 type Connectivity =
   Opened
@@ -427,7 +435,7 @@ and a `sendBodyCmd` to send a message of our own type `Body`.
 type Request a =
   Open String
   | Send a
---  | Close
+  | Close
 
 
 {-| Encode a `Request` to the server. It needs a JSON encoder for our
@@ -459,8 +467,7 @@ encode encoder req =
         , ("body", encoder body )
         ]
 
-{-    Close ->
+    Close ->
       Enc.object
         [ ("instruction", Enc.string "Close")
         ]
--}
