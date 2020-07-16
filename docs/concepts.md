@@ -79,8 +79,8 @@ it will be wrapped and sent to the other clients like this:
 The fields `From`, `To`, `Num`, `Time` and `Intent` appear in all
 envelopes apart from Closed, which doesn't have any other fields.
 
-The Elm library adjusts the names slightly to help with type safety
-and consistency between these types.
+The Elm library adjusts these names slightly to exploit type safety
+and consistency.
 
 ## Envelope details
 
