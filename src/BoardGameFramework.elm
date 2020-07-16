@@ -17,10 +17,24 @@ for detailed documentation and example code.
 # Lobby
 Enable players to gather and find a unique game ID
 in preparation for starting a game.
+
+You want something that is unique on that server and easy to communicate;
+it will become part of the connection URL, so characters are limited
+to alphanumerics, plus `.` (dot), `-` (hyphen) and `/`.
+The `goodGameId` functions validate this.
+There's a function to generate nice IDs with random words, such
+as `"cat-polygon"`, but you may like to add extra caution by
+adding a game-specific prefix, to make `"backgammon/cat-ploygon"`.
+Then the connection URL will be something like
+`"wss://game.server.name/g/backgammon/cat-polygon"`.
+
+Among the `goodGameId` functions, those that start with `is...` return
+a `Bool` (rather than a `Maybe String`) and those that end with
+`...Maybe` take a `Maybe String` (rather than a `String`).
 @docs idGenerator, isGoodGameId, isGoodGameIdMaybe, goodGameId, goodGameIdMaybe
 
 # Communication
-Sending to and receiving from other players.
+Sending to and receiving from other players, via the server.
 @docs Envelope, Connectivity, Error, Request, encode, decodeEnvelope
 -}
 
@@ -50,13 +64,14 @@ idGenerator =
       Random.constant "xxx"
 
 
-{-| A good game ID will have a good change of being unique and easy
+{-| A good game ID will have a good chance of being unique and wil be easy
 to communicate, especially in URLs.
 This test passes if it's at least five characters long and consists of just
-alphanumerics, dots and dashes.
+alphanumerics, dots, dashes, and forward slashes.
 
     goodGameId "pancake-road" == Just "pancake-road"
-    goodGameId "#345#" == Nothing
+    goodGameId "#345#" == Nothing    -- Bad characters
+    goodGameId "road" == Nothing     -- Too short
 -}
 goodGameId : String -> Maybe String
 goodGameId id =
@@ -70,19 +85,21 @@ goodGameId id =
 "is".
 
     isGoodGameId "pancake-road" == True
-    isGoodGameId "#345#" == False
+    isGoodGameId "#345#" == False    -- Bad characters
+    isGoodGameId "road" == False     -- Too short
 -}
 isGoodGameId : String -> Bool
 isGoodGameId id =
   (String.length id >= 5) &&
-    String.all (\c -> Char.isAlphaNum c || c == '-' || c == '.') id
+    String.all (\c -> Char.isAlphaNum c || c == '-' || c == '.' || c == '/') id
 
 
-{-| Like `goodGameId`, but considers the input as a `Maybe`.
+{-| Like `goodGameId`, but considers the input as a `Maybe String`.
 
-    isGoodGameId (Just "pancake-road") == Just "pancake-road"
-    isGoodGameId (Just "#345#") == Nothing
-    isGoodGameId Nothing == Nothing
+    goodGameIdMaybe (Just "pancake-road") == Just "pancake-road"
+    goodGameIdMaybe (Just "#345#") == Nothing    -- Bad characters
+    goodGameIdMaybe (Just "road") == False       -- Too short
+    goodGameIdMaybe Nothing == Nothing
 -}
 goodGameIdMaybe : Maybe String -> Maybe String
 goodGameIdMaybe mId =
@@ -92,12 +109,13 @@ goodGameIdMaybe mId =
     Nothing -> Nothing
 
 
-{-| Like `goodGameId`, but considers the input as a `Maybe` and its output
-as a boolean.
+{-| Like `goodGameId`, but considers the input as a `Maybe String`
+and its output as a boolean.
 
-    isGoodGameId (Just "pancake-road") == True
-    isGoodGameId (Just "#345#") == False
-    isGoodGameId Nothing == False
+    isGoodGameIdMaybe (Just "pancake-road") == True
+    isGoodGameIdMaybe (Just "#345#") == False    -- Bad characters
+    isGoodGameIdMaybe (Just "road") == False     -- Too short
+    isGoodGameIdMaybe Nothing == False
 -}
 isGoodGameIdMaybe : Maybe String -> Bool
 isGoodGameIdMaybe mId =
@@ -110,6 +128,14 @@ isGoodGameIdMaybe mId =
 {-| A message from the server, or the connection layer.
 See [the concepts document](https://github.com/niksilver/board-game-framework/blob/master/docs/concepts.md)
 for many more details.
+
+The envelopes are:
+* A welcome when our client joins;
+* A receipt containing any message we sent;
+* A message sent by another client peer;
+* Notice of another client joining;
+* Notice of another client leaving;
+* Change of status with the server connection.
 
 The field names have consistent types and meaning:
 * `me`: a string indicating our client's own ID.
@@ -169,10 +195,13 @@ singletonStringDecoder =
   |> Dec.andThen singleDecoder
 
 
-{-| Decode an incoming envelope. Messages from our peers (other clients)
-will be of some type `a` of our choosing. They will be encoded as
-JSON, so we need to provide a JSON decoder to decode any envelope.
-A successful decoding of an envelope will produce a
+{-| Decode an incoming envelope, which is initially expressed as JSON.
+An envelope may include a body, which a message from our peers (other
+clients) of some type `a`.
+Since a body is also JSON, and specific to our application,
+we need to provide a JSON decoder for that part.
+It will decode JSON and produce an `a`.
+If the decoding of the envelope is successful we will get an
 `Ok (Envelope a)`. If there is a problem we will get an `Err Error`.
 
 In this example we expect our envelope body to be a JSON object
@@ -212,6 +241,11 @@ and an `"entered"` field (which is a boolean).
     result : Enc.value -> Result BGF.Error MyEnvelope
     result v =
       BGF.decodeEnvelope bodyDecoder v
+
+In the above example we could also define `result` like this:
+
+    result =
+      BGF.decodeEnvelope bodyDecoder
 -}
 decodeEnvelope : Dec.Decoder a -> Enc.Value -> Result Error (Envelope a)
 decodeEnvelope bodyDecoder v =
@@ -336,6 +370,54 @@ decodeEnvelope bodyDecoder v =
 
 {-| Request to be sent through a port.
 We can open a connection to a game, send a message, or close the connection.
+
+When we open a connection we need to supply the full websocket
+URL to the server with the game id.
+
+When we send a message we need to encode the message (which is of type `a`)
+as JSON.
+
+In the example below we create an `openCmd` to open a connection,
+and a `sendBodyCmd` to send a message of our own type `Body`.
+
+    import Json.Encode as Enc
+    import BoardGameFramework as BGF
+
+
+    type alias Body =
+      { players : Dict String String
+      , entered : Bool
+      }
+
+
+    bodyEncoder : Body -> Enc.Value
+    bodyEncoder body =
+      Enc.object
+      [ ("players" , Enc.dict identity Enc.string body.players)
+      , ("entered" , Enc.bool body.entered)
+      ]
+
+
+    port outgoing : Enc.Value -> Cmd msg
+
+
+    serverURL : String
+    serverURL = "wss://boardgamefwk.nw.r.appspot.com"
+
+
+    openCmd : String -> Cmd msg
+    openCmd gameId =
+      BGF.Open (serverURL ++ "/g/" ++ gameId)
+      |> BGF.encode bodyEncoder
+      |> outgoing
+
+
+    sendBodyCmd : Body -> Cmd msg
+    sendBodyCmd body =
+      BGF.Send body
+      |> BGF.encode bodyEncoder
+      |> outgoing
+
 -}
 type Request a =
   Open String
@@ -343,6 +425,20 @@ type Request a =
 --  | Close
 
 
+{-| Encode a `Request` to the server. It needs a JSON encoder for our
+application-specific messages (type `a`) that get sent between peers.
+
+If we have defined an encoder `encoder` then it may be convenient to
+define our own `encode` function like this:
+
+    import Json.Encode as Enc
+    import BoardGameFramework as BGF
+
+
+    encode : BGF.Request a -> Enc.Value
+    encode =
+      BGF.encode encoder
+-}
 encode : (a -> Enc.Value) -> Request a -> Enc.Value
 encode encoder req =
   case req of

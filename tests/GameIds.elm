@@ -24,6 +24,10 @@ isGoodGameIdTest =
     \_ ->
       Expect.equal True <| isGoodGameId "0-1-23.a"
 
+  , test "good with slashes" <|
+    \_ ->
+      Expect.equal True <| isGoodGameId "oxox/part-many-ton"
+
   , test "too short" <|
     \_ ->
       Expect.equal False <| isGoodGameId "0123"
@@ -52,6 +56,10 @@ isGoodGameIdTestMaybe =
   , test "good with dashes and dots" <|
     \_ ->
       Expect.equal True <| isGoodGameIdMaybe (Just "0-1-23.a")
+
+  , test "good with slashes" <|
+    \_ ->
+      Expect.equal True <| isGoodGameIdMaybe (Just "oxox/part-many-ton")
 
   , test "too short" <|
     \_ ->
