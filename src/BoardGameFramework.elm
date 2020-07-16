@@ -6,13 +6,22 @@
 module BoardGameFramework exposing (
   idGenerator, isGoodGameId, isGoodGameIdMaybe, goodGameId, goodGameIdMaybe
   , Envelope(..), Connectivity(..), Error(..), Request(..)
-  , encode, decodeEnvelope
+  , encode, decode
   )
 
 {-| Types and functions help create remote multiplayer board games
 using the related framework. See
 [https://github.com/niksilver/board-game-framework](https://github.com/niksilver/board-game-framework)
 for detailed documentation and example code.
+
+# Basic actions: open, send, close
+@docs Request, encode
+
+# Receiving messages
+Any message another client sends gets wrapped in envelope, and we get the
+envelope. Communication under the hood is in JSON, so we need to say
+how to decode our application's JSON messages into some suitable Elm type.
+@docs Envelope, Connectivity, Error, decode
 
 # Lobby
 Enable players to gather and find a unique game ID
@@ -22,9 +31,9 @@ You want something that is unique on that server and easy to communicate;
 it will become part of the connection URL, so characters are limited
 to alphanumerics, plus `.` (dot), `-` (hyphen) and `/`.
 The `goodGameId` functions validate this.
-There's a function to generate nice IDs with random words, such
+There's a function to generate nice IDs with two random words, such
 as `"cat-polygon"`, but you may like to add extra caution by
-adding a game-specific prefix, to make `"backgammon/cat-ploygon"`.
+adding a game-specific prefix to make, say, `"backgammon/cat-ploygon"`.
 Then the connection URL will be something like
 `"wss://game.server.name/g/backgammon/cat-polygon"`.
 
@@ -32,10 +41,6 @@ Among the `goodGameId` functions, those that start with `is...` return
 a `Bool` (rather than a `Maybe String`) and those that end with
 `...Maybe` take a `Maybe String` (rather than a `String`).
 @docs idGenerator, isGoodGameId, isGoodGameIdMaybe, goodGameId, goodGameIdMaybe
-
-# Communication
-Sending to and receiving from other players, via the server.
-@docs Envelope, Connectivity, Error, Request, encode, decodeEnvelope
 -}
 
 
@@ -50,14 +55,14 @@ import Words
 
 
 {-| A random name generator for game IDs, which will be of the form
-"_word_-_word_-_word_".
+"_word_-_word_".
 -}
 idGenerator : Random.Generator String
 idGenerator =
   case Words.words of
     head :: tail ->
       Random.uniform head tail
-      |> Random.list 3
+      |> Random.list 2
       |> Random.map (\w -> String.join "-" w)
 
     _ ->
@@ -232,23 +237,23 @@ and an `"entered"` field (which is a boolean).
         enteredDec =
           Dec.field "entered" Dec.bool
       in
-        Dec.map2 Body
-          playersDec
-          enteredDec
+      Dec.map2 Body
+        playersDec
+        enteredDec
 
 
     -- Parse an envelope, which is some JSON value `v`.
     result : Enc.value -> Result BGF.Error MyEnvelope
     result v =
-      BGF.decodeEnvelope bodyDecoder v
+      BGF.decode bodyDecoder v
 
 In the above example we could also define `result` like this:
 
     result =
-      BGF.decodeEnvelope bodyDecoder
+      BGF.decode bodyDecoder
 -}
-decodeEnvelope : Dec.Decoder a -> Enc.Value -> Result Error (Envelope a)
-decodeEnvelope bodyDecoder v =
+decode : Dec.Decoder a -> Enc.Value -> Result Error (Envelope a)
+decode bodyDecoder v =
   let
     stringFieldDec field =
       Dec.field field Dec.string

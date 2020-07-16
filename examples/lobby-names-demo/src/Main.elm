@@ -457,12 +457,12 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  incoming decodeEnvelope
+  incoming decode
 
 
-decodeEnvelope : Enc.Value -> Msg
-decodeEnvelope v =
-  BGF.decodeEnvelope bodyDecoder v |> Received
+decode : Enc.Value -> Msg
+decode v =
+  BGF.decode bodyDecoder v |> Received
 
 
 -- View

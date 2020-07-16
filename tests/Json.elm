@@ -10,9 +10,9 @@ import Json.Decode as Dec
 import BoardGameFramework exposing (..)
 
 
-decodeEnvelopeTest : Test
-decodeEnvelopeTest =
-  describe "decodeEnvelope test"
+decodeTest : Test
+decodeTest =
+  describe "decode test"
 
     [ describe "Decode Welcome" <|
       [ test "Good Welcome" <|
@@ -27,7 +27,7 @@ decodeEnvelopeTest =
             ]
         in
         \_ ->
-          case decodeEnvelope simpleDecoder j of
+          case decode simpleDecoder j of
             Ok (Welcome data) ->
               Expect.all
               [ \d -> Expect.equal "123.456" d.me
@@ -126,7 +126,7 @@ decodeEnvelopeTest =
             ]
         in
         \_ ->
-          case decodeEnvelope simpleDecoder j of
+          case decode simpleDecoder j of
             Ok (Peer data) ->
               Expect.all
               [ \d -> Expect.equal "222.234" d.from
@@ -173,7 +173,7 @@ decodeEnvelopeTest =
             ]
         in
         \_ ->
-          case decodeEnvelope simpleDecoder j of
+          case decode simpleDecoder j of
             Ok (Receipt data) ->
               Expect.all
               [ \d -> Expect.equal "222.234" d.me
@@ -220,7 +220,7 @@ decodeEnvelopeTest =
             ]
         in
         \_ ->
-          case decodeEnvelope simpleDecoder j of
+          case decode simpleDecoder j of
             Ok (Joiner data) ->
               Expect.all
               [ \d -> Expect.equal "222.234" d.joiner
@@ -255,7 +255,7 @@ decodeEnvelopeTest =
             ]
         in
         \_ ->
-          case decodeEnvelope simpleDecoder j of
+          case decode simpleDecoder j of
             Ok (Leaver data) ->
               Expect.all
               [ \d -> Expect.equal "222.234" d.leaver
@@ -281,31 +281,31 @@ decodeEnvelopeTest =
       [ test "Good opened" <|
         \_ ->
           Enc.object [ ("connection", Enc.string "opened") ]
-          |> decodeEnvelope simpleDecoder
+          |> decode simpleDecoder
           |> Expect.equal (Ok (Connection Opened))
 
       , test "Good connecting" <|
         \_ ->
           Enc.object [ ("connection", Enc.string "connecting") ]
-          |> decodeEnvelope simpleDecoder
+          |> decode simpleDecoder
           |> Expect.equal (Ok (Connection Connecting))
 
       , test "Good closed" <|
         \_ ->
           Enc.object [ ("connection", Enc.string "closed") ]
-          |> decodeEnvelope simpleDecoder
+          |> decode simpleDecoder
           |> Expect.equal (Ok (Connection Closed))
 
       , test "Bad connection (string)" <|
         \_ ->
           Enc.object [ ("connection", Enc.string "garbage") ]
-          |> decodeEnvelope simpleDecoder
+          |> decode simpleDecoder
           |> Expect.equal (Err (LowLevel "Unrecognised connection: 'garbage'"))
 
       , test "Bad connection (non-string)" <|
         \_ ->
           Enc.object [ ("connection", Enc.int 667) ]
-          |> decodeEnvelope simpleDecoder
+          |> decode simpleDecoder
           |> \res ->
             case res of
               Err (Json _) ->
@@ -319,7 +319,7 @@ decodeEnvelopeTest =
       [ test "Good error" <|
         \_ ->
           Enc.object [ ("error", Enc.string "This is my error") ]
-          |> decodeEnvelope simpleDecoder
+          |> decode simpleDecoder
           |> Expect.equal (Err (LowLevel "This is my error"))
 
       , testWontParse "Error isn't a string" <|
@@ -336,7 +336,7 @@ decodeEnvelopeTest =
           , ("Time", Enc.int 987654)
           , ("Intent", Enc.string "Peculiar")
           ]
-          |> decodeEnvelope simpleDecoder
+          |> decode simpleDecoder
           |> Expect.equal (Err (LowLevel "Unrecognised Intent: 'Peculiar'"))
 
       , test "Not of recognised format" <|
@@ -347,7 +347,7 @@ decodeEnvelopeTest =
           , ("Tome", Enc.int 987654)
           , ("Ontint", Enc.string "Peculiar")
           ]
-          |> decodeEnvelope simpleDecoder
+          |> decode simpleDecoder
           |> \res ->
             case res of
               Err (Json _) ->
@@ -370,7 +370,7 @@ testWontParse : String -> Enc.Value -> Test
 testWontParse desc json =
   test desc <|
   \_ ->
-    case decodeEnvelope simpleDecoder json of
+    case decode simpleDecoder json of
       Err (Json _) ->
         Expect.pass
       Err (LowLevel str) ->
