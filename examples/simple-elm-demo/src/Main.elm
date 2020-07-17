@@ -15,6 +15,7 @@ import List
 import Maybe
 import String
 
+import BoardGameFramework as BGF
 
 main =
   Browser.element
@@ -83,7 +84,10 @@ update msg model =
       )
 
     OpenClick ->
-      (model, Open model.draftGameId |> encode |> outgoing)
+      let
+        url = serverURL ++ "/g/" ++ model.draftGameId
+      in
+      (model, BGF.Open url |> encode |> outgoing)
 
     Words w ->
       let
@@ -104,17 +108,19 @@ update msg model =
     WholeNumber nStr ->
       let
         body = model.body
-        n = String.toInt nStr |> Maybe.withDefault model.body.draftWholeNumber
+        n =
+          String.toInt nStr
+          |> Maybe.withDefault model.body.draftWholeNumber
       in
       ( { model | body = { body | draftWholeNumber = n }}
       , Cmd.none
       )
 
     SendClick ->
-      (model, Send model.body |> encode |> outgoing)
+      (model, BGF.Send model.body |> encode |> outgoing)
 
     CloseClick ->
-      (model, Close |> encode |> outgoing)
+      (model, BGF.Close |> encode |> outgoing)
 
     Received env ->
       ( { model
@@ -139,43 +145,26 @@ port outgoing : Enc.Value -> Cmd msg
 port incoming : (Enc.Value -> msg) -> Sub msg
 
 
-type Request =
-  Open String
-  | Send Body
-  | Close
-
-
 -- Turn an application request into something that can be sent out
 -- through a port
 
-encode : Request -> Enc.Value
-encode req =
-  case req of
-    Open gameId ->
-      Enc.object
-        [ ("instruction", Enc.string "Open")
-        , ("url", serverURL ++ "/g/" ++ gameId |> Enc.string)
-        ]
+encoder : Body -> Enc.Value
+encoder body =
+  Enc.object
+  [ ("words", Enc.string body.draftWords)
+  , ("truth", Enc.bool body.draftTruth)
+  , ("wholenumber", Enc.int body.draftWholeNumber)
+  ]
 
-    Send body ->
-      Enc.object
-        [ ("instruction", Enc.string "Send")
-        , ("body"
-          , Enc.object
-            [ ("words", Enc.string body.draftWords)
-            , ("truth", Enc.bool body.draftTruth)
-            , ("wholenumber", Enc.int body.draftWholeNumber)
-            ]
-          )
-        ]
 
-    Close ->
-      Enc.object
-        [ ("instruction", Enc.string "Close")
-        ]
+encode : BGF.Request Body -> Enc.Value
+encode =
+  BGF.encode encoder
+
 
 -- Turn something that's come in from a port into a message we can
--- do something about.
+-- do something about... which will be just a string representation
+-- of the thing
 
 toMessage : Enc.Value -> Msg
 toMessage v =
