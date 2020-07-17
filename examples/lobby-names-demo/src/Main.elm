@@ -536,7 +536,8 @@ viewJoin model =
     [ El.spacing (UI.scaledInt 1)
     , El.alignRight
     ]
-    [ UI.inputRow
+    [ El.row
+      [ El.spacing (UI.scaledInt 1) ]
       [ UI.inputText
         { onChange = DraftGameIdChange
         , text = model.draftGameId
@@ -652,7 +653,8 @@ viewMyName draftMyName state =
   let
     mp = UI.miniPaletteWaterfall
   in
-  UI.inputRow
+  El.row
+  [ El.spacing (UI.scaledInt 1) ]
   [ UI.inputText
     { onChange = DraftMyNameChange
     , text = draftMyName

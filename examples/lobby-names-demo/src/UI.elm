@@ -8,7 +8,7 @@ module UI exposing
   , layout
   , miniPaletteWhite, miniPaletteThunderCloud, miniPaletteWaterfall
   , heading, redLight, amberLight, greenLight, link
-  , button, inputText, inputRow
+  , button, inputText
   )
 
 
@@ -284,14 +284,6 @@ button desc =
   { onPress = if desc.enabled then desc.onPress else Nothing
   , label = El.el [Font.color attrs.textColor] (El.text desc.label)
   }
-
-
-inputRow : List (El.Element msg) -> El.Element msg
-inputRow els =
-  El.row
-  [ El.spacing (scaledInt 1)
-  ]
-  els
 
 
 inputText :
