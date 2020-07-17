@@ -108,7 +108,7 @@ server anywhere. `/g/` is required for all games. `blue-elegant` is
 some randomly-generated string for our unique game; it's the game ID.
 All clients connecting to that URL will see each other in the same game.
 
-To open a connection we issue an `Open` instruction, a bit like this:
+To open a connection you issue an `Open` instruction, a bit like this:
 
 ```elm
 import BoardGameFramework as BGF
@@ -122,7 +122,124 @@ openCmd url =
 ```
 
 Here, `bodyEncoder` is a function we have defined to encode our
-game-specific messages into JSON.
+game-specific messages into JSON, and remember that `outgoing`
+is the outbound port we defined earlier.
+
+To disconnect from the server we can do something similar:
+
+```elm
+import BoardGameFramework as BGF
+
+
+closeCmd : Cmd Msg
+closeCmd =
+  BGF.Close
+  |> BGF.encode bodyEncoder
+  |> outgoing
+```
+
+## Sending a message
+
+To send a message you need to be able to encode
+that message, which is some type of our choosing, into JSON.
+All messages go to all clients (even to yourself, because
+you'll get a receipt).
+
+Here's an example of some type `Body` and how you might encode it:
+
+```elm
+import Json.Encode as Enc
+import BoardGameFramework as BGF
+
+
+type alias Body =
+  { players : Dict String String
+  }
+
+
+bodyEncoder : Body -> Enc.Value
+bodyEncoder body =
+  Enc.object
+  [ ("players" , Enc.dict identity Enc.string body.players)
+  ]
+```
+
+Now you can define a function to send it:
+
+```elm
+sendBodyCmd : Body -> Cmd Msg
+sendBodyCmd body =
+  BGF.Send body
+  |> BGF.encode bodyEncoder
+  |> outgoing
+```
+
+## Receiving messages
+
+To receive messages you need to create an inbound port and a JSON
+decoder, which will decode the messages that were encoded as we saw
+above:
+
+
+```elm
+import Json.Decode as Dec
+import BoardGameFramework as BGF
+
+
+port incoming : (Enc.Value -> msg) -> Sub msg
+
+
+bodyDecoder : Dec.Decoder Body
+bodyDecoder =
+  let
+    playersDec =
+      Dec.field "players" (Dec.dict Dec.string)
+  in
+    Dec.map Body
+      playersDec
+```
+
+But incoming messages are more than just our `Body` type - they are
+`Envelope`s of data. If the envelope contains a message from another
+client (or a receipt of a `Body` we've sent) it will come with metadata.
+But an envelope can also tell you about leavers, joiners, and
+changed connection states. So we can define an envelope specifically for
+our `Body` type:
+
+```elm
+type alias Envelope = BGF.Envelope Body
+```
+
+When we use our JSON decoder to decode an envelope you may get error.
+That might be because it doesn't recognise the JSON it received, or there
+might be some other low-level error. So the result of that decoding
+will be `Result BGF.Error Envelope`. To feed that into our application
+you can usefully make it part of our usual `Msg` type:
+
+
+```elm
+type Msg =
+  -- Some message tags not shown
+  -- ...
+  | Received (Result BGF.Error Envelope)
+```
+
+And given all of that, you can now create a `subscriptions` function
+that listens to the `incoming` port, decodes the envelopes, and packages
+them up as a `Msg` for our model.
+
+```elm
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  incoming decode
+
+
+decode : Enc.Value -> Msg
+decode v =
+  BGF.decode bodyDecoder v |> Received
+```
+All you need to do now is make sure your application actually subscribes
+to the `subscription` function.
 
 # Credits
 
