@@ -279,19 +279,33 @@ update msg model =
     Received envRes ->
       case envRes of
         Ok env ->
-          updateWithEnvelope env model
+          model
+          |> updateWithNoError
+          |> updateWithEnvelope env
 
         Err desc ->
           case model.game of
             Gathering state ->
               ( { model
-                | game = Gathering { state | error = Just desc }
+                | game = Gathering {state | error = Just desc}
                 }
               , Cmd.none
               )
 
             _ ->
               (model, Cmd.none)
+
+
+updateWithNoError : Model -> Model
+updateWithNoError model =
+  case model.game of
+    Gathering state ->
+      { model
+      | game = Gathering {state | error = Nothing}
+      }
+
+    _ ->
+      model
 
 
 sendBodyCmd : Body -> Cmd Msg
