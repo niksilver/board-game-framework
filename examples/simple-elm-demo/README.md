@@ -1,4 +1,4 @@
-# Simple data demo
+# Simple data demo (Elm version)
 
 This is a simple demo to show:
 * We can connect to specific game via a server;
@@ -11,18 +11,10 @@ is not used or interpreted in any way. It's just displayed as a string.
 This simple application is also useful for testing other apps, as it
 allows us to see raw JSON messages coming into a client in a game.
 
-There are two versions of the application: in JavaScript, and in Elm.
-
-## JavaScript version
-
-* *data-demo-js.html*. JavaScript app. Load this in a browswer
-  to see the JavaScript version.
-* *lib/board-game-framework.js*. A copy of the framework library it uses.
-
-## Elm version
+There is another version of the application using just JavaScript.
 
 * *src/Main.elm*. The main Elm app.
-* *data-demo-elm.html*. The shell page that the Elm app drops
+* *simple-elm.html*. The shell page that the Elm app drops
   into. It sets up the JavaScript side of the ports integration.
   Load this in a browswer to see the Elm version.
 * *lib/board-game-framework.js*. A copy of the JavaScript framework library
@@ -31,7 +23,7 @@ There are two versions of the application: in JavaScript, and in Elm.
 Compile the Elm app with this command:
 
 ```
-elm make src/Main.elm --output=data-demo-elm.js
+elm make src/Main.elm --output=simple-elm.js
 ```
 
-and then go to data-demo-elm.html to see it running.
+and then go to simple-elm.html to see it running.
