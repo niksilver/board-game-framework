@@ -17,6 +17,7 @@ import String
 
 import BoardGameFramework as BGF
 
+
 main =
   Browser.element
   { init = init
