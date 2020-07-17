@@ -204,6 +204,7 @@ viewControls model =
         """]
     , p []
       [ text serverURL
+      , text "/g/"
       , input
         [ Attr.id "gameid"
       , Attr.type_ "text"

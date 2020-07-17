@@ -479,7 +479,6 @@ view model =
           Gathering state ->
             [ viewLobbyTop model
             , viewNameSelection model.draftMyName state
-            , viewError state
             , viewFooter model
             ]
 
@@ -540,7 +539,11 @@ viewJoin model =
         , miniPalette = mp
         }
       ]
-    , viewConnectivity model |> El.el [El.alignRight]
+    , El.row [El.alignRight]
+      [ viewError model |> El.el [El.alignRight]
+      , El.text " "
+      , viewConnectivity model |> El.el [El.alignRight]
+      ]
     ]
     |> El.el [El.width (El.fillPortion 1), El.alignTop]
   , middleBlock
@@ -695,9 +698,20 @@ nicePlayerName myId id name =
   ++ (if id == myId then " (you)" else "")
 
 
-viewError : GatherState -> El.Element Msg
-viewError state =
-  case state.error of
+viewError : Model -> El.Element Msg
+viewError model =
+  let
+    error =
+      case model.game of
+        Gathering state ->
+          state.error
+          --Just <| BGF.LowLevel "Test 1"
+
+        _ ->
+          Nothing
+          --Just <| BGF.LowLevel "Test 2"
+  in
+  case error of
     Just (BGF.LowLevel desc) ->
         UI.amberLight ("Low level error: " ++ desc)
 
@@ -725,7 +739,8 @@ viewFooter model =
   { url = Url.toString baseUrl
   , label = El.text "Click here to try a new game"
   }
+  |> El.el [El.centerX]
   |> El.el
     [ Font.color mp.text
-    , El.centerX
+    , El.width El.fill
     ]

@@ -215,9 +215,13 @@ redLight text =
 amberLight : String -> El.Element msg
 amberLight text =
   El.el
-  [ Background.color (El.rgb 1.0 1.0 0.7)
-  , Border.rounded 4
-  , El.padding (scaledInt -1)
+  [ Background.color (El.rgb 1.0 1.0 0.3)
+  , Font.color (El.rgb 0 0 0)
+  , El.width (fontSize * 20 |> El.px)
+  , Font.center
+  , Border.rounded 15
+  , Border.width 0
+  , El.padding (scaledInt -5)
   ]
   (El.text text)
 
