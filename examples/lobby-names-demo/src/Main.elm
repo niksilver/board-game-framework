@@ -521,6 +521,7 @@ viewJoin model =
   ]
   [ El.column
     [ El.spacing (UI.scaledInt 1)
+    , El.alignRight
     ]
     [ UI.inputRow
       [ UI.inputText
@@ -542,6 +543,7 @@ viewJoin model =
     , viewConnectivity model |> El.el [El.alignRight]
     ]
     |> El.el [El.width (El.fillPortion 1), El.alignTop]
+  , middleBlock
   , El.paragraph
     [ El.width (El.fillPortion 1)
     , El.alignTop
@@ -556,6 +558,11 @@ viewJoin model =
     , El.text ". "
     ]
   ]
+
+
+middleBlock : El.Element Msg
+middleBlock =
+  El.el [El.width (UI.scaledInt 4 |> El.px)] El.none
 
 
 joinEnabled : Model -> Bool
@@ -618,6 +625,7 @@ viewNameSelection draftMyName state =
   , Font.color mp.text
   ]
   [ viewMyName draftMyName state
+  , middleBlock
   , viewPlayers state
   ]
 
@@ -644,6 +652,7 @@ viewMyName draftMyName state =
     , miniPalette = mp
     }
   ]
+  |> El.el [El.alignRight]
   |> El.el
     [ El.alignTop
     , El.width (El.fillPortion 1)

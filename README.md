@@ -36,7 +36,7 @@ Key elements of any board game will be:
 You don't need to worry about disconnecting, but you can if you like.
 
 You don't need to build your own server---there is currently one
-available to you---but if really would like to, then you can
+available to you---but if you would really like to, then you can
 [check out the server
 code](https://github.com/niksilver/board-game-framework-server).
 
