@@ -676,6 +676,7 @@ viewPlayers state =
       |> List.map
         (\(id, name) ->
           El.text (nicePlayerName state.myId id name)
+          |> El.el [El.height (UI.fontSize * 3 // 2 |> El.px)]
         )
       |> El.column [El.centerX]
     heading =
@@ -705,11 +706,9 @@ viewError model =
       case model.game of
         Gathering state ->
           state.error
-          --Just <| BGF.LowLevel "Test 1"
 
         _ ->
           Nothing
-          --Just <| BGF.LowLevel "Test 2"
   in
   case error of
     Just (BGF.LowLevel desc) ->
