@@ -148,7 +148,7 @@ setGameId gameId game =
 
 
 serverURL : String
-serverURL = "wss://boardgamefwk.nw.r.appspot.com"
+serverURL = "ws://bgf.pigsaw.org"
 
 
 openCmd : String -> Cmd Msg

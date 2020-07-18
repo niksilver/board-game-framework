@@ -415,7 +415,7 @@ and a `sendBodyCmd` to send a message of our own type `Body`.
 
 
     serverURL : String
-    serverURL = "wss://boardgamefwk.nw.r.appspot.com"
+    serverURL = "ws://bgf.pigsaw.org"
 
 
     openCmd : String -> Cmd msg

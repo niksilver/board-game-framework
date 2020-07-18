@@ -31,7 +31,7 @@ main =
 
 
 serverURL : String
-serverURL = "wss://boardgamefwk.nw.r.appspot.com"
+serverURL = "ws://bgf.pigsaw.org"
 
 
 type alias Model =

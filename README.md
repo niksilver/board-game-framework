@@ -97,18 +97,19 @@ To connect to a game, a client needs use an appropriate URL. This is
 something like
 
 ```
-wss://boardgamefwk.nw.r.appspot.com/g/blue-elegant
+ws://bgf.pigsaw.org/g/blue-elegant
 ```
 
-The `wss:` says it's a secure websocket. `boardgamefwk.nw.r.appspot.com`
-is the domain name of the server. That
-particular name happens to be in Google Cloud,
+The `ws:` says it's a secure websocket. (Use `wss` for a secure websocket
+connection, if the server offers one.)
+`bgf.pigsaw.org` is the domain name of the server.
+That particular name is a public server
 and is currently available for anyone to use, but you could deploy your own
 server anywhere. `/g/` is required for all games. `blue-elegant` is
 some randomly-generated string for our unique game; it's the game ID.
 All clients connecting to that URL will see each other in the same game.
 
-To open a connection you issue an `Open` instruction, a bit like this:
+To open a connection you issue an `Open` instruction. For example:
 
 ```elm
 import BoardGameFramework as BGF
@@ -125,7 +126,7 @@ Here, `bodyEncoder` is a function we have defined to encode our
 game-specific messages into JSON, and remember that `outgoing`
 is the outbound port we defined earlier.
 
-To disconnect from the server we can do something similar:
+To disconnect from the server you can do something similar:
 
 ```elm
 import BoardGameFramework as BGF
