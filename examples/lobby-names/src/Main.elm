@@ -9,21 +9,16 @@ port module Main exposing (..)
 import Browser
 import Browser.Navigation as Nav
 import Dict exposing (Dict)
-import Html exposing (..)
-import Html.Attributes as Attr
-import Html.Events as Events
 import Json.Encode as Enc
 import Json.Decode as Dec
 import Maybe
 import Random
-import Tuple
 import Url
 
 import UI
 import Element as El
 import Element.Background as Background
 import Element.Font as Font
-import Element.Input as Input
 import BoardGameFramework as BGF
 
 
