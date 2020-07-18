@@ -13,6 +13,9 @@ import Json.Decode as Dec
 import Url
 
 import Element as El
+import Element.Input as Input
+
+import UI as UI
 
 
 -- Basic setup
@@ -45,7 +48,10 @@ type Screen =
   | Board
 
 
-type Msg = Something
+type Msg =
+  NewDraftGameId String
+  | ConfirmGameId String
+  | Something
 
 
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
@@ -70,7 +76,20 @@ initialScreen url key =
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  (model, dUMMY_FUNCTION)
+  case msg of
+    NewDraftGameId draftId ->
+      case model.screen of
+        Entrance _ ->
+          ({ model | screen = Entrance draftId }, Cmd.none)
+
+        Board ->
+          ({ model | screen = Board }, Cmd.none)
+
+    ConfirmGameId id ->
+      (model, Cmd.none)
+
+    Something ->
+      (model, dUMMY_FUNCTION)
 
 
 -- Subscriptions and ports
@@ -98,7 +117,7 @@ view model =
   { title = "Noughts and crosses"
   , body =
     List.singleton
-      <| El.layout []
+      <| UI.layout UI.miniPaletteThunderCloud
       <| case model.screen of
         Entrance draftGameId ->
           viewEntrance draftGameId
@@ -110,7 +129,23 @@ view model =
 
 viewEntrance : String -> El.Element Msg
 viewEntrance draftGameId =
-  El.text ("Entrance, with game ID " ++ draftGameId)
+  El.paragraph
+  []
+  [ UI.inputText
+    { onChange = NewDraftGameId
+    , text = draftGameId
+    , placeholderText = "Game ID"
+    , label = "Game ID"
+    , fontScale = UI.fontSize
+    , miniPalette = UI.miniPaletteThunderCloud
+    }
+  , UI.button
+    { onPress = Just (ConfirmGameId draftGameId)
+    , label = "Go"
+    , enabled = True
+    , miniPalette = UI.miniPaletteThunderCloud
+    }
+  ]
 
 
 viewBoard : El.Element Msg
