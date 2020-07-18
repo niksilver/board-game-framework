@@ -8,10 +8,11 @@ port module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
-import Html exposing (Html)
 import Json.Encode as Enc
 import Json.Decode as Dec
 import Url
+
+import Element as El
 
 
 -- Basic setup
@@ -29,8 +30,19 @@ main =
   }
 
 
+-- Main type definitions
+
+
 type alias Model =
-  String
+  { url : Url.Url
+  , key : Nav.Key
+  , screen : Screen
+  }
+
+
+type Screen =
+  Entrance String
+  | Board
 
 
 type Msg = Something
@@ -38,12 +50,27 @@ type Msg = Something
 
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
-  ("Hello!", Enc.string "Hiya!" |> outgoing)
+  ( { url = url
+    , key = key
+    , screen = initialScreen url key
+    }
+  , Cmd.none
+  )
+
+
+initialScreen : Url.Url -> Nav.Key -> Screen
+initialScreen url key =
+  case url.fragment of
+    Just fragment ->
+      Board
+
+    Nothing ->
+      Entrance "some-random-name"
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  ("Helloee", Cmd.none)
+  (model, dUMMY_FUNCTION)
 
 
 -- Subscriptions and ports
@@ -58,6 +85,11 @@ subscriptions model =
   incoming (\v -> Something)
 
 
+dUMMY_FUNCTION : Cmd msg
+dUMMY_FUNCTION =
+  Enc.string "x" |> outgoing
+
+
 -- View
 
 
@@ -65,6 +97,22 @@ view : Model -> Browser.Document Msg
 view model =
   { title = "Noughts and crosses"
   , body =
-    [ Html.div [] [Html.text model]
-    ]
+    List.singleton
+      <| El.layout []
+      <| case model.screen of
+        Entrance draftGameId ->
+          viewEntrance draftGameId
+
+        Board ->
+          viewBoard
   }
+
+
+viewEntrance : String -> El.Element Msg
+viewEntrance draftGameId =
+  El.text ("Entrance, with game ID " ++ draftGameId)
+
+
+viewBoard : El.Element Msg
+viewBoard =
+  El.text "(Board goes here)"
