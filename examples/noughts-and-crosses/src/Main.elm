@@ -38,7 +38,7 @@ type Msg = Something
 
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
-  ("Hello!", Cmd.none)
+  ("Hello!", Enc.string "Hiya!" |> outgoing)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -55,7 +55,7 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+  incoming (\v -> Something)
 
 
 -- View
