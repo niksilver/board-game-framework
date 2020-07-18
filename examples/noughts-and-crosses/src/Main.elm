@@ -28,7 +28,7 @@ main =
   , update = update
   , subscriptions = subscriptions
   , onUrlRequest = \req -> Something
-  , onUrlChange = \url -> Something
+  , onUrlChange = UrlChanged
   , view = view
   }
 
@@ -51,7 +51,11 @@ type Screen =
 type Msg =
   NewDraftGameId String
   | ConfirmGameId String
+  | UrlChanged Url.Url
   | Something
+
+
+-- Initial state
 
 
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
@@ -74,6 +78,9 @@ initialScreen url key =
       Entrance "some-random-name"
 
 
+-- Updating the model
+
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
@@ -86,10 +93,39 @@ update msg model =
           ({ model | screen = Board }, Cmd.none)
 
     ConfirmGameId id ->
-      (model, Cmd.none)
+      ( model
+      , id |> setFragment model.url |> Url.toString |> Nav.pushUrl model.key
+      )
+
+    UrlChanged url ->
+      ( model |> updateWithNewUrl url
+      , Cmd.none
+      )
 
     Something ->
       (model, dUMMY_FUNCTION)
+
+
+setFragment : Url.Url -> String -> Url.Url
+setFragment url fragment =
+  { url | fragment = Just fragment }
+
+
+setUrl : Url.Url -> Model -> Model
+setUrl url model =
+  { model | url = url }
+
+
+updateWithNewUrl : Url.Url -> Model -> Model
+updateWithNewUrl url model =
+  case url.fragment of
+    Just frag ->
+      { model | screen = Board }
+      |> setUrl url
+
+    Nothing ->
+      { model | screen = initialScreen url model.key }
+      |> setUrl url
 
 
 -- Subscriptions and ports
