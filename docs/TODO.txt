@@ -1,12 +1,9 @@
-- Have client-side client ID stored in local storage.
-- Create an "actioned data" demo, which uses the structured data.
+- Create a Server/Connection/Address type.
 - Noughts and crosses demo.
+- Have client-side client ID stored in local storage.
 - Quiz demo with a quiz host and password.
-- Join-in-the-lobby demo - collect names and enter.
 - Generate a game ID demo.
 - Generate a game ID, but check it with the server first.
-- Switch To/From/etc to to/from/etc for consistency with Elm conventions.
-- Pass Javascript errors into envelope for Elm app.
 - Store game state locally.
 
 DONE:
@@ -80,3 +77,5 @@ DONE:
   gets rejected before a websocket upgrade.
 - JavaScript framework to keep trying to reconnect, and send a
   "connecting" envelope.
+- Pass Javascript errors into envelope for Elm app.
+- Join-in-the-lobby demo - collect names and enter.
