@@ -4,7 +4,8 @@
 
 
 module BoardGameFramework exposing (
-  idGenerator, isGoodGameId, isGoodGameIdMaybe, goodGameId, goodGameIdMaybe
+  GameId, gameId, fromGameId
+  , idGenerator, isGoodGameId, isGoodGameIdMaybe, goodGameId, goodGameIdMaybe
   , Envelope(..), Connectivity(..), Error(..), Request(..)
   , encode, decode
   )
@@ -54,19 +55,59 @@ import Url exposing (Url)
 import Words
 
 
+{-| A game ID represents a game that multiple players can join.
+It's a string intended to be shared among intended players.
+-}
+type GameId = GameId String
+
+
+{-| Turn a string into a game ID.
+A good game ID will have a good chance of being unique and wil be easy
+to communicate, especially in URLs.
+This test passes if it's five to thirty characters long (inclusive)
+and consists of just alphanumerics, dots, dashes, and forward slashes.
+
+    gameId "pancake-road" == Ok "pancake-road"
+    gameId "#345#" == Err "Bad characters"    -- Bad characters
+    gameId "road" == Err "Too short"          -- Too short
+-}
+gameId : String -> Result String GameId
+gameId str =
+  let
+    goodChar c =
+      Char.isAlphaNum c || c == '-' || c == '.' || c == '/'
+  in
+  if String.length str < 5 then
+    Err "Game ID too short"
+  else if String.length str > 30 then
+    Err "Game ID too long"
+  else if String.all goodChar str then
+    Ok (GameId str)
+  else
+    Err "Bad characters in game ID"
+
+
+{-| Extract the game ID as a string.
+-}
+fromGameId : GameId -> String
+fromGameId (GameId str) =
+  str
+
+
 {-| A random name generator for game IDs, which will be of the form
 "_word_-_word_".
 -}
-idGenerator : Random.Generator String
+idGenerator : Random.Generator GameId
 idGenerator =
   case Words.words of
     head :: tail ->
       Random.uniform head tail
       |> Random.list 2
       |> Random.map (\w -> String.join "-" w)
+      |> Random.map GameId
 
     _ ->
-      Random.constant "xxx"
+      Random.constant (GameId "xxx")
 
 
 {-| A good game ID will have a good chance of being unique and wil be easy

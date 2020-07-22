@@ -1,4 +1,7 @@
-- Create a Server/Connection/Address type.
+- Create a Server/Connection/Address type, plus an opaque GameID type.
+- Create function to put a game ID into a public URL:
+  withFragment : GameId -> Url
+- Create an opaque ClientId type, with toClientId and fromClientId functions.
 - Noughts and crosses demo.
 - Have client-side client ID stored in local storage.
 - Quiz demo with a quiz host and password.

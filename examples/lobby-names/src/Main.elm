@@ -52,13 +52,13 @@ type alias Model =
 --   Players are gathering.
 type Game =
  Unknown
-  | KnowGameIdOnly String BGF.Connectivity
+  | KnowGameIdOnly BGF.GameId BGF.Connectivity
   | Gathering GatherState
 
 
 type alias GatherState =
   { myId : String
-  , gameId : String
+  , gameId : BGF.GameId
   , players : Dict String String
   , error : Maybe BGF.Error
   , connected : BGF.Connectivity
@@ -67,21 +67,24 @@ type alias GatherState =
 
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
-  case BGF.goodGameIdMaybe url.fragment of
-    Just id ->
+  let
+    fragStr = url.fragment |> Maybe.withDefault ""
+  in
+  case BGF.gameId fragStr of
+    Ok id ->
       ( { key = key
         , url = url
-        , draftGameId = id
+        , draftGameId = fragStr
         , draftMyName = ""
         , game = KnowGameIdOnly id BGF.Closed
         }
         , openCmd id
       )
 
-    Nothing ->
+    Err _ ->
       ( { key = key
         , url = url
-        , draftGameId = Maybe.withDefault "" url.fragment
+        , draftGameId = fragStr
         , draftMyName = ""
         , game = Unknown
         }
@@ -92,51 +95,50 @@ init _ url key =
 -- Try to change the game ID. We'll get an updated game and a flag to
 -- say if we have joined a new game.
 setGameId : String -> Game -> (Game, Bool)
-setGameId gameId game =
+setGameId str game =
   let
-    sameId =
+    sameId new =
       case game of
         KnowGameIdOnly old _ ->
-          gameId == old
+          new == old
         Gathering state ->
-          gameId == state.gameId
+          new == state.gameId
         _ ->
           False
   in
-  if sameId then
-    (game, False)
+  case BGF.gameId str of
+    Ok gameId ->
+      if sameId gameId then
+        -- Same game ID as we had before
+        (game, False)
 
-  else if not(BGF.isGoodGameId gameId) then
-    (game, False)
+      else
+        -- Need to update to a new game ID
+        case game of
+          Unknown ->
+            ( KnowGameIdOnly gameId BGF.Closed
+            , True
+            )
 
-  else
-    case game of
-      Unknown ->
-        ( KnowGameIdOnly gameId BGF.Closed
-        , True
-        )
+          KnowGameIdOnly oldGameId conn ->
+            ( KnowGameIdOnly gameId conn
+            , True
+            )
 
-      KnowGameIdOnly myId connected ->
-        ( Gathering
-          { myId = myId
-          , gameId = gameId
-          , players = Dict.empty
-          , error = Nothing
-          , connected = connected
-          }
-        , True
-        )
+          Gathering old ->
+            ( Gathering
+              { myId = old.myId
+              , gameId = gameId
+              , players = Dict.empty
+              , error = Nothing
+              , connected = old.connected
+              }
+            , True
+            )
 
-      Gathering old ->
-        ( Gathering
-          { myId = old.myId
-          , gameId = gameId
-          , players = Dict.empty
-          , error = Nothing
-          , connected = old.connected
-          }
-        , True
-        )
+    Err _ ->
+      -- str isn't a valid game ID
+      (game, False)
 
 
 -- The board game server: connecting and sending
@@ -146,9 +148,9 @@ serverURL : String
 serverURL = "ws://bgf.pigsaw.org"
 
 
-openCmd : String -> Cmd Msg
+openCmd : BGF.GameId -> Cmd Msg
 openCmd gameId =
-  BGF.Open (serverURL ++ "/g/" ++ gameId)
+  BGF.Open (serverURL ++ "/g/" ++ (BGF.fromGameId gameId))
   |> BGF.encode bodyEncoder
   |> outgoing
 
@@ -185,7 +187,7 @@ bodyDecoder =
 
 
 type Msg =
-  GeneratedGameId String
+  GeneratedGameId BGF.GameId
   | UrlRequested Browser.UrlRequest
   | UrlChanged Url.Url
   | DraftGameIdChange String
@@ -197,14 +199,17 @@ type Msg =
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
+  let
+    withFragment gameId url =
+      { url | fragment = Just (BGF.fromGameId gameId) }
+  in
   case msg of
     GeneratedGameId id ->
       let
-        url = model.url
-        url2 = { url | fragment = Just id }
+        url2 = model.url |> withFragment id |> Url.toString
       in
       ( model
-      , Nav.pushUrl model.key (Url.toString url2)
+      , Nav.pushUrl model.key url2
       )
 
     UrlRequested req ->
@@ -219,24 +224,44 @@ update msg model =
     UrlChanged url ->
       -- URL may have been changed by this app or by the user,
       -- so we can't assume the URL fragment is a good game ID.
-      let
-        frag = Maybe.withDefault "" url.fragment
-        (game, changed) = model.game |> setGameId frag
-        disconnected = (connectivity model.game /= BGF.Opened)
-        cmd =
-          if changed || disconnected then
-            openCmd frag
-          else
-            Cmd.none
-        model2 = { model | game = game }
-      in
-      ( { model
-        | draftGameId = frag
-        , url = url
-        , game = game
-        }
-      , cmd
-      )
+      case url.fragment of
+        Nothing ->
+          -- No fragment in URL, so start from scratch
+          init () url model.key
+
+        Just frag ->
+          case BGF.gameId frag of
+            Err _ ->
+              -- Not a valid gameId, so ignore it
+              (model, Cmd.none)
+
+            Ok gameId ->
+              case model.game of
+                Unknown ->
+                  init () url model.key
+
+                KnowGameIdOnly oldGameId conn ->
+                  if oldGameId == gameId then
+                    (model, Cmd.none)
+                  else
+                    ( { model
+                      | draftGameId = frag
+                      , game = KnowGameIdOnly gameId conn
+                      }
+                    , openCmd gameId
+                    )
+
+                Gathering state ->
+                  if state.gameId == gameId then
+                    (model, Cmd.none)
+                  else
+                    ( { model
+                      | draftGameId = frag
+                      , game = Gathering { state | gameId = gameId }
+                      }
+                    , openCmd gameId
+                    )
+
 
     DraftGameIdChange draftId ->
       ({model | draftGameId = draftId}, Cmd.none)
@@ -329,13 +354,13 @@ updateWithEnvelope env model =
         KnowGameIdOnly gameId _ ->
           ( { model
             | game =
-              Gathering
-              { myId = w.me
-              , gameId = gameId
-              , players = Dict.singleton w.me ""
-              , error = Nothing
-              , connected = BGF.Opened
-              }
+                Gathering
+                { myId = w.me
+                , gameId = gameId
+                , players = Dict.singleton w.me ""
+                , error = Nothing
+                , connected = BGF.Opened
+                }
             }
           , Cmd.none
           )
@@ -578,25 +603,27 @@ middleBlock =
   El.el [El.width (UI.scaledInt 4 |> El.px)] El.none
 
 
+-- We can enable the Join button (in the gathering state) if
+-- (i) the draft is a valid game ID, and
+-- (ii) either we're disconnected or the draft is of a different game ID.
 joinEnabled : Model -> Bool
 joinEnabled model =
   let
-    inGame gameId =
-      case model.game of
-        Gathering state ->
-          state.gameId == gameId
-
-        _ ->
-          False
-    goodId =
-      BGF.isGoodGameId model.draftGameId
-    draftIsThisGame =
-      not(inGame model.draftGameId)
     disconnected =
       (connectivity model.game /= BGF.Opened)
   in
-  goodId
-  && (draftIsThisGame || disconnected)
+  case model.game of
+    Gathering state ->
+      case BGF.gameId model.draftGameId of
+        Ok draftId ->
+          (state.gameId /= draftId) || disconnected
+
+        Err _ ->
+          False
+
+    _ ->
+      False
+
 
 
 connectivity : Game -> BGF.Connectivity
