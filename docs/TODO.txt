@@ -1,4 +1,6 @@
-- Create a Server/Connection/Address type, plus an opaque GameID type.
+- Finish off using GameId in demos.
+- Client library - look at it providing the client ID on initialisation.
+- Create a Server/Connection/Address type.
 - Create function to put a game ID into a public URL:
   withFragment : GameId -> Url
 - Create an opaque ClientId type, with toClientId and fromClientId functions.
@@ -82,3 +84,4 @@ DONE:
   "connecting" envelope.
 - Pass Javascript errors into envelope for Elm app.
 - Join-in-the-lobby demo - collect names and enter.
+- Created opaque GameId type. (For lobby demo only.)

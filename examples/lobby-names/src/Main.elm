@@ -92,55 +92,6 @@ init _ url key =
       )
 
 
--- Try to change the game ID. We'll get an updated game and a flag to
--- say if we have joined a new game.
-setGameId : String -> Game -> (Game, Bool)
-setGameId str game =
-  let
-    sameId new =
-      case game of
-        KnowGameIdOnly old _ ->
-          new == old
-        Gathering state ->
-          new == state.gameId
-        _ ->
-          False
-  in
-  case BGF.gameId str of
-    Ok gameId ->
-      if sameId gameId then
-        -- Same game ID as we had before
-        (game, False)
-
-      else
-        -- Need to update to a new game ID
-        case game of
-          Unknown ->
-            ( KnowGameIdOnly gameId BGF.Closed
-            , True
-            )
-
-          KnowGameIdOnly oldGameId conn ->
-            ( KnowGameIdOnly gameId conn
-            , True
-            )
-
-          Gathering old ->
-            ( Gathering
-              { myId = old.myId
-              , gameId = gameId
-              , players = Dict.empty
-              , error = Nothing
-              , connected = old.connected
-              }
-            , True
-            )
-
-    Err _ ->
-      -- str isn't a valid game ID
-      (game, False)
-
-
 -- The board game server: connecting and sending
 
 
