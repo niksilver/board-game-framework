@@ -24,6 +24,42 @@ test.skip('example test', function(t) {
     t.end();
 });
 
+test('New BGF object generates client ID', function(t) {
+    // To check we called open, and used the right URL
+    let urlUsed = null;
+
+    bgf = new BGF.BoardGameFramework();
+    bgf.toApp = function(env){};
+    bgf._newWebSocket = function(url) {
+        urlUsed = url;
+        return new EmptyWebSocket();
+    };
+
+    if (typeof(bgf.id) != 'string') {
+        t.fail("Type of client ID '" + bgf.id + "' is '" +
+            typeof(bgf.id) + "' but should be string");
+    } else {
+        t.pass();
+    }
+    if (bgf.id.length <= 10) {
+        t.fail("Client ID '" + bgf.id + "' is too short");
+    } else {
+        t.pass();
+    }
+
+    // Make sure the websocket we open includes this ID
+    bgf.act({ instruction: 'Open', url: 'wss://some.id.test/g/game-id'});
+    substr = 'id=' + bgf.id;
+    if (!urlUsed.includes(substr)) {
+        t.fail("URL used ('') should have included '" + substr +
+            "' but it did not");
+    } else {
+        t.pass();
+    }
+
+    t.end();
+});
+
 test('Open action creates websocket', function(t) {
     // To check we called open, and used the right URL
     let urlUsed = null;
@@ -41,7 +77,7 @@ test('Open action creates websocket', function(t) {
     bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
 
     // Check the websocket was created
-    t.equal(urlUsed, 'wss://my.test.url/g/my-id');
+    t.equal(urlUsed, 'wss://my.test.url/g/my-id?id=' + bgf.id);
 
     // Tell tape we're done
     t.end();

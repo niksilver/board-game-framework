@@ -1,5 +1,6 @@
 - Finish off using GameId in demos.
-- Client library - look at it providing the client ID on initialisation.
+- Client library - look at it providing the client ID to Elm on
+  initialisation. Then simplify lobby demo.
 - Create a Server/Connection/Address type.
 - Create function to put a game ID into a public URL:
   withFragment : GameId -> Url
