@@ -7,15 +7,15 @@
     <script>
         // Application-specific code
 
-        serverURL = "bgf.pigsaw.org";
+        serverURL = "ws://bgf.pigsaw.org";
 
         window.addEventListener("load", function(evt) {
             // Elements of our page
-            var output = document.getElementById("output");
             var gameid = document.getElementById("gameid");
             var words = document.getElementById("words");
             var truth = document.getElementById("truth");
             var wholenumber = document.getElementById("wholenumber");
+            var output = document.getElementById("output");
 
             // Functions specific to our simple demo application
 
@@ -27,11 +27,12 @@
                 output.insertBefore(d, second);
             };
 
-            // On our page, show the URL we're using
-            document.getElementById("serverURL").textContent = serverURL;
-
             // An instance of our connectivity layer
             var bgf = new BoardGameFramework();
+
+            // On our page, show the URL we're using and our client ID
+            document.getElementById("serverURL").textContent = serverURL;
+            document.getElementById("clientid").textContent = bgf.id;
 
             // This is what we'll do when the framework sends data to our app
             bgf.toApp = function(env) {
@@ -89,6 +90,9 @@
             <p><button id="send">Send</button></p>
         </form>
 
+        <p>
+            Client ID <span id="clientid"></span>.
+        </p>
         <div id="output"><p>
             Messages appear here, latest first:
         </p></div>
