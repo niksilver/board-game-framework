@@ -46,7 +46,7 @@ type alias Model =
   , gameId : Maybe BGF.GameId
   , players : Dict BGF.ClientId String
   , error : Maybe BGF.Error
-  , connected : BGF.Connectivity
+  , connectivity : BGF.Connectivity
   }
 
 
@@ -69,7 +69,7 @@ init myId url key =
     , gameId = maybeId
     , players = Dict.singleton myId ""
     , error = Nothing
-    , connected = BGF.Closed
+    , connectivity = BGF.Closed
     }
     , cmd
   )
@@ -244,7 +244,6 @@ updateWithEnvelope env model =
       -- though (if there is another player) we'll get a more up to date
       -- dict very shortly.
       let
-        _ = Debug.log "Got welcome" w
         myName = model.players |> Dict.get w.me |> Maybe.withDefault ""
         players1 = model.players |> Dict.insert model.myId myName
         insert cId dict = dict |> Dict.insert cId ""
@@ -258,9 +257,6 @@ updateWithEnvelope env model =
 
     BGF.Peer p ->
       -- A peer will send us the dict of all players
-      let
-        _ = Debug.log "Got peer" p
-      in
       ( { model
         | players = p.body.players
         }
@@ -269,15 +265,11 @@ updateWithEnvelope env model =
 
     BGF.Receipt r ->
       -- A receipt will be what we sent, so ignore it
-      let
-        _ = Debug.log "Got receipt" r
-      in
-        (model, Cmd.none)
+      (model, Cmd.none)
 
     BGF.Joiner j ->
       -- When a client joins, record their ID and send them the players dict
       let
-        _ = Debug.log "Got joiner" j
         players =
           model.players |> Dict.insert j.joiner ""
       in
@@ -290,7 +282,6 @@ updateWithEnvelope env model =
     BGF.Leaver l ->
       -- When a client leaves remove their name from the players dict
       let
-        _ = Debug.log "Got leaver" l
         players =
           model.players |> Dict.remove l.leaver
       in
@@ -302,11 +293,8 @@ updateWithEnvelope env model =
 
     BGF.Connection conn ->
       -- The connection state has changed
-      let
-        _ = Debug.log "Got connection envelope" conn
-      in
       ( { model
-        | connected = conn
+        | connectivity = conn
         }
       , Cmd.none
       )
@@ -344,11 +332,6 @@ view model =
         , viewFooter model
         ]
   }
-
-
-viewWelcome : El.Element Msg
-viewWelcome =
-  El.text "Welcome"
 
 
 viewLobbyTop : Model -> El.Element Msg
@@ -431,7 +414,7 @@ middleBlock =
 joinEnabled : Model -> Bool
 joinEnabled model =
   let
-    disconnected = (model.connected /= BGF.Opened)
+    disconnected = (model.connectivity /= BGF.Opened)
   in
   case model.gameId of
     Just gameId ->
@@ -448,7 +431,7 @@ joinEnabled model =
 
 viewConnectivity : Model -> El.Element Msg
 viewConnectivity model =
-  case model.connected of
+  case model.connectivity of
     BGF.Opened ->
       UI.greenLight "Connected"
 
