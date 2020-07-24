@@ -190,7 +190,7 @@ The envelopes are:
 * Change of status with the server connection.
 
 The field names have consistent types and meaning:
-* `me`: a string indicating our client's own ID.
+* `me`: our client's own ID.
 * `others`: the IDs of all other clients currently in the game.
 * `from`: the ID of the client (not us) who sent the message.
 * `to`: the IDs of the clients to whom a message was sent, including us.
@@ -203,11 +203,11 @@ The field names have consistent types and meaning:
   The message is of type `a`.
 -}
 type Envelope a =
-  Welcome {me: String, others: List String, num: Int, time: Int}
-  | Receipt {me: String, others: List String, num: Int, time: Int, body: a}
-  | Peer {from: String, to: List String, num: Int, time: Int, body: a}
-  | Joiner {joiner: String, to: List String, num: Int, time: Int}
-  | Leaver {leaver: String, to: List String, num: Int, time: Int}
+  Welcome {me: ClientId, others: List ClientId, num: Int, time: Int}
+  | Receipt {me: ClientId, others: List ClientId, num: Int, time: Int, body: a}
+  | Peer {from: ClientId, to: List ClientId, num: Int, time: Int, body: a}
+  | Joiner {joiner: ClientId, to: List ClientId, num: Int, time: Int}
+  | Leaver {leaver: ClientId, to: List ClientId, num: Int, time: Int}
   | Connection Connectivity
 
 

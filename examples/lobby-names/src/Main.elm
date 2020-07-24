@@ -22,7 +22,7 @@ import Element.Font as Font
 import BoardGameFramework as BGF
 
 
-main : Program () Model Msg
+main : Program BGF.ClientId Model Msg
 main =
   Browser.application
   { init = init
@@ -42,54 +42,37 @@ type alias Model =
   , url : Url.Url
   , draftGameId : String
   , draftMyName : String
-  , game : Game
-  }
-
-
--- There are these game states:
---   Everything is unknown
---   We know we're in a game (with a good ID), but nothing else
---   Players are gathering.
-type Game =
- Unknown
-  | KnowGameIdOnly BGF.GameId BGF.Connectivity
-  | Gathering GatherState
-
-
-type alias GatherState =
-  { myId : String
-  , gameId : BGF.GameId
-  , players : Dict String String
+  , myId : BGF.ClientId
+  , gameId : Maybe BGF.GameId
+  , players : Dict BGF.ClientId String
   , error : Maybe BGF.Error
   , connected : BGF.Connectivity
   }
 
 
-init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
-init _ url key =
+init : BGF.ClientId -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
+init myId url key =
   let
     fragStr = url.fragment |> Maybe.withDefault ""
+    (maybeId, cmd) =
+      case BGF.gameId fragStr of
+        Ok id ->
+          (Just id, openCmd id)
+        Err _ ->
+          (Nothing, Random.generate GeneratedGameId BGF.idGenerator)
   in
-  case BGF.gameId fragStr of
-    Ok id ->
-      ( { key = key
-        , url = url
-        , draftGameId = fragStr
-        , draftMyName = ""
-        , game = KnowGameIdOnly id BGF.Closed
-        }
-        , openCmd id
-      )
-
-    Err _ ->
-      ( { key = key
-        , url = url
-        , draftGameId = fragStr
-        , draftMyName = ""
-        , game = Unknown
-        }
-        , Random.generate GeneratedGameId BGF.idGenerator
-      )
+  ( { key = key
+    , url = url
+    , draftGameId = fragStr
+    , draftMyName = ""
+    , myId = myId
+    , gameId = maybeId
+    , players = Dict.singleton myId ""
+    , error = Nothing
+    , connected = BGF.Closed
+    }
+    , cmd
+  )
 
 
 -- The board game server: connecting and sending
@@ -110,7 +93,7 @@ openCmd gameId =
 
 
 type alias Body =
-  { players : Dict String String
+  { players : Dict BGF.ClientId String
   }
 
 
@@ -167,7 +150,7 @@ update msg model =
       -- The user has clicked on a link
       case req of
         Browser.Internal url ->
-          init () url model.key
+          init model.myId url model.key
 
         Browser.External url ->
           (model, Nav.load url)
@@ -178,7 +161,13 @@ update msg model =
       case url.fragment of
         Nothing ->
           -- No fragment in URL, so start from scratch
-          init () url model.key
+          ( { model
+            | url = url
+            , draftGameId = ""
+            , gameId = Nothing
+            }
+          , Random.generate GeneratedGameId BGF.idGenerator
+          )
 
         Just frag ->
           case BGF.gameId frag of
@@ -187,31 +176,13 @@ update msg model =
               (model, Cmd.none)
 
             Ok gameId ->
-              case model.game of
-                Unknown ->
-                  init () url model.key
-
-                KnowGameIdOnly oldGameId conn ->
-                  if oldGameId == gameId then
-                    (model, Cmd.none)
-                  else
-                    ( { model
-                      | draftGameId = frag
-                      , game = KnowGameIdOnly gameId conn
-                      }
-                    , openCmd gameId
-                    )
-
-                Gathering state ->
-                  if state.gameId == gameId then
-                    (model, Cmd.none)
-                  else
-                    ( { model
-                      | draftGameId = frag
-                      , game = Gathering { state | gameId = gameId }
-                      }
-                    , openCmd gameId
-                    )
+              ( { model
+                | url = url
+                , draftGameId = gameId |> BGF.fromGameId
+                , gameId = Just gameId
+                }
+              , openCmd gameId
+              )
 
 
     DraftGameIdChange draftId ->
@@ -232,51 +203,29 @@ update msg model =
     ConfirmNameClick ->
       -- We've confirmed our name. If the game is in progress,
       -- update our game state and tell our peers
-      case model.game of
-        Gathering state ->
-          let
-            myId = state.myId
-            myName = model.draftMyName
-            players = state.players |> Dict.insert myId myName
-            game = Gathering { state | players = players }
-          in
-          ( { model | game = game }
-          , sendBodyCmd { players = players }
-          )
-
-        _ ->
-          (model, Cmd.none)
+      let
+        players =
+          model.players
+          |> Dict.insert model.myId model.draftMyName
+      in
+      ( { model
+        | players = players
+        }
+      , sendBodyCmd { players = players }
+      )
 
     Received envRes ->
       case envRes of
         Ok env ->
-          model
-          |> updateWithNoError
+          { model | error = Nothing }
           |> updateWithEnvelope env
 
         Err desc ->
-          case model.game of
-            Gathering state ->
-              ( { model
-                | game = Gathering {state | error = Just desc}
-                }
-              , Cmd.none
-              )
-
-            _ ->
-              (model, Cmd.none)
-
-
-updateWithNoError : Model -> Model
-updateWithNoError model =
-  case model.game of
-    Gathering state ->
-      { model
-      | game = Gathering {state | error = Nothing}
-      }
-
-    _ ->
-      model
+          ( { model
+            | error = Just desc
+            }
+          , Cmd.none
+          )
 
 
 sendBodyCmd : Body -> Cmd Msg
@@ -290,71 +239,33 @@ updateWithEnvelope : Envelope -> Model -> (Model, Cmd Msg)
 updateWithEnvelope env model =
   case env of
     BGF.Welcome w ->
-      -- When we're welcomed, we'll assume the game has just started.
-      -- Note the client ID we've been given and record it in our player table.
+      -- When we're welcomed, we'll get a list of other client IDs.
+      -- We'll put them in our players dict with unknown names, even
+      -- though (if there is another player) we'll get a more up to date
+      -- dict very shortly.
       let
         _ = Debug.log "Got welcome" w
+        myName = model.players |> Dict.get w.me |> Maybe.withDefault ""
+        players1 = model.players |> Dict.insert model.myId myName
+        insert cId dict = dict |> Dict.insert cId ""
       in
-      case model.game of
-        Unknown ->
-          let
-            _ = Debug.log "Got welcome from Unknown state - error!"
-          in
-            (model, Cmd.none)
-
-        KnowGameIdOnly gameId _ ->
-          ( { model
-            | game =
-                Gathering
-                { myId = w.me
-                , gameId = gameId
-                , players = Dict.singleton w.me ""
-                , error = Nothing
-                , connected = BGF.Opened
-                }
-            }
-          , Cmd.none
-          )
-
-        Gathering state ->
-          let
-            myName = state.players |> Dict.get w.me |> Maybe.withDefault ""
-          in
-          ( { model
-            | game =
-              Gathering
-              { state |
-                myId = w.me
-              , players = Dict.singleton w.me myName
-              , error = Nothing
-              , connected = BGF.Opened
-              }
-            }
-          , Cmd.none
-          )
+      ( { model
+        | players = List.foldl insert players1 w.others
+        , error = Nothing
+        }
+      , Cmd.none
+      )
 
     BGF.Peer p ->
-      -- A peer will send us the state of the whole game
+      -- A peer will send us the dict of all players
       let
         _ = Debug.log "Got peer" p
       in
-      case model.game of
-        Gathering state ->
-          ( { model
-            | game =
-              Gathering
-              { state
-              | players = p.body.players
-              }
-            }
-          , Cmd.none
-          )
-
-        _ ->
-          let
-            _ = Debug.log "Got peer, but not Gathering"
-          in
-          (model, Cmd.none)
+      ( { model
+        | players = p.body.players
+        }
+      , Cmd.none
+      )
 
     BGF.Receipt r ->
       -- A receipt will be what we sent, so ignore it
@@ -364,73 +275,41 @@ updateWithEnvelope env model =
         (model, Cmd.none)
 
     BGF.Joiner j ->
-      -- When a client joins, record their ID and tell them the game state.
+      -- When a client joins, record their ID and send them the players dict
       let
         _ = Debug.log "Got joiner" j
+        players =
+          model.players |> Dict.insert j.joiner ""
       in
-      case model.game of
-        Gathering state ->
-          let
-            players =
-              state.players |> Dict.insert j.joiner ""
-          in
-          ( { model
-            | game = Gathering { state | players = players }
-            }
-          , sendBodyCmd { players = players }
-          )
-
-        _ ->
-          let
-            _ = Debug.log "Got joiner, game was not Gathering: " model.game
-          in
-          (model, Cmd.none)
+      ( { model
+        | players = players
+        }
+      , sendBodyCmd { players = players }
+      )
 
     BGF.Leaver l ->
-      -- When a client leaves remove their name from the players table
+      -- When a client leaves remove their name from the players dict
       let
         _ = Debug.log "Got leaver" l
+        players =
+          model.players |> Dict.remove l.leaver
       in
-      case model.game of
-        Gathering state ->
-          let
-            players =
-              state.players |> Dict.remove l.leaver
-          in
-          ( { model
-            | game = Gathering { state | players = players }
-            }
-          , Cmd.none
-          )
-
-        _ ->
-          let
-            _ = Debug.log "Got leaver, game was not Gathering: " model.game
-          in
-          (model, Cmd.none)
+      ( { model
+        | players = players
+        }
+      , Cmd.none
+      )
 
     BGF.Connection conn ->
       -- The connection state has changed
       let
         _ = Debug.log "Got connection envelope" conn
       in
-      case model.game of
-        Unknown ->
-          ( model, Cmd.none)
-
-        KnowGameIdOnly gameId _ ->
-          ( { model
-            | game = KnowGameIdOnly gameId conn
-            }
-          , Cmd.none
-          )
-
-        Gathering state ->
-          ( { model
-            | game = Gathering { state | connected = conn }
-            }
-          , Cmd.none
-          )
+      ( { model
+        | connected = conn
+        }
+      , Cmd.none
+      )
 
 
 -- Subscriptions and ports
@@ -459,18 +338,11 @@ view model =
   , body =
       List.singleton
       <| UI.layout UI.miniPaletteWaterfall.background
-      <| El.column []
-      <| case model.game of
-          Gathering state ->
-            [ viewLobbyTop model
-            , viewNameSelection model.draftMyName state
-            , viewFooter model
-            ]
-
-          _ ->
-            [ viewLobbyTop model
-            , viewFooter model
-            ]
+      <| El.column [] <|
+        [ viewLobbyTop model
+        , viewNameSelection model.draftMyName model
+        , viewFooter model
+        ]
   }
 
 
@@ -554,45 +426,29 @@ middleBlock =
   El.el [El.width (UI.scaledInt 4 |> El.px)] El.none
 
 
--- We can enable the Join button (in the gathering state) if
--- (i) the draft is a valid game ID, and
+-- We can enable the Join button if (i) the draft is a valid game ID, and
 -- (ii) either we're disconnected or the draft is of a different game ID.
 joinEnabled : Model -> Bool
 joinEnabled model =
   let
-    disconnected =
-      (connectivity model.game /= BGF.Opened)
+    disconnected = (model.connected /= BGF.Opened)
   in
-  case model.game of
-    Gathering state ->
+  case model.gameId of
+    Just gameId ->
       case BGF.gameId model.draftGameId of
-        Ok draftId ->
-          (state.gameId /= draftId) || disconnected
+        Ok newGameId ->
+          (gameId /= newGameId) || disconnected
 
         Err _ ->
           False
 
-    _ ->
+    Nothing ->
       False
-
-
-
-connectivity : Game -> BGF.Connectivity
-connectivity game =
-  case game of
-    Unknown ->
-      BGF.Closed
-
-    KnowGameIdOnly _ c ->
-      c
-
-    Gathering state ->
-      state.connected
 
 
 viewConnectivity : Model -> El.Element Msg
 viewConnectivity model =
-  case connectivity model.game of
+  case model.connected of
     BGF.Opened ->
       UI.greenLight "Connected"
 
@@ -603,8 +459,8 @@ viewConnectivity model =
       UI.redLight "Disconnected"
 
 
-viewNameSelection : String -> GatherState -> El.Element Msg
-viewNameSelection draftMyName state =
+viewNameSelection : String -> Model -> El.Element Msg
+viewNameSelection draftMyName model =
   let
     mp = UI.miniPaletteWaterfall
   in
@@ -615,14 +471,14 @@ viewNameSelection draftMyName state =
   , Background.color mp.background
   , Font.color mp.text
   ]
-  [ viewMyName draftMyName state
+  [ viewMyName draftMyName model
   , middleBlock
-  , viewPlayers state
+  , viewPlayers model
   ]
 
 
-viewMyName : String -> GatherState -> El.Element Msg
-viewMyName draftMyName state =
+viewMyName : String -> Model -> El.Element Msg
+viewMyName draftMyName model =
   let
     mp = UI.miniPaletteWaterfall
   in
@@ -656,15 +512,15 @@ goodName name =
   String.length (String.trim name) >= 3
 
 
-viewPlayers : GatherState -> El.Element Msg
-viewPlayers state =
+viewPlayers : Model -> El.Element Msg
+viewPlayers model =
   let
     players =
-      state.players
+      model.players
       |> Dict.toList
       |> List.map
         (\(id, name) ->
-          El.text (nicePlayerName state.myId id name)
+          El.text (nicePlayerName model.myId id name)
           |> El.el [El.height (UI.fontSize * 3 // 2 |> El.px)]
         )
       |> El.column [El.centerX]
@@ -690,16 +546,7 @@ nicePlayerName myId id name =
 
 viewError : Model -> El.Element Msg
 viewError model =
-  let
-    error =
-      case model.game of
-        Gathering state ->
-          state.error
-
-        _ ->
-          Nothing
-  in
-  case error of
+  case model.error of
     Just (BGF.LowLevel desc) ->
         UI.amberLight ("Low level error: " ++ desc)
 

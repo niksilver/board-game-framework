@@ -26,8 +26,8 @@ function BoardGameFramework() {
     // got one
     this._nextOpen = null;
 
-    // Client ID, if known
-    this._id = null;
+    // Client ID
+    this.id = '' + Date.now() + '.' + Math.round(Math.random() * 0xffffffff);
 
     // Last num received. -1 means there was no last num received.
     this._num = -1;
@@ -150,10 +150,6 @@ function BoardGameFramework() {
             if (env.Body) {
                 env.Body = JSON.parse(atob(env.Body));
             }
-            // Record the client ID and envelope num
-            if (env.Intent == 'Welcome') {
-                top._id = env.To[0];
-            }
             if (env.Num >= 0) {
                 top._num = env.Num;
             }
@@ -182,8 +178,8 @@ function BoardGameFramework() {
     // about whether we're reconnecting and the last num received.
     this._makeConnURL = function(url) {
         var params = new URLSearchParams();
-        if (this._id != null) {
-            params.set('id', this._id);
+        if (this.id != null) {
+            params.set('id', this.id);
         }
         if (this._baseURL != null && this._num >= 0) {
             // It's a reconnection

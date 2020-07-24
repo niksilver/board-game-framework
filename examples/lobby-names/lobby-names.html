@@ -14,6 +14,12 @@
         // Set up an instance of our connectivity library
         var bgf = new BoardGameFramework();
 
+        // Insert our Elm app into the page
+        var app = Elm.Main.init({
+            node: document.getElementById('app'),
+            flags: bgf.id
+        });
+
         // Link incoming envelopes to our app
         bgf.toApp = function(env) {
             app.ports.incoming.send(env);
