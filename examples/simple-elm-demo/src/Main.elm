@@ -35,7 +35,8 @@ serverURL = "ws://bgf.pigsaw.org"
 
 
 type alias Model =
-  { draftGameId: String
+  { clientId: BGF.ClientId
+  , draftGameId: String
   , body: Body
   , history: List String
   }
@@ -48,9 +49,10 @@ type alias Body =
   }
 
 
-init : () -> (Model, Cmd Msg)
-init _ =
-  ( { draftGameId = "sample-game-id"
+init : BGF.ClientId -> (Model, Cmd Msg)
+init clientId =
+  ( { clientId = clientId
+    , draftGameId = "sample-game-id"
     , body =
       { draftWords = "Hello world!"
       , draftTruth = True
@@ -238,6 +240,7 @@ viewControls model =
 viewHistory : Model -> Html Msg
 viewHistory model =
   div [] <|
-    p [] [text "Messages appear here, latest first:"] ::
-    List.map (\e -> p [] [text e]) model.history
+    p [] [text <| "Client ID " ++ model.clientId]
+    :: p [] [text "Messages appear here, latest first:"]
+    :: List.map (\e -> p [] [text e]) model.history
    

@@ -6,6 +6,7 @@
 module BoardGameFramework exposing (
   GameId, gameId, fromGameId
   , idGenerator, isGoodGameId, isGoodGameIdMaybe, goodGameId, goodGameIdMaybe
+  , ClientId
   , Envelope(..), Connectivity(..), Error(..), Request(..)
   , encode, decode
   )
@@ -169,6 +170,11 @@ isGoodGameIdMaybe mId =
     Nothing -> False
 
     Just id -> isGoodGameId id
+
+
+{-| The unique ID of any client.
+-}
+type alias ClientId = String
 
 
 {-| A message from the server, or the connection layer.
