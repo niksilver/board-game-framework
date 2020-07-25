@@ -161,11 +161,7 @@ function BoardGameFramework() {
 
             // Error details can't be determined by design. See
             // https://stackoverflow.com/a/31003057/1830955
-            // The browser will also close the websocket
-            // Only pass on the error if wouldn't want to reconnect
-            if (top._baseURL == null) {
-                top.toApp({error: "Websocket error"});
-            }
+            top.toApp({error: "Websocket error"});
         }
     };
 

@@ -600,7 +600,31 @@ test('Sends second connecting env after stable connection', function(t) {
     });
 });
 
-test.skip('Some tests to check Connected envelopes...', function(t) {
+test('Websocket failure should send error to app', function(t) {
+    // To check we called open, and used the right URL
+    let urlUsed = null;
+    // Our websocket
+    let websocket = null;
+    // Envelope send to the app
+    let envReceived = null;
+
+    // Create a BGF with a stub websocket
+    bgf = new BGF.BoardGameFramework();
+    bgf.toApp = function(env){ envReceived = env };
+    bgf._newWebSocket = function(url) {
+        urlUsed = url;
+        websocket = new EmptyWebSocket();
+        return websocket;
+    };
+    bgf._delay = function(){ return 1; };
+
+    // Do the open action
+    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+
+    // Generate an error, and check it was sent to the application
+    websocket.onerror('Some error object');
+    t.ok(envReceived.error, 'Expected envelope with error field');
+
     // Tell tape we're done
     t.end();
 });
