@@ -4,8 +4,8 @@
 
 
 module BoardGameFramework exposing (
-  GameId, gameId, fromGameId
-  , idGenerator, isGoodGameId, isGoodGameIdMaybe, goodGameId, goodGameIdMaybe
+  GameId, gameId, fromGameId , idGenerator
+  , Server, wsServer, wssServer, withPort, Address, withGameId, toUrlString
   , ClientId
   , Envelope(..), Connectivity(..), Error(..), Request(..)
   , encode, decode
@@ -16,6 +16,13 @@ using the related framework. See
 [https://github.com/niksilver/board-game-framework](https://github.com/niksilver/board-game-framework)
 for detailed documentation and example code.
 
+# Game IDs
+Enable players to a unique game ID, so they can join up with each other.
+@docs GameId, gameId, fromGameId, idGenerator
+
+# Connecting
+@docs Server, wsServer, wssServer, withPort, Address, withGameId, toUrlString
+
 # Basic actions: open, send, close
 @docs Request, encode
 
@@ -23,26 +30,7 @@ for detailed documentation and example code.
 Any message another client sends gets wrapped in envelope, and we get the
 envelope. Communication under the hood is in JSON, so we need to say
 how to decode our application's JSON messages into some suitable Elm type.
-@docs Envelope, Connectivity, Error, decode
-
-# Lobby
-Enable players to gather and find a unique game ID
-in preparation for starting a game.
-
-You want something that is unique on that server and easy to communicate;
-it will become part of the connection URL, so characters are limited
-to alphanumerics, plus `.` (dot), `-` (hyphen) and `/`.
-The `goodGameId` functions validate this.
-There's a function to generate nice IDs with two random words, such
-as `"cat-polygon"`, but you may like to add extra caution by
-adding a game-specific prefix to make, say, `"backgammon/cat-ploygon"`.
-Then the connection URL will be something like
-`"wss://game.server.name/g/backgammon/cat-polygon"`.
-
-Among the `goodGameId` functions, those that start with `is...` return
-a `Bool` (rather than a `Maybe String`) and those that end with
-`...Maybe` take a `Maybe String` (rather than a `String`).
-@docs idGenerator, isGoodGameId, isGoodGameIdMaybe, goodGameId, goodGameIdMaybe
+@docs ClientId, Envelope, Connectivity, Error, decode
 -}
 
 
@@ -69,8 +57,9 @@ This test passes if it's five to thirty characters long (inclusive)
 and consists of just alphanumerics, dots, dashes, and forward slashes.
 
     gameId "pancake-road" == Ok "pancake-road"
-    gameId "#345#" == Err "Bad characters"    -- Bad characters
-    gameId "road" == Err "Too short"          -- Too short
+    gameId "backgammon/pancake-road" == Ok "pancake-road"
+    gameId "#345#" == Err "Bad characters"
+    gameId "road" == Err "Too short"
 -}
 gameId : String -> Result String GameId
 gameId str =
@@ -111,65 +100,94 @@ idGenerator =
       Random.constant (GameId "xxx")
 
 
-{-| A good game ID will have a good chance of being unique and wil be easy
-to communicate, especially in URLs.
-This test passes if it's at least five characters long and consists of just
-alphanumerics, dots, dashes, and forward slashes.
-
-    goodGameId "pancake-road" == Just "pancake-road"
-    goodGameId "#345#" == Nothing    -- Bad characters
-    goodGameId "road" == Nothing     -- Too short
+{-| A board game server.
 -}
-goodGameId : String -> Maybe String
-goodGameId id =
-  if isGoodGameId id then
-    Just id
-  else
-    Nothing
+type Server =
+  Server
+    { start : String
+    , mPort : Maybe Int
+    }
 
 
-{-| The boolean version of `goodGameId`. The clue is that it starts with
-"is".
-
-    isGoodGameId "pancake-road" == True
-    isGoodGameId "#345#" == False    -- Bad characters
-    isGoodGameId "road" == False     -- Too short
+{-| Create a `Server` that uses a websocket connection (not a secure
+websocket connection). For example
+    wsServer "bgf.pigsaw.org"
+will allow us to make connections of the form `ws://bgf.pigsaw.org/...`.
 -}
-isGoodGameId : String -> Bool
-isGoodGameId id =
-  (String.length id >= 5) &&
-    String.all (\c -> Char.isAlphaNum c || c == '-' || c == '.' || c == '/') id
+wsServer : String -> Server
+wsServer domain =
+  Server
+    { start = "ws://" ++ domain
+    , mPort = Nothing
+    }
 
 
-{-| Like `goodGameId`, but considers the input as a `Maybe String`.
-
-    goodGameIdMaybe (Just "pancake-road") == Just "pancake-road"
-    goodGameIdMaybe (Just "#345#") == Nothing    -- Bad characters
-    goodGameIdMaybe (Just "road") == False       -- Too short
-    goodGameIdMaybe Nothing == Nothing
+{-| Create a `Server` that uses a secure websocket connection.
+A call of the form
+    wssServer "bgf.pigsaw.org"
+will allow us to make connections of the form `wss://bgf.pigsaw.org/...`.
 -}
-goodGameIdMaybe : Maybe String -> Maybe String
-goodGameIdMaybe mId =
-  case mId of
-    Just id -> goodGameId id
+wssServer : String -> Server
+wssServer domain =
+  Server
+    { start = "wss://" ++ domain
+    , mPort = Nothing
+    }
 
-    Nothing -> Nothing
 
-
-{-| Like `goodGameId`, but considers the input as a `Maybe String`
-and its output as a boolean.
-
-    isGoodGameIdMaybe (Just "pancake-road") == True
-    isGoodGameIdMaybe (Just "#345#") == False    -- Bad characters
-    isGoodGameIdMaybe (Just "road") == False     -- Too short
-    isGoodGameIdMaybe Nothing == False
+{-| Explicitly set the port of a server, if we don't want to connect to
+the default port. The default port is 80 for insecure connections and
+443 for secure connections.
+    wsServer "localhost" |> withPort 8080    -- ws://localhost:8080
 -}
-isGoodGameIdMaybe : Maybe String -> Bool
-isGoodGameIdMaybe mId =
-  case mId of
-    Nothing -> False
+withPort : Int -> Server -> Server
+withPort portInt (Server server) =
+  Server
+    { start = server.start
+    , mPort = Just portInt
+    }
 
-    Just id -> isGoodGameId id
+
+
+{-| The address of a game which we can connect to.
+-}
+type Address =
+  Address
+    { start : String
+    , mPort : Maybe Int
+    , gameId : GameId
+    }
+
+
+{- | Create the address of an actual game we can connect to.
+
+    -- If we have game ID `gid1` as `"voter-when"` and
+    -- game ID `gid2` as `"poor-modern"` then...
+    wsServer "localhost"
+    |> withPort 8080
+    |> withGameId gid1    -- We will join `ws://localhost:8080/g/voter-when`
+    |> withGameId gid2    -- Changes to `ws://localhost:8080/g/poor-modern`
+-}
+withGameId : GameId -> Server -> Address
+withGameId gId (Server server) =
+  Address
+    { start = server.start
+    , mPort = server.mPort
+    , gameId = gId
+    }
+
+
+toUrlString : Address -> String
+toUrlString (Address addr) =
+  let
+    portStr =
+      case addr.mPort of
+        Just p ->
+          ":" ++ String.fromInt p
+        Nothing ->
+          ""
+  in
+  addr.start ++ portStr ++ "/g/" ++ (fromGameId addr.gameId)
 
 
 {-| The unique ID of any client.
@@ -480,7 +498,7 @@ and a `sendBodyCmd` to send a message of our own type `Body`.
 
 -}
 type Request a =
-  Open String
+  Open Address
   | Send a
   | Close
 
@@ -502,10 +520,10 @@ define our own `encode` function like this:
 encode : (a -> Enc.Value) -> Request a -> Enc.Value
 encode encoder req =
   case req of
-    Open url ->
+    Open addr ->
       Enc.object
         [ ("instruction", Enc.string "Open")
-        , ("url", url |> Enc.string)
+        , ("url", toUrlString addr |> Enc.string)
         ]
 
     Send body ->

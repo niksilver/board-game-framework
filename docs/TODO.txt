@@ -1,6 +1,5 @@
-- Finish off using GameId in demos.
-- Client library - look at it providing the client ID to Elm on
-  initialisation. Then simplify lobby demo.
+- Fix bug: If there's a failed ws connection, no error is passed to the
+  application. E.g. connecting to an unknown server.
 - Create a Server/Connection/Address type.
 - Create function to put a game ID into a public URL:
   withFragment : GameId -> Url
@@ -86,3 +85,6 @@ DONE:
 - Pass Javascript errors into envelope for Elm app.
 - Join-in-the-lobby demo - collect names and enter.
 - Created opaque GameId type. (For lobby demo only.)
+- Finish off using GameId in demos.
+- Client library - look at it providing the client ID to Elm on
+  initialisation. Then simplify lobby demo.

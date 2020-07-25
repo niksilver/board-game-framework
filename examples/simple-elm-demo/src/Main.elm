@@ -30,8 +30,8 @@ main =
 -- Model and basic initialisation
 
 
-serverURL : String
-serverURL = "ws://bgf.pigsaw.org"
+server : BGF.Server
+server = BGF.wsServer "bgf.pigsaw.org"
 
 
 type alias Model =
@@ -88,9 +88,19 @@ update msg model =
 
     OpenClick ->
       let
-        url = serverURL ++ "/g/" ++ model.draftGameId
+        cmd =
+          case BGF.gameId model.draftGameId of
+            Ok gameId ->
+              server
+              |> BGF.withGameId gameId
+              |> BGF.Open
+              |> encode
+              |> outgoing
+
+            Err _ ->
+              Cmd.none
       in
-      (model, BGF.Open url |> encode |> outgoing)
+      (model, cmd)
 
     Words w ->
       let
@@ -187,6 +197,25 @@ view model =
 
 viewControls : Model -> Html Msg
 viewControls model =
+  let
+    -- It's a bit of a performance to get the address prefix,
+    -- but that's okay; we shouldn't normally need to display it.
+    addrPrefix =
+      case BGF.gameId "this-will-do" of
+        Ok gameId ->
+          server
+          |> BGF.withGameId gameId
+          |> BGF.toUrlString
+          |> String.dropRight (String.length "this-will-do")
+        Err _ ->
+          ""
+    openEnabled =
+      case BGF.gameId model.draftGameId of
+        Ok gameId ->
+          True
+        Err _ ->
+          False
+  in
   div[]
     [ p [] [text """
         Choose a game ID, then click "Open" to connect to the server.
@@ -195,16 +224,16 @@ viewControls model =
         You can edit the structured data and send multiple times.
         """]
     , p []
-      [ text serverURL
-      , text "/g/"
+      [ text addrPrefix
       , input
         [ Attr.id "gameid"
-      , Attr.type_ "text"
+        , Attr.type_ "text"
         , Attr.value model.draftGameId
         , Events.onInput GameId
         ] []
       , text " "
-      , button [ Events.onClick OpenClick ] [ text "Open" ]
+      , button [ Events.onClick OpenClick , Attr.disabled (not openEnabled) ]
+        [ text "Open" ]
       , text " "
       , button [ Events.onClick CloseClick ] [ text "Close" ]
       ]
@@ -243,4 +272,3 @@ viewHistory model =
     p [] [text <| "Client ID " ++ model.clientId]
     :: p [] [text "Messages appear here, latest first:"]
     :: List.map (\e -> p [] [text e]) model.history
-   
