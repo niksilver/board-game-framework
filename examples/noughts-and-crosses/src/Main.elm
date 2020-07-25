@@ -6,6 +6,7 @@
 port module Main exposing (..)
 
 
+import Array exposing (Array)
 import Browser
 import Browser.Navigation as Nav
 import Json.Encode as Enc
@@ -48,15 +49,20 @@ type alias Model =
 
 type Screen =
   Entrance EntranceState
-  | Board BoardState
+  | Playing PlayingState
 
 
 type alias EntranceState =
   { draftGameId : String }
 
-type alias BoardState =
+
+type alias PlayingState =
   { gameId : BGF.GameId
+  , board : Array Piece
   }
+
+
+type Piece = Empty | XMark | OMark
 
 
 type Msg =
@@ -91,7 +97,10 @@ initialScreen url key =
   in
   case BGF.gameId frag of
     Ok gameId ->
-      ( Board { gameId = gameId }
+      ( Playing
+        { gameId = gameId
+        , board = Array.repeat 9 Empty
+        }
       , Cmd.none
       )
 
@@ -133,7 +142,7 @@ update msg model =
           , Cmd.none
           )
 
-        Board _ ->
+        Playing _ ->
           (model, Cmd.none)
 
     ConfirmGameId id ->
@@ -161,20 +170,6 @@ setFragment url fragment =
 setUrl : Url.Url -> Model -> Model
 setUrl url model =
   { model | url = url }
-
-
-{-
-updateWithNewUrl : Url.Url -> Model -> Model
-updateWithNewUrl url model =
-  case url.fragment |> BGF.gameId of
-    Ok gameId ->
-      { model | screen = Board { gameId = gameId }}
-      |> setUrl url
-
-    Err _ ->
-      { model | screen = initialScreen url model.key |> Tuple.first }
-      |> setUrl url
--}
 
 
 -- Subscriptions and ports
@@ -207,8 +202,8 @@ view model =
         Entrance draftGameId ->
           viewEntrance draftGameId
 
-        Board state ->
-          viewBoard state
+        Playing state ->
+          viewPlay state
   }
 
 
@@ -241,6 +236,35 @@ viewEntrance state =
   ]
 
 
-viewBoard : BoardState -> El.Element Msg
-viewBoard state =
-  El.text <| "(Board goes here, game id " ++ BGF.fromGameId state.gameId ++ ")"
+viewPlay : PlayingState -> El.Element Msg
+viewPlay state =
+  El.column []
+  [ viewRow 0 state.board
+  , viewRow 3 state.board
+  , viewRow 6 state.board
+  ]
+
+
+viewRow : Int -> Array Piece -> El.Element Msg
+viewRow i array =
+  El.row []
+  [ viewCell (i + 0) array
+  , viewCell (i + 1) array
+  , viewCell (i + 2) array
+  ]
+
+
+viewCell : Int -> Array Piece -> El.Element Msg
+viewCell i array =
+  case Array.get i array of
+    Nothing ->
+      El.none
+
+    Just Empty ->
+      El.text "[ ]"
+
+    Just XMark ->
+      El.text " X "
+
+    Just OMark ->
+      El.text " O "
