@@ -214,6 +214,14 @@ view model =
 
 viewEntrance : EntranceState -> El.Element Msg
 viewEntrance state =
+  let
+    enabled =
+      case state.draftGameId |> BGF.gameId of
+        Ok _ ->
+          True
+        Err _ ->
+          False
+  in
   El.paragraph
   []
   [ UI.inputText
@@ -221,13 +229,13 @@ viewEntrance state =
     , text = state.draftGameId
     , placeholderText = "Game ID"
     , label = "Game ID"
-    , fontScale = UI.fontSize
+    , fontScale = 12
     , miniPalette = UI.miniPaletteThunderCloud
     }
   , UI.button
     { onPress = Just (ConfirmGameId state.draftGameId)
     , label = "Go"
-    , enabled = True
+    , enabled = enabled
     , miniPalette = UI.miniPaletteThunderCloud
     }
   ]
