@@ -93,7 +93,8 @@ openCmd gameId =
 
 
 type alias Body =
-  { players : Dict BGF.ClientId String
+  { id : BGF.ClientId
+  , name : String
   }
 
 
@@ -103,18 +104,17 @@ type alias Envelope = BGF.Envelope Body
 bodyEncoder : Body -> Enc.Value
 bodyEncoder body =
   Enc.object
-  [ ("players" , Enc.dict identity Enc.string body.players)
+  [ ("id" , Enc.string body.id)
+  , ("name" , Enc.string body.name)
   ]
 
 
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
-  let
-    playersDec =
-      Dec.field "players" (Dec.dict Dec.string)
-  in
-    Dec.map Body
-      playersDec
+  Dec.map2
+    Body
+    (Dec.field "id" Dec.string)
+    (Dec.field "name" Dec.string)
 
 
 -- Update the model with a message
@@ -201,17 +201,13 @@ update msg model =
       ({model | draftMyName = draftName}, Cmd.none)
 
     ConfirmNameClick ->
-      -- We've confirmed our name. If the game is in progress,
-      -- update our game state and tell our peers
-      let
-        players =
-          model.players
-          |> Dict.insert model.myId model.draftMyName
-      in
+      -- We've confirmed our name. Tell our peers.
       ( { model
-        | players = players
+        | players =
+            model.players
+            |> Dict.insert model.myId model.draftMyName
         }
-      , sendBodyCmd { players = players }
+      , sendBodyCmd { id = model.myId, name = model.draftMyName }
       )
 
     Received envRes ->
@@ -241,8 +237,7 @@ updateWithEnvelope env model =
     BGF.Welcome w ->
       -- When we're welcomed, we'll get a list of other client IDs.
       -- We'll put them in our players dict with unknown names, even
-      -- though (if there is another player) we'll get a more up to date
-      -- dict very shortly.
+      -- though the players will send us their names very shortly.
       let
         myName = model.players |> Dict.get w.me |> Maybe.withDefault ""
         players1 = model.players |> Dict.insert model.myId myName
@@ -255,9 +250,10 @@ updateWithEnvelope env model =
       )
 
     BGF.Peer p ->
-      -- A peer will send us the dict of all players
+      -- A peer will send us their name
       ( { model
-        | players = p.body.players
+        | players =
+            model.players |> Dict.insert p.body.id p.body.name
         }
       , Cmd.none
       )
@@ -267,25 +263,21 @@ updateWithEnvelope env model =
       (model, Cmd.none)
 
     BGF.Joiner j ->
-      -- When a client joins, record their ID and send them the players dict
+      -- When a client joins, record their ID and send them who we are
       let
-        players =
-          model.players |> Dict.insert j.joiner ""
+        myName = model.players |> Dict.get model.myId |> Maybe.withDefault ""
       in
       ( { model
-        | players = players
+        | players =
+            model.players |> Dict.insert j.joiner ""
         }
-      , sendBodyCmd { players = players }
+      , sendBodyCmd { id = model.myId, name = myName }
       )
 
     BGF.Leaver l ->
       -- When a client leaves remove their name from the players dict
-      let
-        players =
-          model.players |> Dict.remove l.leaver
-      in
       ( { model
-        | players = players
+        | players = model.players |> Dict.remove l.leaver
         }
       , Cmd.none
       )
