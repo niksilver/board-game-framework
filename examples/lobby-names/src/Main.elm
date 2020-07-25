@@ -50,6 +50,16 @@ type alias Model =
   }
 
 
+-- Part of the full model, for more focused types when processing envelopes,
+-- and for easier testing
+type alias EnvModel a =
+  { a
+  | myId : BGF.ClientId
+  , players : Dict BGF.ClientId String
+  , connectivity : BGF.Connectivity
+  }
+
+
 init : BGF.ClientId -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init myId url key =
   let
@@ -235,8 +245,8 @@ sendBodyCmd body =
   |> outgoing
 
 
-updateWithEnvelope : Envelope -> Model -> (Model, Cmd Msg)
-updateWithEnvelope env model =
+updateWithEnvelope : Envelope -> EnvModel a -> (EnvModel a, Cmd Msg)
+updateWithEnvelope env eModel =
   case env of
     BGF.Welcome w ->
       -- When we're welcomed, we'll get a list of other client IDs.
@@ -244,20 +254,19 @@ updateWithEnvelope env model =
       -- though (if there is another player) we'll get a more up to date
       -- dict very shortly.
       let
-        myName = model.players |> Dict.get w.me |> Maybe.withDefault ""
-        players1 = model.players |> Dict.insert model.myId myName
+        myName = eModel.players |> Dict.get w.me |> Maybe.withDefault ""
+        players1 = eModel.players |> Dict.insert eModel.myId myName
         insert cId dict = dict |> Dict.insert cId ""
       in
-      ( { model
+      ( { eModel
         | players = List.foldl insert players1 w.others
-        , error = Nothing
         }
       , Cmd.none
       )
 
     BGF.Peer p ->
       -- A peer will send us the dict of all players
-      ( { model
+      ( { eModel
         | players = p.body.players
         }
       , Cmd.none
@@ -265,15 +274,15 @@ updateWithEnvelope env model =
 
     BGF.Receipt r ->
       -- A receipt will be what we sent, so ignore it
-      (model, Cmd.none)
+      (eModel, Cmd.none)
 
     BGF.Joiner j ->
       -- When a client joins, record their ID and send them the players dict
       let
         players =
-          model.players |> Dict.insert j.joiner ""
+          eModel.players |> Dict.insert j.joiner ""
       in
-      ( { model
+      ( { eModel
         | players = players
         }
       , sendBodyCmd { players = players }
@@ -283,9 +292,9 @@ updateWithEnvelope env model =
       -- When a client leaves remove their name from the players dict
       let
         players =
-          model.players |> Dict.remove l.leaver
+          eModel.players |> Dict.remove l.leaver
       in
-      ( { model
+      ( { eModel
         | players = players
         }
       , Cmd.none
@@ -293,7 +302,7 @@ updateWithEnvelope env model =
 
     BGF.Connection conn ->
       -- The connection state has changed
-      ( { model
+      ( { eModel
         | connectivity = conn
         }
       , Cmd.none
