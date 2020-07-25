@@ -5,7 +5,9 @@ and give their screen names.
 Interesting features are:
 * The game ID is randomly generated;
 * Each game has a unique URL which can be shared for others to join;
-* Leavers and joiners are all listed live.
+* Leavers and joiners are all listed live and individually.
+* The message sent between clients is always simply "This is my client ID
+  and this is my name."
 
 ## Files and compilation
 

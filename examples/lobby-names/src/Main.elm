@@ -139,6 +139,7 @@ update msg model =
   in
   case msg of
     GeneratedGameId id ->
+      -- We've generated a new game ID
       let
         url2 = model.url |> withFragment id |> Url.toString
       in
@@ -186,6 +187,7 @@ update msg model =
 
 
     DraftGameIdChange draftId ->
+      -- The text in the game ID box has changed
       ({model | draftGameId = draftId}, Cmd.none)
 
     JoinClick ->
@@ -198,6 +200,7 @@ update msg model =
       )
 
     DraftMyNameChange draftName ->
+      -- The text in the player name box has changed
       ({model | draftMyName = draftName}, Cmd.none)
 
     ConfirmNameClick ->
@@ -211,6 +214,7 @@ update msg model =
       )
 
     Received envRes ->
+      -- We've received an envelope result: A good envelope, or an error
       case envRes of
         Ok env ->
           { model | error = Nothing }
@@ -238,15 +242,15 @@ updateWithEnvelope env model =
       -- When we're welcomed, we'll get a list of other client IDs.
       -- We'll put them in our players dict with unknown names, even
       -- though the players will send us their names very shortly.
+      -- We should also tell them our name
       let
-        myName = model.players |> Dict.get w.me |> Maybe.withDefault ""
-        players1 = model.players |> Dict.insert model.myId myName
+        players1 = Dict.singleton model.myId (myName model)
         insert cId dict = dict |> Dict.insert cId ""
       in
       ( { model
         | players = List.foldl insert players1 w.others
         }
-      , Cmd.none
+      , sendBodyCmd { id = model.myId, name = myName model }
       )
 
     BGF.Peer p ->
@@ -264,14 +268,11 @@ updateWithEnvelope env model =
 
     BGF.Joiner j ->
       -- When a client joins, record their ID and send them who we are
-      let
-        myName = model.players |> Dict.get model.myId |> Maybe.withDefault ""
-      in
       ( { model
         | players =
             model.players |> Dict.insert j.joiner ""
         }
-      , sendBodyCmd { id = model.myId, name = myName }
+      , sendBodyCmd { id = model.myId, name = myName model }
       )
 
     BGF.Leaver l ->
@@ -289,6 +290,13 @@ updateWithEnvelope env model =
         }
       , Cmd.none
       )
+
+
+myName : Model -> String
+myName model =
+  model.players
+  |> Dict.get model.myId
+  |> Maybe.withDefault ""
 
 
 -- Subscriptions and ports
