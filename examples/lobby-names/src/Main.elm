@@ -78,13 +78,15 @@ init myId url key =
 -- The board game server: connecting and sending
 
 
-serverURL : String
-serverURL = "ws://bgf.pigsaw.org"
+server : BGF.Server
+server = BGF.wsServer "//bgf.pigsaw.org"
 
 
 openCmd : BGF.GameId -> Cmd Msg
 openCmd gameId =
-  BGF.Open (serverURL ++ "/g/" ++ (BGF.fromGameId gameId))
+  server
+  |> BGF.withGameId gameId
+  |> BGF.Open
   |> BGF.encode bodyEncoder
   |> outgoing
 
