@@ -86,6 +86,28 @@ fromGameId (GameId str) =
 
 {-| A random name generator for game IDs, which will be of the form
 "_word_-_word_".
+
+To create a `Cmd` that generates a random name, we can use code like this:
+    import Random
+    import BoardGameFramework as BGF
+
+
+    -- Make sure our Msg can handle a generated game id
+    Msg =
+      ...
+      GeneratedGameId GameId
+      ...
+
+
+    -- Our update function
+    update : Msg -> Model -> (Model, Cmd)
+    update msg model =
+      case msg of
+        ... ->
+          (updatedModel, Random.generate GeneratedGameId BGF.idGenerator)
+
+        GeneratedGameId gameId ->
+          -- Use the generated game ID
 -}
 idGenerator : Random.Generator GameId
 idGenerator =

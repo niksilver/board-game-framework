@@ -10,10 +10,12 @@ import Browser
 import Browser.Navigation as Nav
 import Json.Encode as Enc
 import Json.Decode as Dec
+import Random
 import Url
 
 import Element as El
 import Element.Input as Input
+import BoardGameFramework as BGF
 
 import UI as UI
 
@@ -21,7 +23,7 @@ import UI as UI
 -- Basic setup
 
 
-main : Program () Model Msg
+main : Program BGF.ClientId Model Msg
 main =
   Browser.application
   { init = init
@@ -39,44 +41,71 @@ main =
 type alias Model =
   { url : Url.Url
   , key : Nav.Key
+  , myId : BGF.ClientId
   , screen : Screen
   }
 
 
 type Screen =
-  Entrance String
-  | Board
+  Entrance EntranceState
+  | Board BoardState
+
+
+type alias EntranceState =
+  { draftGameId : String }
+
+type alias BoardState =
+  { gameId : BGF.GameId
+  }
 
 
 type Msg =
-  NewDraftGameId String
+  UrlChanged Url.Url
+  | GeneratedGameId BGF.GameId
+  | NewDraftGameId String
   | ConfirmGameId String
-  | UrlChanged Url.Url
   | Something
 
 
 -- Initial state
 
 
-init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
-init _ url key =
+init : BGF.ClientId -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
+init myId url key =
+  let
+    (screen, cmd) = initialScreen url key
+  in
   ( { url = url
     , key = key
-    , screen = initialScreen url key
+    , myId = myId
+    , screen = screen
     }
-  , Cmd.none
+  , cmd
   )
 
 
-initialScreen : Url.Url -> Nav.Key -> Screen
+initialScreen : Url.Url -> Nav.Key -> (Screen, Cmd Msg)
 initialScreen url key =
-  case url.fragment of
-    Just fragment ->
-      Board
+  let
+    frag = url.fragment |> Maybe.withDefault ""
+  in
+  case BGF.gameId frag of
+    Ok gameId ->
+      ( Board { gameId = gameId }
+      , Cmd.none
+      )
 
-    Nothing ->
-      Entrance "some-random-name"
+    Err _ ->
+      case url.fragment of
+        Just str ->
+          ( Entrance { draftGameId = frag }
+          , Cmd.none
+          )
 
+        Nothing ->
+          ( Entrance { draftGameId = frag }
+          , Random.generate GeneratedGameId BGF.idGenerator
+          )
 
 -- Updating the model
 
@@ -84,26 +113,44 @@ initialScreen url key =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    NewDraftGameId draftId ->
+    UrlChanged url ->
+      let
+        (screen, cmd) = initialScreen url model.key
+      in
+      ( { model | screen = screen }
+      , cmd
+      )
+
+    GeneratedGameId gameId ->
+      ( model |> setDraftGameId (BGF.fromGameId gameId)
+      , Cmd.none
+      )
+
+    NewDraftGameId draft ->
       case model.screen of
         Entrance _ ->
-          ({ model | screen = Entrance draftId }, Cmd.none)
+          ( model |> setDraftGameId draft
+          , Cmd.none
+          )
 
-        Board ->
-          ({ model | screen = Board }, Cmd.none)
+        Board _ ->
+          (model, Cmd.none)
 
     ConfirmGameId id ->
       ( model
       , id |> setFragment model.url |> Url.toString |> Nav.pushUrl model.key
       )
 
-    UrlChanged url ->
-      ( model |> updateWithNewUrl url
-      , Cmd.none
-      )
-
     Something ->
       (model, dUMMY_FUNCTION)
+
+
+setDraftGameId : String -> Model -> Model
+setDraftGameId draft model =
+  { model
+  | screen = Entrance { draftGameId = draft  }
+  }
+
 
 
 setFragment : Url.Url -> String -> Url.Url
@@ -116,16 +163,18 @@ setUrl url model =
   { model | url = url }
 
 
+{-
 updateWithNewUrl : Url.Url -> Model -> Model
 updateWithNewUrl url model =
-  case url.fragment of
-    Just frag ->
-      { model | screen = Board }
+  case url.fragment |> BGF.gameId of
+    Ok gameId ->
+      { model | screen = Board { gameId = gameId }}
       |> setUrl url
 
-    Nothing ->
-      { model | screen = initialScreen url model.key }
+    Err _ ->
+      { model | screen = initialScreen url model.key |> Tuple.first }
       |> setUrl url
+-}
 
 
 -- Subscriptions and ports
@@ -158,25 +207,25 @@ view model =
         Entrance draftGameId ->
           viewEntrance draftGameId
 
-        Board ->
-          viewBoard
+        Board state ->
+          viewBoard state
   }
 
 
-viewEntrance : String -> El.Element Msg
-viewEntrance draftGameId =
+viewEntrance : EntranceState -> El.Element Msg
+viewEntrance state =
   El.paragraph
   []
   [ UI.inputText
     { onChange = NewDraftGameId
-    , text = draftGameId
+    , text = state.draftGameId
     , placeholderText = "Game ID"
     , label = "Game ID"
     , fontScale = UI.fontSize
     , miniPalette = UI.miniPaletteThunderCloud
     }
   , UI.button
-    { onPress = Just (ConfirmGameId draftGameId)
+    { onPress = Just (ConfirmGameId state.draftGameId)
     , label = "Go"
     , enabled = True
     , miniPalette = UI.miniPaletteThunderCloud
@@ -184,6 +233,6 @@ viewEntrance draftGameId =
   ]
 
 
-viewBoard : El.Element Msg
-viewBoard =
-  El.text "(Board goes here)"
+viewBoard : BoardState -> El.Element Msg
+viewBoard state =
+  El.text <| "(Board goes here, game id " ++ BGF.fromGameId state.gameId ++ ")"

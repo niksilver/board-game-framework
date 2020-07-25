@@ -26,11 +26,14 @@ function BoardGameFramework() {
     // got one
     this._nextOpen = null;
 
-    // Client ID, if known
-    this._id = null;
+    // Client ID
+    this.id = '' + Date.now() + '.' + Math.round(Math.random() * 0xffffffff);
 
     // Last num received. -1 means there was no last num received.
     this._num = -1;
+
+    // We should not send two websocket errors consecutively
+    this._sentWebsocketError = false;
 
     // The string in the last connection envelope we've sent:
     // opened, connecting, or closed.
@@ -74,13 +77,13 @@ function BoardGameFramework() {
                 return;
             case 'Send':
                 if (!this._ws) {
-                    this.toApp({error: "Send: Websocket not configured"});
+                    this._sendToApp({error: "Send: Websocket not configured"});
                     return;
                 }
                 this._ws.send(JSON.stringify(data.body));
                 return;
             default:
-                this.toApp({error: "Unrecognised instruction"});
+                this._sendToApp({error: "Unrecognised instruction"});
                 return;
         }
     };
@@ -150,14 +153,10 @@ function BoardGameFramework() {
             if (env.Body) {
                 env.Body = JSON.parse(atob(env.Body));
             }
-            // Record the client ID and envelope num
-            if (env.Intent == 'Welcome') {
-                top._id = env.To[0];
-            }
             if (env.Num >= 0) {
                 top._num = env.Num;
             }
-            top.toApp(env);
+            top._sendToApp(env);
         }
 
         this._ws.onerror = function(evt) {
@@ -165,11 +164,7 @@ function BoardGameFramework() {
 
             // Error details can't be determined by design. See
             // https://stackoverflow.com/a/31003057/1830955
-            // The browser will also close the websocket
-            // Only pass on the error if wouldn't want to reconnect
-            if (top._baseURL == null) {
-                top.toApp({error: "Websocket error"});
-            }
+            top._sendToApp({error: "Websocket error"});
         }
     };
 
@@ -182,8 +177,8 @@ function BoardGameFramework() {
     // about whether we're reconnecting and the last num received.
     this._makeConnURL = function(url) {
         var params = new URLSearchParams();
-        if (this._id != null) {
-            params.set('id', this._id);
+        if (this.id != null) {
+            params.set('id', this.id);
         }
         if (this._baseURL != null && this._num >= 0) {
             // It's a reconnection
@@ -206,8 +201,28 @@ function BoardGameFramework() {
     // only be sent once in succession.
     this._sendConnEnv = function(state) {
         if (top._lastConnEnv != state) {
-            top.toApp({connection: state});
+            top._sendToApp({connection: state});
             top._lastConnEnv = state;
+        }
+    };
+
+    // Send a message to the app... but don't send two websocket errors
+    // in a row
+    this._sendToApp = function(env) {
+        if (env.error && env.error == "Websocket error") {
+            // We've got a websocket error...
+            if (top._sentWebsocketError) {
+                // ...but we've just sent one, so ignore it
+                return;
+            } else {
+                // ...and it's okay to send
+                top.toApp(env);
+                top._sentWebsocketError = true;
+            }
+        } else {
+            // We're not sending a websocket eror
+            top.toApp(env);
+            top._sentWebsocketError = false;
         }
     };
 };

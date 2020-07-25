@@ -8,11 +8,17 @@
     <script type="text/javascript" src="ooxx.js"></script>
     </head>
     <body>
-        <script>var app = Elm.Main.init();</script>
+        <div id="app"></div>
     </body>
     <script type="text/javascript">
         // Set up an instance of our connectivity library
         var bgf = new BoardGameFramework();
+
+        // Insert our Elm app into the page
+        var app = Elm.Main.init({
+            node: document.getElementById('app'),
+            flags: bgf.id
+        });
 
         // Link incoming envelopes to our app
         bgf.toApp = function(env) {
