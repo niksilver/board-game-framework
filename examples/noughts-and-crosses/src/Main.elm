@@ -59,6 +59,7 @@ type alias EntranceState =
 
 type alias PlayingState =
   { gameId : BGF.GameId
+  , turn : Turn
   , board : Array Mark
   }
 
@@ -170,6 +171,7 @@ initialScreen url key =
     Ok gameId ->
       ( Playing
         { gameId = gameId
+        , turn = XTurn
         , board = Array.repeat 9 Empty
         }
       , Cmd.none
@@ -226,7 +228,11 @@ update msg model =
         Playing state ->
           let
             board2 = takeTurn i turn state.board
-            state2 = { state | board = board2 }
+            state2 =
+              { state
+              | board = board2
+              , turn = next turn
+              }
           in
           ( { model | screen = Playing state2 }
           , Cmd.none
@@ -260,6 +266,9 @@ setUrl url model =
   { model | url = url }
 
 
+-- Game mechanics
+
+
 takeTurn : Int -> Turn -> Array Mark -> Array Mark
 takeTurn i turn array =
   let
@@ -269,6 +278,13 @@ takeTurn i turn array =
         OTurn -> OMark
   in
   Array.set i mark array
+
+
+next : Turn -> Turn
+next turn =
+  case turn of
+    XTurn -> OTurn
+    OTurn -> XTurn
 
 
 -- View
@@ -321,29 +337,29 @@ viewEntrance state =
 viewPlay : PlayingState -> El.Element Msg
 viewPlay state =
   El.column []
-  [ viewRow 0 state.board
-  , viewRow 3 state.board
-  , viewRow 6 state.board
+  [ viewRow 0 state
+  , viewRow 3 state
+  , viewRow 6 state
   ]
 
 
-viewRow : Int -> Array Mark -> El.Element Msg
-viewRow i array =
+viewRow : Int -> PlayingState -> El.Element Msg
+viewRow i state =
   El.row []
-  [ viewCell (i + 0) array
-  , viewCell (i + 1) array
-  , viewCell (i + 2) array
+  [ viewCell (i + 0) state
+  , viewCell (i + 1) state
+  , viewCell (i + 2) state
   ]
 
 
-viewCell : Int -> Array Mark -> El.Element Msg
-viewCell i array =
-  case Array.get i array of
+viewCell : Int -> PlayingState -> El.Element Msg
+viewCell i state =
+  case Array.get i state.board of
     Nothing ->
       El.none
 
     Just Empty ->
-      viewClickableCell i array
+      viewClickableCell i state
 
     Just XMark ->
       El.text " X "
@@ -352,7 +368,7 @@ viewCell i array =
       El.text " O "
 
 
-viewClickableCell : Int -> Array Mark -> El.Element Msg
-viewClickableCell i array =
+viewClickableCell : Int -> PlayingState -> El.Element Msg
+viewClickableCell i state =
   El.text "[ ]"
-  |> El.el [Events.onClick <| CellClicked i XTurn]
+  |> El.el [Events.onClick <| CellClicked i state.turn]
