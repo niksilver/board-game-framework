@@ -116,27 +116,40 @@ receive v =
 
 -- The structure of the messages we'll send between players
 type alias Body =
-  { board : Array Mark
+  { turn : Turn
+  , board : Array Mark
   }
 
 
 bodyEncoder : Body -> Enc.Value
 bodyEncoder body =
   let
+    turnEnc turn =
+      case turn of
+        XTurn -> Enc.string "X"
+        OTurn -> Enc.string "O"
     pieceEnc piece =
       case piece of
         Empty -> Enc.string " "
         XMark -> Enc.string "X"
         OMark -> Enc.string "O"
     boardEnc =
-      Enc.array pieceEnc body.board
+      Enc.array pieceEnc
   in
-    Enc.object [("board", boardEnc)]
+    Enc.object
+    [ ("turn", turnEnc body.turn)
+    , ("board", boardEnc body.board)
+    ]
 
 
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
   let
+    stringToTurn t =
+      case t of
+        "X" -> XTurn
+        _ -> OTurn
+    turnDecoder = Dec.map stringToTurn Dec.string
     stringToMark s =
       case s of
         "X" -> XMark
@@ -145,8 +158,9 @@ bodyDecoder =
     pieceDecoder = Dec.map stringToMark Dec.string
     boardDecoder = Dec.array pieceDecoder
   in
-  Dec.map
+  Dec.map2
     Body
+    (Dec.field "turn" turnDecoder)
     (Dec.field "board" boardDecoder)
 
 
@@ -240,7 +254,7 @@ update msg model =
               }
           in
           ( { model | screen = Playing state2 }
-          , sendCmd { board = board2 }
+          , sendCmd { turn = state2.turn, board = state2.board }
           )
 
         Entrance _ ->
@@ -331,7 +345,7 @@ updateWithEnvelope env state =
 
     BGF.Joiner j ->
       ( state
-      , sendCmd { board = state.board }
+      , sendCmd { turn = state.turn, board = state.board }
       )
 
     BGF.Leaver l ->
@@ -343,7 +357,10 @@ updateWithEnvelope env state =
 
 updateBoard : Body -> PlayingState -> PlayingState
 updateBoard body state =
-  { state | board = body.board }
+  { state
+  | turn = body.turn
+  , board = body.board
+  }
 
 
 -- View
