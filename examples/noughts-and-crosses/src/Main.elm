@@ -84,12 +84,17 @@ type Msg =
 
 
 server : BGF.Server
-server = BGF.wsServer "bgf,pigsaw.org"
+server = BGF.wsServer "bgf.pigsaw.org"
 
 
 openCmd : BGF.GameId -> Cmd Msg
 openCmd =
   BGF.open outgoing server
+
+
+sendCmd : Body -> Cmd Msg
+sendCmd =
+  BGF.send outgoing bodyEncoder
 
 
 -- Peer-to-peer messages
@@ -174,7 +179,7 @@ initialScreen url key =
         , turn = XTurn
         , board = Array.repeat 9 Empty
         }
-      , Cmd.none
+      , openCmd gameId
       )
 
     Err _ ->
@@ -235,14 +240,32 @@ update msg model =
               }
           in
           ( { model | screen = Playing state2 }
-          , Cmd.none
+          , sendCmd { board = board2 }
           )
 
         Entrance _ ->
           (model, Cmd.none)
 
-    Received env ->
-      (model, Cmd.none)
+    Received envRes ->
+      case model.screen of
+        Entrance _ ->
+          (model, Cmd.none)
+
+        Playing state ->
+          case envRes of
+            Ok env ->
+              let
+                (state2, cmd) = updateWithEnvelope env state
+              in
+              ( { model | screen = Playing state2 }
+              , cmd
+              )
+
+            Err desc ->
+              let
+                _ = Debug.log "Error" desc
+              in
+              (model, Cmd.none)
 
     Ignore ->
       (model, Cmd.none)
@@ -285,6 +308,42 @@ next turn =
   case turn of
     XTurn -> OTurn
     OTurn -> XTurn
+
+
+-- Responding to incoming information
+
+
+updateWithEnvelope : BGF.Envelope Body -> PlayingState -> (PlayingState, Cmd Msg)
+updateWithEnvelope env state =
+  case env of
+    BGF.Welcome w ->
+      (state, Cmd.none)
+
+    BGF.Receipt r ->
+      ( updateBoard r.body state
+      , Cmd.none
+      )
+
+    BGF.Peer p ->
+      ( updateBoard p.body state
+      , Cmd.none
+      )
+
+    BGF.Joiner j ->
+      ( state
+      , sendCmd { board = state.board }
+      )
+
+    BGF.Leaver l ->
+      (state, Cmd.none)
+
+    BGF.Connection conn ->
+      (state, Cmd.none)
+
+
+updateBoard : Body -> PlayingState -> PlayingState
+updateBoard body state =
+  { state | board = body.board }
 
 
 -- View
