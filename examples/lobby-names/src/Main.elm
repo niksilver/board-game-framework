@@ -83,19 +83,13 @@ server = BGF.wsServer "//bgf.pigsaw.org"
 
 
 openCmd : BGF.GameId -> Cmd Msg
-openCmd gameId =
-  server
-  |> BGF.withGameId gameId
-  |> BGF.Open
-  |> BGF.encode bodyEncoder
-  |> outgoing
+openCmd =
+  BGF.open outgoing server
 
 
 sendCmd : Body -> Cmd Msg
-sendCmd body =
-  BGF.Send body
-  |> BGF.encode bodyEncoder
-  |> outgoing
+sendCmd =
+  BGF.send outgoing bodyEncoder
 
 
 -- Our peer-to-peer messages
