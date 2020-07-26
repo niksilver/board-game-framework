@@ -24,7 +24,7 @@ Enable players to a unique game ID, so they can join up with each other.
 @docs Server, wsServer, wssServer, withPort, Address, withGameId, toUrlString
 
 # Basic actions: open, send, close
-@docs Request, encode
+@docs open, send, close
 
 # Receiving messages
 Any message another client sends gets wrapped in envelope, and we get the
@@ -468,80 +468,18 @@ decode bodyDecoder v =
       Err (Json desc)
 
 
-{-| Request to be sent through a port.
-We can open a connection to a game, send a message, or close the connection.
-
-When we open a connection we need to supply the full websocket
-URL to the server with the game id.
-
-When we send a message we need to encode the message (which is of type `a`)
-as JSON.
-
-In the example below we create an `openCmd` to open a connection,
-and a `sendBodyCmd` to send a message of our own type `Body`.
-
-    import Json.Encode as Enc
-    import BoardGameFramework as BGF
-
-
-    type alias Body =
-      { players : Dict String String
-      , entered : Bool
-      }
-
-
-    bodyEncoder : Body -> Enc.Value
-    bodyEncoder body =
-      Enc.object
-      [ ("players" , Enc.dict identity Enc.string body.players)
-      , ("entered" , Enc.bool body.entered)
-      ]
-
-
-    port outgoing : Enc.Value -> Cmd msg
-
-
-    serverURL : String
-    serverURL = "ws://bgf.pigsaw.org"
-
-
-    openCmd : String -> Cmd msg
-    openCmd gameId =
-      BGF.Open (serverURL ++ "/g/" ++ gameId)
-      |> BGF.encode bodyEncoder
-      |> outgoing
-
-
-    sendBodyCmd : Body -> Cmd msg
-    sendBodyCmd body =
-      BGF.Send body
-      |> BGF.encode bodyEncoder
-      |> outgoing
-
--}
-type Request a =
+-- Instruction to be sent through a port.
+type Instruction a =
   Open Address
   | Send a
   | Close
 
 
-{-| Encode a `Request` to the server. It needs a JSON encoder for our
-application-specific messages (type `a`) that get sent between peers.
-
-If we have defined an encoder `encoder` then it may be convenient to
-define our own `encode` function like this:
-
-    import Json.Encode as Enc
-    import BoardGameFramework as BGF
-
-
-    encode : BGF.Request a -> Enc.Value
-    encode =
-      BGF.encode encoder
--}
-encode : (a -> Enc.Value) -> Request a -> Enc.Value
-encode encoder req =
-  case req of
+-- Encode a `Instruction` to the server. It needs a JSON encoder for our
+-- application-specific messages (type `a`) that get sent between peers.
+encode : (a -> Enc.Value) -> Instruction a -> Enc.Value
+encode encoder instr =
+  case instr of
     Open addr ->
       Enc.object
         [ ("instruction", Enc.string "Open")

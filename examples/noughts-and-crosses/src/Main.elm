@@ -15,6 +15,7 @@ import Random
 import Url
 
 import Element as El
+import Element.Events as Events
 import Element.Input as Input
 import BoardGameFramework as BGF
 
@@ -30,7 +31,7 @@ main =
   { init = init
   , update = update
   , subscriptions = subscriptions
-  , onUrlRequest = \req -> Something
+  , onUrlRequest = \req -> Ignore
   , onUrlChange = UrlChanged
   , view = view
   }
@@ -58,11 +59,14 @@ type alias EntranceState =
 
 type alias PlayingState =
   { gameId : BGF.GameId
-  , board : Array Piece
+  , board : Array Mark
   }
 
 
-type Piece = Empty | XMark | OMark
+type Mark = Empty | XMark | OMark
+
+
+type Turn = XTurn | OTurn
 
 
 type Msg =
@@ -70,7 +74,9 @@ type Msg =
   | GeneratedGameId BGF.GameId
   | NewDraftGameId String
   | ConfirmGameId String
-  | Something
+  | CellClicked Int Turn
+  | Received (Result BGF.Error (BGF.Envelope Body))
+  | Ignore
 
 
 -- Game connectivity
@@ -81,12 +87,8 @@ server = BGF.wsServer "bgf,pigsaw.org"
 
 
 openCmd : BGF.GameId -> Cmd Msg
-openCmd gameId =
-  server
-  |> BGF.withGameId gameId
-  |> BGF.Open
-  |> BGF.encode bodyEncoder
-  |> outgoing
+openCmd =
+  BGF.open outgoing server
 
 
 -- Peer-to-peer messages
@@ -108,7 +110,7 @@ receive v =
 
 -- The structure of the messages we'll send between players
 type alias Body =
-  { board : Array Piece
+  { board : Array Mark
   }
 
 
@@ -129,12 +131,12 @@ bodyEncoder body =
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
   let
-    stringToPiece s =
+    stringToMark s =
       case s of
         "X" -> XMark
         "O" -> OMark
         _ -> Empty
-    pieceDecoder = Dec.map stringToPiece Dec.string
+    pieceDecoder = Dec.map stringToMark Dec.string
     boardDecoder = Dec.array pieceDecoder
   in
   Dec.map
@@ -219,7 +221,24 @@ update msg model =
       , id |> setFragment model.url |> Url.toString |> Nav.pushUrl model.key
       )
 
-    Something ->
+    CellClicked i turn ->
+      case model.screen of
+        Playing state ->
+          let
+            board2 = takeTurn i turn state.board
+            state2 = { state | board = board2 }
+          in
+          ( { model | screen = Playing state2 }
+          , Cmd.none
+          )
+
+        Entrance _ ->
+          (model, Cmd.none)
+
+    Received env ->
+      (model, Cmd.none)
+
+    Ignore ->
       (model, Cmd.none)
 
 
@@ -239,6 +258,17 @@ setFragment url fragment =
 setUrl : Url.Url -> Model -> Model
 setUrl url model =
   { model | url = url }
+
+
+takeTurn : Int -> Turn -> Array Mark -> Array Mark
+takeTurn i turn array =
+  let
+    mark =
+      case turn of
+        XTurn -> XMark
+        OTurn -> OMark
+  in
+  Array.set i mark array
 
 
 -- View
@@ -297,7 +327,7 @@ viewPlay state =
   ]
 
 
-viewRow : Int -> Array Piece -> El.Element Msg
+viewRow : Int -> Array Mark -> El.Element Msg
 viewRow i array =
   El.row []
   [ viewCell (i + 0) array
@@ -306,17 +336,23 @@ viewRow i array =
   ]
 
 
-viewCell : Int -> Array Piece -> El.Element Msg
+viewCell : Int -> Array Mark -> El.Element Msg
 viewCell i array =
   case Array.get i array of
     Nothing ->
       El.none
 
     Just Empty ->
-      El.text "[ ]"
+      viewClickableCell i array
 
     Just XMark ->
       El.text " X "
 
     Just OMark ->
       El.text " O "
+
+
+viewClickableCell : Int -> Array Mark -> El.Element Msg
+viewClickableCell i array =
+  El.text "[ ]"
+  |> El.el [Events.onClick <| CellClicked i XTurn]
