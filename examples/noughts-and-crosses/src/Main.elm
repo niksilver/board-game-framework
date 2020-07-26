@@ -340,6 +340,7 @@ viewPlay state =
   [ viewRow 0 state
   , viewRow 3 state
   , viewRow 6 state
+  , viewWhoseTurn state.turn
   ]
 
 
@@ -372,3 +373,13 @@ viewClickableCell : Int -> PlayingState -> El.Element Msg
 viewClickableCell i state =
   El.text "[ ]"
   |> El.el [Events.onClick <| CellClicked i state.turn]
+
+
+viewWhoseTurn : Turn -> El.Element Msg
+viewWhoseTurn turn =
+  case turn of
+    XTurn ->
+      El.text "X to play"
+
+    OTurn ->
+      El.text "O to play"
