@@ -3,10 +3,11 @@
 Also known a tic tac toe.
 
 Perhaps the most interesting thing about this implementation is what
-information is sent between clients---it's the board, but also more.
+information is sent between clients---it's the board, and whose turn it
+is, but also more.
 We have to be careful about multiple players seeing the same board and both
 selecting different cells at the same time. For this reason we also send
-the move number (always incrementing), whose turn it is next,
+the move number (always incrementing),
 and we look at the envelope num when the message comes in.
 If we receive a duplicate move number we prefer the one with the lowest
 envelope num, as that was sent out earlier.

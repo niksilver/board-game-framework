@@ -261,7 +261,7 @@ update msg model =
               , envNum = 2^31-1
               , turn = next state.turn
               , board = board2
-              } |> Debug.log "Clicked, new state"
+              }
           in
           ( { model | screen = Playing state2 }
           , sendCmd
@@ -380,17 +380,11 @@ updateWithEnvelope env state =
       (state, Cmd.none)
 
     BGF.Receipt r ->
-      let
-        x = Debug.log "Received receipt, num" r.num
-      in
       ( updateBoard r.num r.body state
       , Cmd.none
       )
 
     BGF.Peer p ->
-      let
-        x = Debug.log "Received Peer, num" p.num
-      in
       ( updateBoard p.num p.body state
       , Cmd.none
       )
@@ -417,13 +411,9 @@ updateWithEnvelope env state =
 updateBoard : Int -> Body -> PlayingState -> PlayingState
 updateBoard envNum body state =
   let
-    a = Debug.log "body move number" body.moveNumber
-    b = Debug.log "state move number" state.moveNumber
-    c = Debug.log "envelope num" envNum
-    d = Debug.log "state env num" state.envNum
-    bodyHasHigherMoveNumber = body.moveNumber > state.moveNumber |> Debug.log "body has higher move number?"
-    sameMoveNumbers = body.moveNumber == state.moveNumber |> Debug.log "same move numbers?"
-    bodyHasLowerEnvNum = envNum < state.envNum |> Debug.log "body has lower env number?"
+    bodyHasHigherMoveNumber = body.moveNumber > state.moveNumber
+    sameMoveNumbers = body.moveNumber == state.moveNumber
+    bodyHasLowerEnvNum = envNum < state.envNum
   in
   if bodyHasHigherMoveNumber || (sameMoveNumbers && bodyHasLowerEnvNum) then
     { state
@@ -431,9 +421,9 @@ updateBoard envNum body state =
     , envNum = envNum
     , turn = body.turn
     , board = body.board
-    } |> Debug.log "Accepted incoming body"
+    }
   else
-    state |> Debug.log "Rejected incoming body"
+    state
 
 
 -- View
