@@ -310,6 +310,49 @@ next turn =
     OMark -> XMark
 
 
+winner : PlayingState -> Maybe Mark
+winner state =
+  wins 0 1 2 state
+  |> orElse (wins 3 4 5 state)
+  |> orElse (wins 6 7 8 state)
+  |> orElse (wins 0 3 6 state)
+  |> orElse (wins 1 4 7 state)
+  |> orElse (wins 2 5 8 state)
+  |> orElse (wins 0 4 8 state)
+  |> orElse (wins 2 4 6 state)
+
+
+wins : Int -> Int -> Int -> PlayingState -> Maybe Mark
+wins i j k state =
+  let
+    a = Array.get i state.board
+    b = Array.get j state.board
+    c = Array.get k state.board
+  in
+  case a of
+    Just (Just mark) ->
+      if a == b && b == c then
+        Just mark
+      else
+        Nothing
+
+    _ ->
+      Nothing
+
+
+-- Return mY if it's Just something, or else return mX. Used like this:
+--     mX |> orElse mY
+-- Kind of the inverse of andThen.
+orElse : Maybe a -> Maybe a -> Maybe a
+orElse mY mX =
+  case mX of
+    Just _ ->
+      mX
+
+    Nothing ->
+      mY
+
+
 -- Responding to incoming information
 
 
@@ -402,7 +445,7 @@ viewPlay state =
   [ viewRow 0 state
   , viewRow 3 state
   , viewRow 6 state
-  , viewWhoseTurn state.turn
+  , viewWhoseTurnOrWinner state
   ]
 
 
@@ -434,11 +477,19 @@ viewClickableCell i state =
   |> El.el [Events.onClick <| CellClicked i state.turn]
 
 
-viewWhoseTurn : Mark -> El.Element Msg
-viewWhoseTurn turn =
-  case turn of
-    XMark ->
-      El.text "X to play"
+viewWhoseTurnOrWinner : PlayingState -> El.Element Msg
+viewWhoseTurnOrWinner state =
+  case winner state of
+    Just XMark ->
+      El.text "X wins the game!"
 
-    OMark ->
-      El.text "O to play"
+    Just OMark ->
+      El.text "O wins the game!"
+
+    Nothing ->
+      case state.turn of
+        XMark ->
+          El.text "X to play"
+
+        OMark ->
+          El.text "O to play"
