@@ -63,6 +63,7 @@ type alias PlayingState =
   , envNum : Int
   , turn : Mark
   , board : Array (Maybe Mark)
+  , winner : Maybe Mark
   }
 
 
@@ -196,6 +197,7 @@ initialScreen url key =
         , envNum = 2^31-1
         , turn = XMark
         , board = Array.repeat 9 Nothing
+        , winner = Nothing
         }
       , openCmd gameId
       )
@@ -261,6 +263,7 @@ update msg model =
               , envNum = 2^31-1
               , turn = next state.turn
               , board = board2
+              , winner = winner board2
               }
           in
           ( { model | screen = Playing state2 }
@@ -327,24 +330,24 @@ next turn =
     OMark -> XMark
 
 
-winner : PlayingState -> Maybe Mark
-winner state =
-  wins 0 1 2 state
-  |> orElse (wins 3 4 5 state)
-  |> orElse (wins 6 7 8 state)
-  |> orElse (wins 0 3 6 state)
-  |> orElse (wins 1 4 7 state)
-  |> orElse (wins 2 5 8 state)
-  |> orElse (wins 0 4 8 state)
-  |> orElse (wins 2 4 6 state)
+winner : Array (Maybe Mark) -> Maybe Mark
+winner board =
+  wins 0 1 2 board
+  |> orElse (wins 3 4 5 board)
+  |> orElse (wins 6 7 8 board)
+  |> orElse (wins 0 3 6 board)
+  |> orElse (wins 1 4 7 board)
+  |> orElse (wins 2 5 8 board)
+  |> orElse (wins 0 4 8 board)
+  |> orElse (wins 2 4 6 board)
 
 
-wins : Int -> Int -> Int -> PlayingState -> Maybe Mark
-wins i j k state =
+wins : Int -> Int -> Int -> Array (Maybe Mark) -> Maybe Mark
+wins i j k board =
   let
-    a = Array.get i state.board
-    b = Array.get j state.board
-    c = Array.get k state.board
+    a = Array.get i board
+    b = Array.get j board
+    c = Array.get k board
   in
   case a of
     Just (Just mark) ->
@@ -421,6 +424,7 @@ updateBoard envNum body state =
     , envNum = envNum
     , turn = body.turn
     , board = body.board
+    , winner = winner body.board
     }
   else
     state
@@ -513,7 +517,7 @@ viewClickableCell i state =
 
 viewWhoseTurnOrWinner : PlayingState -> El.Element Msg
 viewWhoseTurnOrWinner state =
-  case winner state of
+  case state.winner of
     Just XMark ->
       El.text "X wins the game!"
 
