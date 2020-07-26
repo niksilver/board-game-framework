@@ -1,15 +1,7 @@
-- Fix bug: If there's a failed ws connection, no error is passed to the
-  application. E.g. connecting to an unknown server.
-- Create a Server/Connection/Address type.
-- Create function to put a game ID into a public URL:
-  withFragment : GameId -> Url
-- Create an opaque ClientId type, with toClientId and fromClientId functions.
 - Noughts and crosses demo.
-- Have client-side client ID stored in local storage.
+- Noughts and crosses demo: Handle a draw.
+- Noughts and crosses demo: Make it pretty.
 - Quiz demo with a quiz host and password.
-- Generate a game ID demo.
-- Generate a game ID, but check it with the server first.
-- Store game state locally.
 
 DONE:
 
@@ -88,3 +80,8 @@ DONE:
 - Finish off using GameId in demos.
 - Client library - look at it providing the client ID to Elm on
   initialisation. Then simplify lobby demo.
+- Fix bug: If there's a failed ws connection, no error is passed to the
+  application. E.g. connecting to an unknown server.
+- Create a Server/Connection/Address type.
+- Create function to put a game ID into a public URL:
+  withFragment : GameId -> Url
