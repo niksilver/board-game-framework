@@ -16,6 +16,7 @@ import Url
 
 import Element as El
 import Element.Events as Events
+import Element.Font as Font
 import Element.Input as Input
 import BoardGameFramework as BGF
 
@@ -77,6 +78,7 @@ type Msg =
   | ConfirmGameId String
   | CellClicked Int
   | Received (Result BGF.Error (BGF.Envelope Body))
+  | ClickedPlayAgain
   | Ignore
 
 
@@ -196,7 +198,7 @@ initialScreen url key =
         , moveNumber = 0
         , envNum = 2^31-1
         , turn = XMark
-        , board = Array.repeat 9 Nothing
+        , board = cleanBoard
         , winner = Nothing
         }
       , openCmd gameId
@@ -298,6 +300,30 @@ update msg model =
               in
               (model, Cmd.none)
 
+    ClickedPlayAgain ->
+      case model.screen of
+        Playing state ->
+          let
+            state2 =
+              { state
+              | moveNumber = state.moveNumber + 1
+              , envNum = 2^31-1
+              , turn = next state.turn
+              , board = cleanBoard
+              , winner = Nothing
+              }
+          in
+          ( { model | screen = Playing state2 }
+          , sendCmd
+            { moveNumber = state2.moveNumber
+            , turn = state2.turn
+            , board = state2.board
+            }
+          )
+
+        Entrance _ ->
+          (model, Cmd.none)
+
     Ignore ->
       (model, Cmd.none)
 
@@ -321,6 +347,11 @@ setUrl url model =
 
 
 -- Game mechanics
+
+
+cleanBoard : Array (Maybe Mark)
+cleanBoard =
+  Array.repeat 9 Nothing
 
 
 next : Mark -> Mark
@@ -518,11 +549,8 @@ viewClickableCell i state =
 viewWhoseTurnOrWinner : PlayingState -> El.Element Msg
 viewWhoseTurnOrWinner state =
   case state.winner of
-    Just XMark ->
-      El.text "X wins the game!"
-
-    Just OMark ->
-      El.text "O wins the game!"
+    Just mark ->
+      viewWinner mark
 
     Nothing ->
       case state.turn of
@@ -531,3 +559,22 @@ viewWhoseTurnOrWinner state =
 
         OMark ->
           El.text "O to play"
+
+
+viewWinner : Mark -> El.Element Msg
+viewWinner mark =
+  let
+    winText =
+      case mark of
+        XMark ->
+          "X wins the game! "
+
+        OMark ->
+          "O wins the game! "
+  in
+  El.paragraph []
+  [ El.text winText
+  , El.text "Click to play again"
+    |> El.el [ Font.underline ]
+    |> El.el [ Events.onClick <| ClickedPlayAgain ]
+  ]
