@@ -59,6 +59,8 @@ type alias EntranceState =
 
 type alias PlayingState =
   { gameId : BGF.GameId
+  , moveNumber : Int
+  , envNum : Int
   , turn : Mark
   , board : Array (Maybe Mark)
   }
@@ -72,7 +74,7 @@ type Msg =
   | GeneratedGameId BGF.GameId
   | NewDraftGameId String
   | ConfirmGameId String
-  | CellClicked Int Mark
+  | CellClicked Int
   | Received (Result BGF.Error (BGF.Envelope Body))
   | Ignore
 
@@ -113,7 +115,8 @@ receive v =
 
 -- The structure of the messages we'll send between players
 type alias Body =
-  { turn : Mark
+  { moveNumber : Int
+  , turn : Mark
   , board : Array (Maybe Mark)
   }
 
@@ -134,7 +137,8 @@ bodyEncoder body =
       Enc.array boardMarkEnc
   in
     Enc.object
-    [ ("turn", markEnc body.turn)
+    [ ("moveNumber", Enc.int body.moveNumber)
+    , ("turn", markEnc body.turn)
     , ("board", boardEnc body.board)
     ]
 
@@ -155,8 +159,9 @@ bodyDecoder =
     boardMarkDecoder = Dec.map stringToBoardMark Dec.string
     boardDecoder = Dec.array boardMarkDecoder
   in
-  Dec.map2
+  Dec.map3
     Body
+    (Dec.field "moveNumber" Dec.int)
     (Dec.field "turn" markDecoder)
     (Dec.field "board" boardDecoder)
 
@@ -187,6 +192,8 @@ initialScreen url key =
     Ok gameId ->
       ( Playing
         { gameId = gameId
+        , moveNumber = 0
+        , envNum = 2^31-1
         , turn = XMark
         , board = Array.repeat 9 Nothing
         }
@@ -239,19 +246,29 @@ update msg model =
       , id |> setFragment model.url |> Url.toString |> Nav.pushUrl model.key
       )
 
-    CellClicked i turn ->
+    CellClicked i ->
       case model.screen of
         Playing state ->
           let
-            board2 = Array.set i (Just turn) state.board
+            -- We set the envNum to a large int, because we'll only really
+            -- trust the move when it comes back as a receipt... or perhaps
+            -- is beaten by a slightly earlier peer message. So we'll pick
+            -- up the envelope num from whichever envelope comes in first.
+            board2 = Array.set i (Just state.turn) state.board
             state2 =
               { state
-              | board = board2
-              , turn = next turn
-              }
+              | moveNumber = state.moveNumber + 1
+              , envNum = 2^31-1
+              , turn = next state.turn
+              , board = board2
+              } |> Debug.log "Clicked, new state"
           in
           ( { model | screen = Playing state2 }
-          , sendCmd { turn = state2.turn, board = state2.board }
+          , sendCmd
+            { moveNumber = state2.moveNumber
+            , turn = state2.turn
+            , board = state2.board
+            }
           )
 
         Entrance _ ->
@@ -363,18 +380,28 @@ updateWithEnvelope env state =
       (state, Cmd.none)
 
     BGF.Receipt r ->
-      ( updateBoard r.body state
+      let
+        x = Debug.log "Received receipt, num" r.num
+      in
+      ( updateBoard r.num r.body state
       , Cmd.none
       )
 
     BGF.Peer p ->
-      ( updateBoard p.body state
+      let
+        x = Debug.log "Received Peer, num" p.num
+      in
+      ( updateBoard p.num p.body state
       , Cmd.none
       )
 
     BGF.Joiner j ->
       ( state
-      , sendCmd { turn = state.turn, board = state.board }
+      , sendCmd
+        { moveNumber = state.moveNumber
+        , turn = state.turn
+        , board = state.board
+        }
       )
 
     BGF.Leaver l ->
@@ -384,12 +411,29 @@ updateWithEnvelope env state =
       (state, Cmd.none)
 
 
-updateBoard : Body -> PlayingState -> PlayingState
-updateBoard body state =
-  { state
-  | turn = body.turn
-  , board = body.board
-  }
+-- We will only update the playing state with the given board if it
+-- is a higher move number, or if it's the same move number
+-- and a lower envelope num.
+updateBoard : Int -> Body -> PlayingState -> PlayingState
+updateBoard envNum body state =
+  let
+    a = Debug.log "body move number" body.moveNumber
+    b = Debug.log "state move number" state.moveNumber
+    c = Debug.log "envelope num" envNum
+    d = Debug.log "state env num" state.envNum
+    bodyHasHigherMoveNumber = body.moveNumber > state.moveNumber |> Debug.log "body has higher move number?"
+    sameMoveNumbers = body.moveNumber == state.moveNumber |> Debug.log "same move numbers?"
+    bodyHasLowerEnvNum = envNum < state.envNum |> Debug.log "body has lower env number?"
+  in
+  if bodyHasHigherMoveNumber || (sameMoveNumbers && bodyHasLowerEnvNum) then
+    { state
+    | moveNumber = body.moveNumber
+    , envNum = envNum
+    , turn = body.turn
+    , board = body.board
+    } |> Debug.log "Accepted incoming body"
+  else
+    state |> Debug.log "Rejected incoming body"
 
 
 -- View
@@ -473,8 +517,8 @@ viewCell i state =
 
 viewClickableCell : Int -> PlayingState -> El.Element Msg
 viewClickableCell i state =
-  El.text "[ ]"
-  |> El.el [Events.onClick <| CellClicked i state.turn]
+  El.text "[_]"
+  |> El.el [Events.onClick <| CellClicked i]
 
 
 viewWhoseTurnOrWinner : PlayingState -> El.Element Msg
