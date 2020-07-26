@@ -59,15 +59,12 @@ type alias EntranceState =
 
 type alias PlayingState =
   { gameId : BGF.GameId
-  , turn : Turn
-  , board : Array Mark
+  , turn : Mark
+  , board : Array (Maybe Mark)
   }
 
 
-type Mark = Empty | XMark | OMark
-
-
-type Turn = XTurn | OTurn
+type Mark = XMark | OMark
 
 
 type Msg =
@@ -75,7 +72,7 @@ type Msg =
   | GeneratedGameId BGF.GameId
   | NewDraftGameId String
   | ConfirmGameId String
-  | CellClicked Int Turn
+  | CellClicked Int Mark
   | Received (Result BGF.Error (BGF.Envelope Body))
   | Ignore
 
@@ -116,28 +113,28 @@ receive v =
 
 -- The structure of the messages we'll send between players
 type alias Body =
-  { turn : Turn
-  , board : Array Mark
+  { turn : Mark
+  , board : Array (Maybe Mark)
   }
 
 
 bodyEncoder : Body -> Enc.Value
 bodyEncoder body =
   let
-    turnEnc turn =
+    markEnc turn =
       case turn of
-        XTurn -> Enc.string "X"
-        OTurn -> Enc.string "O"
-    pieceEnc piece =
-      case piece of
-        Empty -> Enc.string " "
         XMark -> Enc.string "X"
         OMark -> Enc.string "O"
+    boardMarkEnc piece =
+      case piece of
+        Just XMark -> Enc.string "X"
+        Just OMark -> Enc.string "O"
+        Nothing -> Enc.string " "
     boardEnc =
-      Enc.array pieceEnc
+      Enc.array boardMarkEnc
   in
     Enc.object
-    [ ("turn", turnEnc body.turn)
+    [ ("turn", markEnc body.turn)
     , ("board", boardEnc body.board)
     ]
 
@@ -145,22 +142,22 @@ bodyEncoder body =
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
   let
-    stringToTurn t =
-      case t of
-        "X" -> XTurn
-        _ -> OTurn
-    turnDecoder = Dec.map stringToTurn Dec.string
     stringToMark s =
       case s of
         "X" -> XMark
-        "O" -> OMark
-        _ -> Empty
-    pieceDecoder = Dec.map stringToMark Dec.string
-    boardDecoder = Dec.array pieceDecoder
+        _ -> OMark
+    stringToBoardMark s =
+      case s of
+        "X" -> Just XMark
+        "O" -> Just OMark
+        _ -> Nothing
+    markDecoder = Dec.map stringToMark Dec.string
+    boardMarkDecoder = Dec.map stringToBoardMark Dec.string
+    boardDecoder = Dec.array boardMarkDecoder
   in
   Dec.map2
     Body
-    (Dec.field "turn" turnDecoder)
+    (Dec.field "turn" markDecoder)
     (Dec.field "board" boardDecoder)
 
 
@@ -190,8 +187,8 @@ initialScreen url key =
     Ok gameId ->
       ( Playing
         { gameId = gameId
-        , turn = XTurn
-        , board = Array.repeat 9 Empty
+        , turn = XMark
+        , board = Array.repeat 9 Nothing
         }
       , openCmd gameId
       )
@@ -246,7 +243,7 @@ update msg model =
       case model.screen of
         Playing state ->
           let
-            board2 = takeTurn i turn state.board
+            board2 = Array.set i (Just turn) state.board
             state2 =
               { state
               | board = board2
@@ -306,22 +303,11 @@ setUrl url model =
 -- Game mechanics
 
 
-takeTurn : Int -> Turn -> Array Mark -> Array Mark
-takeTurn i turn array =
-  let
-    mark =
-      case turn of
-        XTurn -> XMark
-        OTurn -> OMark
-  in
-  Array.set i mark array
-
-
-next : Turn -> Turn
+next : Mark -> Mark
 next turn =
   case turn of
-    XTurn -> OTurn
-    OTurn -> XTurn
+    XMark -> OMark
+    OMark -> XMark
 
 
 -- Responding to incoming information
@@ -431,11 +417,8 @@ viewRow i state =
 
 viewCell : Int -> PlayingState -> El.Element Msg
 viewCell i state =
-  case Array.get i state.board of
+  case Array.get i state.board |> Maybe.withDefault Nothing of
     Nothing ->
-      El.none
-
-    Just Empty ->
       viewClickableCell i state
 
     Just XMark ->
@@ -451,11 +434,11 @@ viewClickableCell i state =
   |> El.el [Events.onClick <| CellClicked i state.turn]
 
 
-viewWhoseTurn : Turn -> El.Element Msg
+viewWhoseTurn : Mark -> El.Element Msg
 viewWhoseTurn turn =
   case turn of
-    XTurn ->
+    XMark ->
       El.text "X to play"
 
-    OTurn ->
+    OMark ->
       El.text "O to play"
