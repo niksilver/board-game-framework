@@ -73,6 +73,75 @@ type Msg =
   | Something
 
 
+-- Game connectivity
+
+
+server : BGF.Server
+server = BGF.wsServer "bgf,pigsaw.org"
+
+
+openCmd : BGF.GameId -> Cmd Msg
+openCmd gameId =
+  server
+  |> BGF.withGameId gameId
+  |> BGF.Open
+  |> BGF.encode bodyEncoder
+  |> outgoing
+
+
+-- Peer-to-peer messages
+
+
+port outgoing : Enc.Value -> Cmd msg
+port incoming : (Enc.Value -> msg) -> Sub msg
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  incoming receive
+
+
+receive : Enc.Value -> Msg
+receive v =
+  BGF.decode bodyDecoder v |> Received
+
+
+-- The structure of the messages we'll send between players
+type alias Body =
+  { board : Array Piece
+  }
+
+
+bodyEncoder : Body -> Enc.Value
+bodyEncoder body =
+  let
+    pieceEnc piece =
+      case piece of
+        Empty -> Enc.string " "
+        XMark -> Enc.string "X"
+        OMark -> Enc.string "O"
+    boardEnc =
+      Enc.array pieceEnc body.board
+  in
+    Enc.object [("board", boardEnc)]
+
+
+bodyDecoder : Dec.Decoder Body
+bodyDecoder =
+  let
+    stringToPiece s =
+      case s of
+        "X" -> XMark
+        "O" -> OMark
+        _ -> Empty
+    pieceDecoder = Dec.map stringToPiece Dec.string
+    boardDecoder = Dec.array pieceDecoder
+  in
+  Dec.map
+    Body
+    (Dec.field "board" boardDecoder)
+
+
 -- Initial state
 
 
@@ -151,7 +220,7 @@ update msg model =
       )
 
     Something ->
-      (model, dUMMY_FUNCTION)
+      (model, Cmd.none)
 
 
 setDraftGameId : String -> Model -> Model
@@ -170,23 +239,6 @@ setFragment url fragment =
 setUrl : Url.Url -> Model -> Model
 setUrl url model =
   { model | url = url }
-
-
--- Subscriptions and ports
-
-
-port outgoing : Enc.Value -> Cmd msg
-port incoming : (Enc.Value -> msg) -> Sub msg
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-  incoming (\v -> Something)
-
-
-dUMMY_FUNCTION : Cmd msg
-dUMMY_FUNCTION =
-  Enc.string "x" |> outgoing
 
 
 -- View

@@ -91,6 +91,13 @@ openCmd gameId =
   |> outgoing
 
 
+sendCmd : Body -> Cmd Msg
+sendCmd body =
+  BGF.Send body
+  |> BGF.encode bodyEncoder
+  |> outgoing
+
+
 -- Our peer-to-peer messages
 
 
@@ -212,7 +219,7 @@ update msg model =
             model.players
             |> Dict.insert model.myId model.draftMyName
         }
-      , sendBodyCmd { id = model.myId, name = model.draftMyName }
+      , sendCmd { id = model.myId, name = model.draftMyName }
       )
 
     Received envRes ->
@@ -230,13 +237,6 @@ update msg model =
           )
 
 
-sendBodyCmd : Body -> Cmd Msg
-sendBodyCmd body =
-  BGF.Send body
-  |> BGF.encode bodyEncoder
-  |> outgoing
-
-
 updateWithEnvelope : Envelope -> Model -> (Model, Cmd Msg)
 updateWithEnvelope env model =
   case env of
@@ -252,7 +252,7 @@ updateWithEnvelope env model =
       ( { model
         | players = List.foldl insert players1 w.others
         }
-      , sendBodyCmd { id = model.myId, name = myName model }
+      , sendCmd { id = model.myId, name = myName model }
       )
 
     BGF.Peer p ->
@@ -274,7 +274,7 @@ updateWithEnvelope env model =
         | players =
             model.players |> Dict.insert j.joiner ""
         }
-      , sendBodyCmd { id = model.myId, name = myName model }
+      , sendCmd { id = model.myId, name = myName model }
       )
 
     BGF.Leaver l ->
@@ -310,12 +310,13 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  incoming decode
+  incoming receive
 
 
-decode : Enc.Value -> Msg
-decode v =
-  BGF.decode bodyDecoder v |> Received
+receive : Enc.Value -> Msg
+receive v =
+  BGF.decode bodyDecoder v
+  |> Received
 
 
 -- View

@@ -93,9 +93,7 @@ update msg model =
             Ok gameId ->
               server
               |> BGF.withGameId gameId
-              |> BGF.Open
-              |> encode
-              |> outgoing
+              |> BGF.open outgoing
 
             Err _ ->
               Cmd.none
@@ -130,10 +128,10 @@ update msg model =
       )
 
     SendClick ->
-      (model, BGF.Send model.body |> encode |> outgoing)
+      (model, model.body |> BGF.send outgoing encoder)
 
     CloseClick ->
-      (model, BGF.Close |> encode |> outgoing)
+      (model, BGF.close outgoing)
 
     Received env ->
       ( { model
@@ -168,11 +166,6 @@ encoder body =
   , ("truth", Enc.bool body.draftTruth)
   , ("wholenumber", Enc.int body.draftWholeNumber)
   ]
-
-
-encode : BGF.Request Body -> Enc.Value
-encode =
-  BGF.encode encoder
 
 
 -- Turn something that's come in from a port into a message we can

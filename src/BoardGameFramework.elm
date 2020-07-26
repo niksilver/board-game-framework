@@ -7,7 +7,7 @@ module BoardGameFramework exposing (
   GameId, gameId, fromGameId , idGenerator
   , Server, wsServer, wssServer, withPort, Address, withGameId, toUrlString
   , ClientId
-  , Envelope(..), Connectivity(..), Error(..), Request(..)
+  , Envelope(..), Connectivity(..), Error(..), open, send, close
   , encode, decode
   )
 
@@ -558,3 +558,24 @@ encode encoder req =
       Enc.object
         [ ("instruction", Enc.string "Close")
         ]
+
+
+open : (Enc.Value -> Cmd msg) -> Address -> Cmd msg
+open cmder addr =
+  Open addr
+  |> encode (\_ -> Enc.null)
+  |> cmder
+
+
+send : (Enc.Value -> Cmd msg) -> (a -> Enc.Value) -> a -> Cmd msg
+send cmder encoder body =
+  Send body
+  |> encode encoder
+  |> cmder
+
+
+close : (Enc.Value -> Cmd msg) -> Cmd msg
+close cmder =
+  Close
+  |> encode (\_ -> Enc.null)
+  |> cmder
