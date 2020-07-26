@@ -560,9 +560,11 @@ encode encoder req =
         ]
 
 
-open : (Enc.Value -> Cmd msg) -> Address -> Cmd msg
-open cmder addr =
-  Open addr
+open : (Enc.Value -> Cmd msg) -> Server -> GameId -> Cmd msg
+open cmder server gId =
+  server
+  |> withGameId gId
+  |> Open
   |> encode (\_ -> Enc.null)
   |> cmder
 

@@ -91,9 +91,7 @@ update msg model =
         cmd =
           case BGF.gameId model.draftGameId of
             Ok gameId ->
-              server
-              |> BGF.withGameId gameId
-              |> BGF.open outgoing
+              BGF.open outgoing server gameId
 
             Err _ ->
               Cmd.none
