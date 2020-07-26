@@ -542,8 +542,17 @@ viewCell i state =
 
 viewClickableCell : Int -> PlayingState -> El.Element Msg
 viewClickableCell i state =
+  let
+    cellEvent =
+      case state.winner of
+        Nothing ->
+          [Events.onClick <| CellClicked i]
+
+        Just _ ->
+          []
+  in
   El.text "[_]"
-  |> El.el [Events.onClick <| CellClicked i]
+  |> El.el cellEvent
 
 
 viewWhoseTurnOrWinner : PlayingState -> El.Element Msg
