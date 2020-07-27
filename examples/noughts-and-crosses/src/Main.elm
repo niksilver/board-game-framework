@@ -64,11 +64,14 @@ type alias PlayingState =
   , envNum : Int
   , turn : Mark
   , board : Array (Maybe Mark)
-  , winner : Maybe Mark
+  , winner : Winner
   }
 
 
 type Mark = XMark | OMark
+
+
+type Winner = InProgress | WonBy (Maybe Mark)
 
 
 type Msg =
@@ -199,7 +202,7 @@ initialScreen url key =
         , envNum = 2^31-1
         , turn = XMark
         , board = cleanBoard
-        , winner = Nothing
+        , winner = InProgress
         }
       , openCmd gameId
       )
@@ -310,7 +313,7 @@ update msg model =
               , envNum = 2^31-1
               , turn = next state.turn
               , board = cleanBoard
-              , winner = Nothing
+              , winner = InProgress
               }
           in
           ( { model | screen = Playing state2 }
@@ -361,16 +364,28 @@ next turn =
     OMark -> XMark
 
 
-winner : Array (Maybe Mark) -> Maybe Mark
+winner : Array (Maybe Mark) -> Winner
 winner board =
-  wins 0 1 2 board
-  |> orElse (wins 3 4 5 board)
-  |> orElse (wins 6 7 8 board)
-  |> orElse (wins 0 3 6 board)
-  |> orElse (wins 1 4 7 board)
-  |> orElse (wins 2 5 8 board)
-  |> orElse (wins 0 4 8 board)
-  |> orElse (wins 2 4 6 board)
+  let
+    wonBy =
+      wins 0 1 2 board
+      |> orElse (wins 3 4 5 board)
+      |> orElse (wins 6 7 8 board)
+      |> orElse (wins 0 3 6 board)
+      |> orElse (wins 1 4 7 board)
+      |> orElse (wins 2 5 8 board)
+      |> orElse (wins 0 4 8 board)
+      |> orElse (wins 2 4 6 board)
+  in
+  case wonBy of
+    Just mark ->
+      WonBy (Just mark)
+
+    Nothing ->
+      if markCount board == 9 then
+        WonBy Nothing
+      else
+        InProgress
 
 
 wins : Int -> Int -> Int -> Array (Maybe Mark) -> Maybe Mark
@@ -402,6 +417,18 @@ orElse mY mX =
 
     Nothing ->
       mY
+
+
+-- Count the number of marks in the array
+markCount : Array (Maybe Mark) -> Int
+markCount board =
+  let
+    add mMark count =
+      case mMark of
+        Just _ -> count + 1
+        Nothing -> count
+  in
+  Array.foldl add 0 board
 
 
 -- Responding to incoming information
@@ -545,10 +572,10 @@ viewClickableCell i state =
   let
     cellEvent =
       case state.winner of
-        Nothing ->
+        InProgress ->
           [Events.onClick <| CellClicked i]
 
-        Just _ ->
+        WonBy _ ->
           []
   in
   El.text "[_]"
@@ -558,10 +585,10 @@ viewClickableCell i state =
 viewWhoseTurnOrWinner : PlayingState -> El.Element Msg
 viewWhoseTurnOrWinner state =
   case state.winner of
-    Just mark ->
-      viewWinner mark
+    WonBy mMark ->
+      viewWinner mMark
 
-    Nothing ->
+    InProgress ->
       case state.turn of
         XMark ->
           El.text "X to play"
@@ -570,16 +597,19 @@ viewWhoseTurnOrWinner state =
           El.text "O to play"
 
 
-viewWinner : Mark -> El.Element Msg
-viewWinner mark =
+viewWinner : Maybe Mark -> El.Element Msg
+viewWinner mMark =
   let
     winText =
-      case mark of
-        XMark ->
+      case mMark of
+        Just XMark ->
           "X wins the game! "
 
-        OMark ->
+        Just OMark ->
           "O wins the game! "
+
+        Nothing ->
+          "It's a draw! "
   in
   El.paragraph []
   [ El.text winText

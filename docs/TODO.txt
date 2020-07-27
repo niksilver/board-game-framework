@@ -1,5 +1,4 @@
 - Noughts and crosses demo.
-- Noughts and crosses demo: Handle a draw.
 - Noughts and crosses demo: Make it pretty.
 - Quiz demo with a quiz host and password.
 
@@ -85,3 +84,4 @@ DONE:
 - Create a Server/Connection/Address type.
 - Create function to put a game ID into a public URL:
   withFragment : GameId -> Url
+- Noughts and crosses demo: Handle a draw.
