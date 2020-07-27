@@ -60,6 +60,7 @@ type alias EntranceState =
 
 type alias PlayingState =
   { gameId : BGF.GameId
+  , playerCount : Int
   , moveNumber : Int
   , envNum : Int
   , turn : Mark
@@ -198,6 +199,7 @@ initialScreen url key =
     Ok gameId ->
       ( Playing
         { gameId = gameId
+        , playerCount = 1
         , moveNumber = 0
         , envNum = 2^31-1
         , turn = XMark
@@ -438,7 +440,12 @@ updateWithEnvelope : BGF.Envelope Body -> PlayingState -> (PlayingState, Cmd Msg
 updateWithEnvelope env state =
   case env of
     BGF.Welcome w ->
-      (state, Cmd.none)
+      let
+        pCount = 1 + List.length w.others
+      in
+      ( { state | playerCount = pCount }
+      , Cmd.none
+      )
 
     BGF.Receipt r ->
       ( updateBoard r.num r.body state
@@ -451,7 +458,11 @@ updateWithEnvelope env state =
       )
 
     BGF.Joiner j ->
-      ( state
+      -- When someone joins we need to tell them the state of board
+      let
+        pCount = 1 + List.length j.to
+      in
+      ( { state | playerCount = pCount }
       , sendCmd
         { moveNumber = state.moveNumber
         , turn = state.turn
@@ -460,7 +471,12 @@ updateWithEnvelope env state =
       )
 
     BGF.Leaver l ->
-      (state, Cmd.none)
+      let
+        pCount = 1 + List.length l.to
+      in
+      ( { state | playerCount = pCount }
+      , Cmd.none
+      )
 
     BGF.Connection conn ->
       (state, Cmd.none)
@@ -542,6 +558,7 @@ viewPlay state =
   , viewRow 3 state
   , viewRow 6 state
   , viewWhoseTurnOrWinner state
+  , viewPlayerCount state
   ]
 
 
@@ -617,3 +634,16 @@ viewWinner mMark =
     |> El.el [ Font.underline ]
     |> El.el [ Events.onClick <| ClickedPlayAgain ]
   ]
+
+
+viewPlayerCount : PlayingState -> El.Element Msg
+viewPlayerCount state =
+  case state.playerCount of
+    1 ->
+      El.text "There are no other players online"
+
+    2 ->
+      El.text "There is one other player online"
+
+    p ->
+      El.text <| "There are " ++ (String.fromInt p) ++ " other players online"
