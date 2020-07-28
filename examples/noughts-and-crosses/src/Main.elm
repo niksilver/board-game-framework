@@ -440,6 +440,7 @@ updateWithEnvelope : BGF.Envelope Body -> PlayingState -> (PlayingState, Cmd Msg
 updateWithEnvelope env state =
   case env of
     BGF.Welcome w ->
+      -- When we're welcomed we can count all the players in the game
       let
         pCount = 1 + List.length w.others
       in
@@ -471,8 +472,9 @@ updateWithEnvelope env state =
       )
 
     BGF.Leaver l ->
+      -- When someone leaves we need to update ourselves with who's left
       let
-        pCount = 1 + List.length l.to
+        pCount = List.length l.to
       in
       ( { state | playerCount = pCount }
       , Cmd.none
