@@ -14,7 +14,7 @@ function gen {
     gm convert $INPUT -thumbnail '600x600^' -gravity center -extent 600x600 +profile "*" "$OUTPUT"
 
     echo -n "
-  , { filename = \"$OUTPUT\"
+  , { src = \"images/$OUTPUT\"
     , name = \"$NAME\"
     , link = \"$URL\"
     }" >> ${MARK}out.elm

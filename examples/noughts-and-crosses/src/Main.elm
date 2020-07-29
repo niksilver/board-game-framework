@@ -7,6 +7,7 @@ port module Main exposing (..)
 
 
 import Array exposing (Array)
+import Bitwise
 import Browser
 import Browser.Navigation as Nav
 import Json.Encode as Enc
@@ -62,6 +63,7 @@ type alias EntranceState =
 
 type alias PlayingState =
   { gameId : BGF.GameId
+  , seed : Int
   , playerCount : Int
   , moveNumber : Int
   , envNum : Int
@@ -201,6 +203,7 @@ initialScreen url key =
     Ok gameId ->
       ( Playing
         { gameId = gameId
+        , seed = makeSeed gameId 0
         , playerCount = 1
         , moveNumber = 0
         , envNum = 2^31-1
@@ -222,6 +225,21 @@ initialScreen url key =
           ( Entrance { draftGameId = frag }
           , Random.generate GeneratedGameId BGF.idGenerator
           )
+
+
+-- Create a randomish seed for a seed... almost certainly not a great algorithm
+makeSeed : BGF.GameId -> Int -> Int
+makeSeed gameId moveNumber =
+  let
+    extend chr i =
+      Char.toCode chr
+      |> (*) 2
+      |> Bitwise.xor i
+  in
+  gameId
+  |> BGF.fromGameId
+  |> String.foldl extend moveNumber
+
 
 -- Updating the model
 
@@ -314,6 +332,7 @@ update msg model =
             state2 =
               { state
               | moveNumber = state.moveNumber + 1
+              , seed = makeSeed state.gameId state.moveNumber
               , envNum = 2^31-1
               , board = cleanBoard
               , winner = InProgress
@@ -616,16 +635,17 @@ viewCell i state =
     Nothing ->
       viewClickableCell i state
 
-    Just XMark ->
+    Just mark ->
+      let
+        seed = state.seed + i |> Random.initialSeed
+        ((ref, _), desc) =
+          case mark of
+            XMark -> (Images.stepX seed, "X")
+            OMark -> (Images.stepO seed, "O")
+      in
       El.image [ El.width (El.px cellWidth) , El.height (El.px cellWidth)]
-      { src = "images/x0.jpg"
-      , description = "X"
-      }
-
-    Just OMark ->
-      El.image [ El.width (El.px cellWidth) , El.height (El.px cellWidth)]
-      { src = "images/o0.jpg"
-      , description = "O"
+      { src = ref.src
+      , description = desc
       }
 
 
