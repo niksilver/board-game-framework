@@ -6,12 +6,12 @@
 # Also creates the Elm code to reference that
 
 function gen {
-    INPUT=$1
-    URL=$2
-    OUTPUT=$3
-    NAME=$4
-    MARK=$5
-    gm convert $INPUT -thumbnail '600x600^' -gravity center -extent 600x600 +profile "*" "$MARK$OUTPUT"
+    MARK=$1
+    OUTPUT="$MARK/$2.jpg"
+    INPUT="source$MARK/$3"
+    URL=$4
+    NAME=$5
+    gm convert $INPUT -thumbnail '600x600^' -gravity center -extent 600x600 +profile "*" "$OUTPUT"
 
     echo -n "
   , { filename = \"$OUTPUT\"
@@ -21,24 +21,24 @@ function gen {
 }
 
 function genx {
-    gen "$1" "$2" "$3" "$4" "x"
+    gen "x" "$1" "$2" "$3" "$4"
 }
 
 function geno {
-    gen "$1" "$2" "$3" "$4" "o"
+    gen "o" "$1" "$2" "$3" "$4"
 }
 
 # Generating the X images
 
-rm xout.elm
+rm -f xout.elm
 
-genx '14114788851_8ce4713c51_o.jpg' 'https://www.flickr.com/photos/miglesias/14114788851/' '0.jpg' "Maria Iglesias Barroso"
-genx '28659408095_9db7dcb12c_o.jpg' 'https://www.flickr.com/photos/adabo/28659408095/' '1.jpg' "Björn"
+genx 0 '14114788851_8ce4713c51_o.jpg' 'https://www.flickr.com/photos/miglesias/14114788851/' "Maria Iglesias Barroso"
+genx 1 '28659408095_9db7dcb12c_o.jpg' 'https://www.flickr.com/photos/adabo/28659408095/' "Björn"
 
 
 # Generating the O images
 
-rm oout.elm
+rm -f oout.elm
 
-geno '2286486623_7bdbd2194a_o.jpg' 'https://www.flickr.com/photos/mag3737/2286486623/' '0.jpg' "Tom Magliery"
-geno '2371325881_ecea401f6d_o.jpg' 'https://www.flickr.com/photos/mag3737/2371325881/' '1.jpg' "Tom Magliery"
+geno 0 '2286486623_7bdbd2194a_o.jpg' 'https://www.flickr.com/photos/mag3737/2286486623/' "Tom Magliery"
+geno 1 '2371325881_ecea401f6d_o.jpg' 'https://www.flickr.com/photos/mag3737/2371325881/' "Tom Magliery"
