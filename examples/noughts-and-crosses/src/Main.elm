@@ -15,12 +15,14 @@ import Random
 import Url
 
 import Element as El
+import Element.Background as Background
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import BoardGameFramework as BGF
 
-import UI as UI
+import UI
+import Images
 
 
 -- Basic setup
@@ -508,6 +510,12 @@ updateBoard envNum body state =
 -- View
 
 
+borderWidth = 20
+cellWidth = 200
+gridColour = El.rgb 0.8 0.1 1.0
+cellColour = El.rgb 0.3 0.3 0.3
+
+
 view : Model -> Browser.Document Msg
 view model =
   { title = "Noughts and crosses"
@@ -555,17 +563,47 @@ viewEntrance state =
 viewPlay : PlayingState -> El.Element Msg
 viewPlay state =
   El.column []
-  [ viewRow 0 state
-  , viewRow 3 state
-  , viewRow 6 state
+  [ viewGrid state
   , viewWhoseTurnOrWinner state
   , viewPlayerCount state
   ]
 
 
+viewGrid : PlayingState -> El.Element Msg
+viewGrid state =
+  El.column []
+  [ viewGridBar
+  , viewRow 0 state
+  , viewGridBar
+  , viewRow 3 state
+  , viewGridBar
+  , viewRow 6 state
+  , viewGridBar
+  ]
+
+
+viewGridBar : El.Element Msg
+viewGridBar =
+  El.row
+  [ El.width (4*borderWidth + 3*cellWidth |> El.px)
+  , Background.color gridColour
+  ]
+  [ El.text ""
+  ]
+
+
 viewRow : Int -> PlayingState -> El.Element Msg
 viewRow i state =
-  El.row []
+  El.row
+  [ El.paddingEach
+    { top = 0
+    , left = borderWidth
+    , bottom = 0
+    , right = borderWidth
+    }
+  , El.spacing borderWidth
+  , Background.color gridColour
+  ]
   [ viewCell (i + 0) state
   , viewCell (i + 1) state
   , viewCell (i + 2) state
@@ -579,10 +617,16 @@ viewCell i state =
       viewClickableCell i state
 
     Just XMark ->
-      El.text " X "
+      El.image [ El.width (El.px cellWidth) , El.height (El.px cellWidth)]
+      { src = "images/x0.jpg"
+      , description = "X"
+      }
 
     Just OMark ->
-      El.text " O "
+      El.image [ El.width (El.px cellWidth) , El.height (El.px cellWidth)]
+      { src = "images/o0.jpg"
+      , description = "O"
+      }
 
 
 viewClickableCell : Int -> PlayingState -> El.Element Msg
@@ -597,6 +641,11 @@ viewClickableCell i state =
           []
   in
   El.text "[_]"
+  |> El.el
+    [ El.width (El.px cellWidth)
+    , El.height (El.px cellWidth)
+    , Background.color cellColour
+    ]
   |> El.el cellEvent
 
 
