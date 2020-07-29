@@ -313,7 +313,6 @@ update msg model =
               { state
               | moveNumber = state.moveNumber + 1
               , envNum = 2^31-1
-              , turn = next state.turn
               , board = cleanBoard
               , winner = InProgress
               }
