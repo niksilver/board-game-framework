@@ -212,9 +212,9 @@ print "Done!\n";
 # For a mark (x or o) capture all the URLs given.
 # Will die in the event of a problem.
 sub capture {
-    $mark = $_[0];
-    $lines = $_[1];
-    $count = 0;
+    my $mark = $_[0];
+    my $lines = $_[1];
+    my $count = 0;
 
     open URLS, '<', \$lines or die "Could not open lines\n";
     while (<URLS>) {
@@ -272,9 +272,9 @@ sub capture {
 # Fetch a given URL into a given file.
 # Returns 0 (success) or non-zero.
 sub fetch {
-    $url = $_[0];
-    $out = $_[1];
-    $result = system("wget -q -O $out $url");
+    my $url = $_[0];
+    my $out = $_[1];
+    my $result = system("wget -q -O $out $url");
     return $result;
 }
 

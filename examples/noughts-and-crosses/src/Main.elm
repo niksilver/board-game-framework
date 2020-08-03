@@ -63,7 +63,6 @@ type alias EntranceState =
 
 type alias PlayingState =
   { gameId : BGF.GameId
-  , seed : Int
   , playerCount : Int
   , moveNumber : Int
   , envNum : Int
@@ -203,7 +202,6 @@ initialScreen url key =
     Ok gameId ->
       ( Playing
         { gameId = gameId
-        , seed = makeSeed gameId 0
         , playerCount = 1
         , moveNumber = 0
         , envNum = 2^31-1
@@ -332,7 +330,6 @@ update msg model =
             state2 =
               { state
               | moveNumber = state.moveNumber + 1
-              , seed = makeSeed state.gameId state.moveNumber
               , envNum = 2^31-1
               , board = cleanBoard
               , winner = InProgress
@@ -637,11 +634,13 @@ viewCell i state =
 
     Just mark ->
       let
-        seed = state.seed + i |> Random.initialSeed
-        ((ref, _), desc) =
+        seed =
+          makeSeed state.gameId (state.moveNumber - markCount state.board + i)
+          |> Debug.log "Seed"
+        (ref, desc) =
           case mark of
-            XMark -> (Images.stepX seed, "X")
-            OMark -> (Images.stepO seed, "O")
+            XMark -> (Images.xRef seed |> Debug.log "xRef", "X")
+            OMark -> (Images.oRef seed |> Debug.log "oRef", "O")
       in
       El.image [ El.width (El.px cellWidth) , El.height (El.px cellWidth)]
       { src = ref.src
