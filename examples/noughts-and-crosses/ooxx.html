@@ -17,7 +17,7 @@
         // Insert our Elm app into the page
         var app = Elm.Main.init({
             node: document.getElementById('app'),
-            flags: bgf.id
+            flags: { myId: bgf.id, width: window.innerWidth }
         });
 
         // Link incoming envelopes to our app

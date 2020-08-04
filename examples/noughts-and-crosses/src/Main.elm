@@ -9,6 +9,7 @@ port module Main exposing (..)
 import Array exposing (Array)
 import Bitwise
 import Browser
+import Browser.Events as BEvents
 import Browser.Navigation as Nav
 import Json.Encode as Enc
 import Json.Decode as Dec
@@ -29,7 +30,7 @@ import Images
 -- Basic setup
 
 
-main : Program BGF.ClientId Model Msg
+main : Program Enc.Value Model Msg
 main =
   Browser.application
   { init = init
@@ -48,6 +49,7 @@ type alias Model =
   { url : Url.Url
   , key : Nav.Key
   , myId : BGF.ClientId
+  , width : Int
   , screen : Screen
   }
 
@@ -82,6 +84,7 @@ type Msg =
   UrlChanged Url.Url
   | GeneratedGameId BGF.GameId
   | NewDraftGameId String
+  | Resized Int
   | ConfirmGameId String
   | CellClicked Int
   | Received (Result BGF.Error (BGF.Envelope Body))
@@ -106,7 +109,7 @@ sendCmd =
   BGF.send outgoing bodyEncoder
 
 
--- Peer-to-peer messages
+-- Peer-to-peer messages (plus browser resizing)
 
 
 port outgoing : Enc.Value -> Cmd msg
@@ -115,12 +118,20 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  incoming receive
+  Sub.batch
+  [ incoming receive
+  , BEvents.onResize resize
+  ]
 
 
 receive : Enc.Value -> Msg
 receive v =
   BGF.decode bodyDecoder v |> Received
+
+
+resize : Int -> Int -> Msg
+resize width _ =
+  Resized width
 
 
 -- The structure of the messages we'll send between players
@@ -179,18 +190,40 @@ bodyDecoder =
 -- Initial state
 
 
-init : BGF.ClientId -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
-init myId url key =
+init : Enc.Value -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
+init v url key =
   let
     (screen, cmd) = initialScreen url key
+    flags = decodeFlags v
   in
   ( { url = url
     , key = key
-    , myId = myId
+    , myId = flags.myId
+    , width = flags.width
     , screen = screen
     }
   , cmd
   )
+
+
+type alias Flags =
+  { width : Int
+  , myId : String
+  }
+
+
+flagsDecoder : Dec.Decoder Flags
+flagsDecoder =
+  Dec.map2
+    Flags
+    (Dec.field "width" Dec.int)
+    (Dec.field "myId" Dec.string)
+
+
+decodeFlags : Enc.Value -> Flags
+decodeFlags v =
+  Dec.decodeValue flagsDecoder v
+  |> Result.withDefault { width = 1000, myId = "Unknown" }
 
 
 initialScreen : Url.Url -> Nav.Key -> (Screen, Cmd Msg)
@@ -282,6 +315,13 @@ update msg model =
 
         Playing _ ->
           (model, Cmd.none)
+
+    Resized width ->
+      ( { model
+        | width = width
+        }
+      , Cmd.none
+      )
 
     ConfirmGameId id ->
       ( model
@@ -558,7 +598,7 @@ view model =
           viewEntrance draftGameId
 
         Playing state ->
-          viewPlay state
+          viewPlay state model.width
   }
 
 
@@ -591,13 +631,22 @@ viewEntrance state =
   ]
 
 
-viewPlay : PlayingState -> El.Element Msg
-viewPlay state =
-  El.column []
-  [ viewGrid state
-  , viewWhoseTurnOrWinner state
-  , viewPlayerCount state
-  ]
+viewPlay : PlayingState -> Int -> El.Element Msg
+viewPlay state width =
+  if width <= 1000 then
+    El.column []
+    [ viewWhoseTurnOrWinner state
+    , viewGrid state
+    , viewPlayerCount state
+    ]
+  else
+    El.row []
+    [ viewGrid state
+    , El.column []
+      [ viewWhoseTurnOrWinner state
+      , viewPlayerCount state
+      ]
+    ]
 
 
 viewGrid : PlayingState -> El.Element Msg
