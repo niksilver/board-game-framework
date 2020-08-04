@@ -29,11 +29,11 @@ os =
 
 
 xRef : Int -> Ref
-xRef seed =
+xRef num =
   let
     idx =
-      Array.length xs
-      |> modBy seed
+      num
+      |> modBy (Array.length xs)
   in
   case Array.get idx xs of
     Nothing ->
@@ -44,11 +44,11 @@ xRef seed =
 
 
 oRef : Int -> Ref
-oRef seed =
+oRef num =
   let
     idx =
-      Array.length os
-      |> modBy seed
+      num
+      |> modBy (Array.length os)
   in
   case Array.get idx os of
     Nothing ->

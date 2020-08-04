@@ -225,9 +225,13 @@ initialScreen url key =
           )
 
 
--- Create a randomish seed for a seed... almost certainly not a great algorithm
+-- Create a randomish seed for a seed... almost certainly not a great
+-- algorithm. gameOffset is a number that should be vary for each successive
+-- game with the same game ID, but constant throughout out each game. This
+-- is to ensure the images are different for successive games, but remain
+-- constant within a game.
 makeSeed : BGF.GameId -> Int -> Int
-makeSeed gameId moveNumber =
+makeSeed gameId gameOffset =
   let
     extend chr i =
       Char.toCode chr
@@ -236,7 +240,19 @@ makeSeed gameId moveNumber =
   in
   gameId
   |> BGF.fromGameId
-  |> String.foldl extend moveNumber
+  |> String.foldl extend gameOffset
+
+
+-- Make a number that points us to a Ref for an X or O image
+makeRefInt : PlayingState -> Int -> Int
+makeRefInt state cellNum =
+  let
+    gameOffset = state.moveNumber - (markCount state.board)
+      |> Debug.log "gameOffset"
+  in
+  makeSeed state.gameId gameOffset
+  |> (+) (cellNum * (gameOffset + 1))
+  |> abs
 
 
 -- Updating the model
@@ -634,13 +650,12 @@ viewCell i state =
 
     Just mark ->
       let
-        seed =
-          makeSeed state.gameId (state.moveNumber - markCount state.board + i)
-          |> Debug.log "Seed"
+        refNum = makeRefInt state i
+          |> Debug.log (String.fromInt i ++ " refNum")
         (ref, desc) =
           case mark of
-            XMark -> (Images.xRef seed |> Debug.log "xRef", "X")
-            OMark -> (Images.oRef seed |> Debug.log "oRef", "O")
+            XMark -> (Images.xRef refNum, "X")
+            OMark -> (Images.oRef refNum, "O")
       in
       El.image [ El.width (El.px cellWidth) , El.height (El.px cellWidth)]
       { src = ref.src
