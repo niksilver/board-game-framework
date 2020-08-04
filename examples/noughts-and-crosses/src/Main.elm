@@ -248,7 +248,6 @@ makeRefInt : PlayingState -> Int -> Int
 makeRefInt state cellNum =
   let
     gameOffset = state.moveNumber - (markCount state.board)
-      |> Debug.log "gameOffset"
   in
   makeSeed state.gameId gameOffset
   |> (+) (cellNum * (gameOffset + 1))
@@ -651,7 +650,6 @@ viewCell i state =
     Just mark ->
       let
         refNum = makeRefInt state i
-          |> Debug.log (String.fromInt i ++ " refNum")
         (ref, desc) =
           case mark of
             XMark -> (Images.xRef refNum, "X")
