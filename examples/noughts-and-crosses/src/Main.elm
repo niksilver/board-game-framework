@@ -652,7 +652,7 @@ viewPlay state width =
         [ El.paddingEach { top = 100, left = 30, right = 0, bottom = 0 }
         ]
     in
-    El.row []
+    El.row [ El.width El.fill ]
     [ viewGrid state
     , El.column
       [ El.width El.fill
@@ -779,11 +779,12 @@ viewWinner mMark =
         Nothing ->
           "It's a draw! "
   in
-  UI.sticker
-  [ El.text winText
+  El.row [ El.spacing 30 ]
+  [ UI.stickerText winText
   , El.text "Click to play again"
     |> El.el [ El.pointer, Font.underline ]
     |> El.el [ Events.onClick <| ClickedPlayAgain ]
+    |> UI.sticker
   ]
 
 

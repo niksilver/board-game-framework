@@ -150,14 +150,13 @@ lighten base paint degree =
 -- Elements
 
 
-sticker : List (El.Element msg) -> El.Element msg
-sticker textElts =
+sticker : El.Element msg -> El.Element msg
+sticker textElt =
   let
     mp = miniPaletteWhite
   in
-  El.paragraph
+  El.el
   [ El.padding (scaledInt -1)
-  , El.width El.fill
   , Font.family
     [ Font.typeface "Courier"
     , Font.monospace
@@ -166,12 +165,12 @@ sticker textElts =
   , Font.color mp.text
   , Background.color mp.background
   ]
-  textElts
+  textElt
 
 
 stickerText : String -> El.Element msg
 stickerText text =
-  sticker [El.text text]
+  sticker (El.text text)
 
 
 button :
