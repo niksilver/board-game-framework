@@ -3,7 +3,7 @@
 -- Licensed under the GPL v3.0. See file LICENCE.txt for details.
 
 
-module Images exposing (xRef, oRef)
+module Images exposing (Ref, xRef, oRef)
 
 
 import Array exposing (Array)

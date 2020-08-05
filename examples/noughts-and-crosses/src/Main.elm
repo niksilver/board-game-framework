@@ -72,6 +72,7 @@ type alias PlayingState =
   , turn : Mark
   , board : Array (Maybe Mark)
   , winner : Winner
+  , refX : (Images.Ref, String)
   }
 
 
@@ -90,6 +91,7 @@ type Msg =
   | CellClicked Int
   | Received (Result BGF.Error (BGF.Envelope Body))
   | ClickedPlayAgain
+  | ShowRefX (Images.Ref, String)
   | Ignore
 
 
@@ -243,6 +245,7 @@ initialScreen url key =
         , turn = XMark
         , board = cleanBoard
         , winner = InProgress
+        , refX = backgroundRefX
         }
       , openCmd gameId
       )
@@ -258,6 +261,16 @@ initialScreen url key =
           ( Entrance { draftGameId = frag }
           , Random.generate GeneratedGameId BGF.idGenerator
           )
+
+
+backgroundRefX : (Images.Ref, String)
+backgroundRefX =
+  ( { src = ""
+    , name = "Mike Maguire"
+    , link = "https://www.flickr.com/photos/mikespeaks/39023133891/"
+    }
+  , "Background"
+  )
 
 
 -- Create a randomish seed for a seed... almost certainly not a great
@@ -400,6 +413,19 @@ update msg model =
 
         Entrance _ ->
           (model, Cmd.none)
+
+    ShowRefX refX ->
+      case model.screen of
+        Entrance _ ->
+          (model, Cmd.none)
+
+        Playing state ->
+          let
+            state2 = { state | refX = refX }
+          in
+          ( { model | screen = Playing state2 }
+          , Cmd.none
+          )
 
     Ignore ->
       (model, Cmd.none)
@@ -661,6 +687,7 @@ viewPlay state width =
       ]
       [ viewWhoseTurnOrWinner state |> stickerPad
       , viewNetworking state |> stickerPad
+      , viewRef state |> stickerPad
       ]
     ]
 
@@ -726,7 +753,12 @@ viewCell i state =
             XMark -> (Images.xRef refNum, "X")
             OMark -> (Images.oRef refNum, "O")
       in
-      El.image [ El.width (El.px cellWidth) , El.height (El.px cellWidth)]
+      El.image
+      [ El.width (El.px cellWidth)
+      , El.height (El.px cellWidth)
+      , Events.onMouseEnter (ShowRefX (ref, "Image"))
+      , Events.onMouseLeave (ShowRefX backgroundRefX)
+      ]
       { src = ref.src
       , description = desc
       }
@@ -822,3 +854,16 @@ viewPlayerCount state =
     p ->
       (String.fromInt p) ++ " other players online"
       |> UI.stickerText
+
+
+viewRef : PlayingState -> El.Element Msg
+viewRef state =
+  let
+    (ref, prefix) = state.refX
+  in
+  El.link
+  [ El.pointer, Font.underline ]
+  { url = ref.link
+  , label = prefix ++ " by " ++ ref.name |> El.text
+  }
+  |> UI.smallSticker
