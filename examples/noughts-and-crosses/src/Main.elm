@@ -36,7 +36,7 @@ main =
   { init = init
   , update = update
   , subscriptions = subscriptions
-  , onUrlRequest = \req -> Ignore
+  , onUrlRequest = UrlRequested
   , onUrlChange = UrlChanged
   , view = view
   }
@@ -84,6 +84,7 @@ type Winner = InProgress | WonBy (Maybe Mark)
 
 type Msg =
   UrlChanged Url.Url
+  | UrlRequested Browser.UrlRequest
   | GeneratedGameId BGF.GameId
   | NewDraftGameId String
   | Resized Int
@@ -92,7 +93,6 @@ type Msg =
   | Received (Result BGF.Error (BGF.Envelope Body))
   | ClickedPlayAgain
   | ShowRefX (Images.Ref, String)
-  | Ignore
 
 
 -- Game connectivity
@@ -316,6 +316,16 @@ update msg model =
       , cmd
       )
 
+    UrlRequested req ->
+      case req of
+        Browser.Internal url ->
+          (model, Cmd.none)
+
+        Browser.External str ->
+          ( model
+          , Nav.load str
+          )
+
     GeneratedGameId gameId ->
       ( model |> setDraftGameId (BGF.fromGameId gameId)
       , Cmd.none
@@ -426,9 +436,6 @@ update msg model =
           ( { model | screen = Playing state2 }
           , Cmd.none
           )
-
-    Ignore ->
-      (model, Cmd.none)
 
 
 setDraftGameId : String -> Model -> Model
