@@ -6,7 +6,8 @@
 module UI exposing
   ( fontSize, scaled, scaledInt
   , miniPaletteBlack, miniPaletteWhite
-  , sticker, stickerText, biggerStickerText, smallerStickerText
+  , sticker, bigSticker, smallSticker
+  , stickerText, bigStickerText, smallStickerText
   , button, inputText
   )
 
@@ -152,17 +153,33 @@ lighten base paint degree =
 
 
 sticker : El.Element msg -> El.Element msg
-sticker textElt =
+sticker =
+  scaledSticker 1
+
+
+smallSticker : El.Element msg -> El.Element msg
+smallSticker =
+  scaledSticker -1
+
+
+bigSticker : El.Element msg -> El.Element msg
+bigSticker =
+  scaledSticker 2
+
+
+scaledSticker : Int -> El.Element msg -> El.Element msg
+scaledSticker scale textElt =
   let
     mp = miniPaletteWhite
   in
   El.el
-  [ El.padding (scaledInt -1)
+  [ El.padding (scaledInt (scale - 2))
   , Font.family
     [ Font.typeface "Courier"
     , Font.monospace
     ]
   , Font.bold
+  , Font.size (scaledInt scale)
   , Font.color mp.text
   , Background.color mp.background
   ]
@@ -174,18 +191,14 @@ stickerText text =
   sticker (El.text text)
 
 
-biggerStickerText : String -> El.Element msg
-biggerStickerText text =
-  El.text text
-  |> El.el [ Font.size (scaledInt 2) ]
-  |> sticker
+bigStickerText : String -> El.Element msg
+bigStickerText text =
+  bigSticker (El.text text)
 
 
-smallerStickerText : String -> El.Element msg
-smallerStickerText text =
-  El.text text
-  |> El.el [ Font.size (scaledInt -1) ]
-  |> sticker
+smallStickerText : String -> El.Element msg
+smallStickerText text =
+  smallSticker (El.text text)
 
 
 button :

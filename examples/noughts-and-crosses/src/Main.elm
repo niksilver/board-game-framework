@@ -65,6 +65,7 @@ type alias EntranceState =
 
 type alias PlayingState =
   { gameId : BGF.GameId
+  , connectivity : BGF.Connectivity
   , playerCount : Int
   , moveNumber : Int
   , envNum : Int
@@ -235,6 +236,7 @@ initialScreen url key =
     Ok gameId ->
       ( Playing
         { gameId = gameId
+        , connectivity = BGF.Opened
         , playerCount = 1
         , moveNumber = 0
         , envNum = 2^31-1
@@ -373,9 +375,7 @@ update msg model =
               )
 
             Err desc ->
-              let
-                _ = Debug.log "Error" desc
-              in
+              -- We'll ignore errors
               (model, Cmd.none)
 
     ClickedPlayAgain ->
@@ -553,7 +553,8 @@ updateWithEnvelope env state =
       )
 
     BGF.Connection conn ->
-      (state, Cmd.none)
+      ( { state | connectivity = conn }
+      , Cmd.none)
 
 
 -- We will only update the playing state with the given board if it
@@ -643,7 +644,7 @@ viewPlay state width =
     El.column []
     [ viewWhoseTurnOrWinner state
     , viewGrid state
-    , viewPlayerCount state
+    , viewNetworking state
     ]
   else
     let
@@ -659,7 +660,7 @@ viewPlay state width =
       , El.alignTop
       ]
       [ viewWhoseTurnOrWinner state |> stickerPad
-      , viewPlayerCount state |> stickerPad
+      , viewNetworking state |> stickerPad
       ]
     ]
 
@@ -759,10 +760,10 @@ viewWhoseTurnOrWinner state =
     InProgress ->
       case state.turn of
         XMark ->
-          UI.biggerStickerText "X to play"
+          UI.bigStickerText "X to play"
 
         OMark ->
-          UI.biggerStickerText "O to play"
+          UI.bigStickerText "O to play"
 
 
 viewWinner : Maybe Mark -> El.Element Msg
@@ -780,7 +781,7 @@ viewWinner mMark =
           "It's a draw! "
   in
   El.row [ El.spacing 30 ]
-  [ UI.biggerStickerText winText
+  [ UI.bigStickerText winText
   , El.text "Click to play again"
     |> El.el [ El.pointer, Font.underline ]
     |> El.el [ Events.onClick <| ClickedPlayAgain ]
@@ -788,15 +789,36 @@ viewWinner mMark =
   ]
 
 
+viewNetworking : PlayingState -> El.Element Msg
+viewNetworking state =
+  El.row [ El.spacing 30 ]
+  [ viewPlayerCount state
+  , viewConnectivity state
+  ]
+
+
+viewConnectivity : PlayingState -> El.Element Msg
+viewConnectivity state =
+  case state.connectivity of
+    BGF.Opened ->
+      El.none
+
+    BGF.Connecting ->
+      El.text "Connecting" |> UI.smallSticker
+
+    BGF.Closed ->
+      El.text "Disconnected" |> UI.smallSticker
+
+
 viewPlayerCount : PlayingState -> El.Element Msg
 viewPlayerCount state =
   case state.playerCount of
     1 ->
-      UI.stickerText "There are no other players online"
+      UI.stickerText "No other players online"
 
     2 ->
-      UI.stickerText "There is one other player online"
+      UI.stickerText "One other player online"
 
     p ->
-      "There are " ++ (String.fromInt p) ++ " other players online"
+      (String.fromInt p) ++ " other players online"
       |> UI.stickerText
