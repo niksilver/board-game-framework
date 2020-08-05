@@ -5,7 +5,6 @@
 
 module UI exposing
   ( fontSize, scaled, scaledInt
-  , layout
   , miniPaletteWhite, miniPaletteThunderCloud, miniPaletteWaterfall
   --, heading, redLight, amberLight, greenLight, link
   , button, inputText
@@ -177,16 +176,6 @@ lighten base paint degree =
 
 -- Elements
 
-
-layout : MiniPalette -> El.Element msg -> Html.Html msg
-layout miniPalette els =
-  El.layout
-  [ El.padding (scaledInt 2)
-  , Font.size fontSize
-  , Font.color miniPalette.text
-  , Background.color miniPalette.background
-  ]
-  els
 
 {-
 heading : String -> Int -> El.Element msg

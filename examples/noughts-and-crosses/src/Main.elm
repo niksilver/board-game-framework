@@ -583,16 +583,22 @@ updateBoard envNum body state =
 
 borderWidth = 20
 cellWidth = 200
-gridColour = El.rgb 0.8 0.1 1.0
-cellColour = El.rgb 0.3 0.3 0.3
+gridColour = El.rgba 0.4 0.4 0.4 0.5
+cellColour = El.rgba 0.5 0 0 0.5
 
 
 view : Model -> Browser.Document Msg
 view model =
+  -- Background by Mike Maguire on Flickr
+  -- https://www.flickr.com/photos/mikespeaks/39023133891/
   { title = "Noughts and crosses"
   , body =
     List.singleton
-      <| UI.layout UI.miniPaletteThunderCloud
+      <| El.layout
+        [ El.padding (UI.scaledInt 2)
+        , Font.size UI.fontSize
+        , Background.image "images/background.jpg"
+        ]
       <| case model.screen of
         Entrance draftGameId ->
           viewEntrance draftGameId
@@ -652,18 +658,18 @@ viewPlay state width =
 viewGrid : PlayingState -> El.Element Msg
 viewGrid state =
   El.column []
-  [ viewGridBar
+  [ viewHBar
   , viewRow 0 state
-  , viewGridBar
+  , viewHBar
   , viewRow 3 state
-  , viewGridBar
+  , viewHBar
   , viewRow 6 state
-  , viewGridBar
+  , viewHBar
   ]
 
 
-viewGridBar : El.Element Msg
-viewGridBar =
+viewHBar : El.Element Msg
+viewHBar =
   El.row
   [ El.width (4*borderWidth + 3*cellWidth |> El.px)
   , Background.color gridColour
@@ -672,21 +678,27 @@ viewGridBar =
   ]
 
 
-viewRow : Int -> PlayingState -> El.Element Msg
-viewRow i state =
+viewVBar : El.Element Msg
+viewVBar =
   El.row
-  [ El.paddingEach
-    { top = 0
-    , left = borderWidth
-    , bottom = 0
-    , right = borderWidth
-    }
-  , El.spacing borderWidth
+  [ El.width (borderWidth |> El.px)
+  , El.height (cellWidth |> El.px)
   , Background.color gridColour
   ]
-  [ viewCell (i + 0) state
+  [ El.text ""
+  ]
+
+
+viewRow : Int -> PlayingState -> El.Element Msg
+viewRow i state =
+  El.row []
+  [ viewVBar
+  , viewCell (i + 0) state
+  , viewVBar
   , viewCell (i + 1) state
+  , viewVBar
   , viewCell (i + 2) state
+  , viewVBar
   ]
 
 
@@ -725,7 +737,7 @@ viewClickableCell i state =
   |> El.el
     [ El.width (El.px cellWidth)
     , El.height (El.px cellWidth)
-    , Background.color cellColour
+    -- , Background.color cellColour
     ]
   |> El.el cellEvent
 
