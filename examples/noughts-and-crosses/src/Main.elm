@@ -648,7 +648,7 @@ viewPlay state width =
   else
     El.row []
     [ viewGrid state
-    , El.column []
+    , El.column [El.width El.fill]
       [ viewWhoseTurnOrWinner state
       , viewPlayerCount state
       ]
@@ -751,10 +751,10 @@ viewWhoseTurnOrWinner state =
     InProgress ->
       case state.turn of
         XMark ->
-          El.text "X to play"
+          UI.stickerText "X to play"
 
         OMark ->
-          El.text "O to play"
+          UI.stickerText "O to play"
 
 
 viewWinner : Maybe Mark -> El.Element Msg
@@ -771,7 +771,7 @@ viewWinner mMark =
         Nothing ->
           "It's a draw! "
   in
-  El.paragraph []
+  UI.sticker
   [ El.text winText
   , El.text "Click to play again"
     |> El.el [ Font.underline ]
@@ -783,10 +783,11 @@ viewPlayerCount : PlayingState -> El.Element Msg
 viewPlayerCount state =
   case state.playerCount of
     1 ->
-      El.text "There are no other players online"
+      UI.stickerText "There are no other players online"
 
     2 ->
-      El.text "There is one other player online"
+      UI.stickerText "There is one other player online"
 
     p ->
-      El.text <| "There are " ++ (String.fromInt p) ++ " other players online"
+      "There are " ++ (String.fromInt p) ++ " other players online"
+      |> UI.stickerText

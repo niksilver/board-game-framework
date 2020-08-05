@@ -6,7 +6,7 @@
 module UI exposing
   ( fontSize, scaled, scaledInt
   , miniPaletteBlack, miniPaletteWhite
-  , button, inputText
+  , sticker, stickerText, button, inputText
   )
 
 
@@ -148,6 +148,25 @@ lighten base paint degree =
 
 
 -- Elements
+
+
+sticker : List (El.Element msg) -> El.Element msg
+sticker textElts =
+  let
+    mp = miniPaletteWhite
+  in
+  El.paragraph
+  [ El.padding (scaledInt -1)
+  , El.width El.fill
+  , Font.color mp.text
+  , Background.color mp.background
+  ]
+  textElts
+
+
+stickerText : String -> El.Element msg
+stickerText text =
+  sticker [El.text text]
 
 
 button :
