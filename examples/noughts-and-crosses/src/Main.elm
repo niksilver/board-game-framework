@@ -699,8 +699,13 @@ viewPlay state width =
     El.column []
     [ viewWhoseTurnOrWinner state |> padderTop
     , viewGrid state
-    , viewNetworking state |> padderBottom
-    , viewRef state |> padderBottom
+    , El.row [ El.spacing 30 ]
+      [ viewPlayerCount state
+      , El.column []
+        [ viewRef state
+        , viewConnectivity state
+        ]
+      ]
     ]
 
   else
@@ -722,7 +727,10 @@ viewPlay state width =
       , El.alignTop
       ]
       [ viewWhoseTurnOrWinner state |> padder
-      , viewNetworking state |> padder
+      , El.row [ El.spacing 30 ]
+        [ viewPlayerCount state
+        , viewConnectivity state
+        ]
       , viewRef state |> padder
       ]
     ]
