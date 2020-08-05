@@ -6,7 +6,8 @@
 module UI exposing
   ( fontSize, scaled, scaledInt
   , miniPaletteBlack, miniPaletteWhite
-  , sticker, stickerText, button, inputText
+  , sticker, stickerText, biggerStickerText, smallerStickerText
+  , button, inputText
   )
 
 
@@ -171,6 +172,20 @@ sticker textElt =
 stickerText : String -> El.Element msg
 stickerText text =
   sticker (El.text text)
+
+
+biggerStickerText : String -> El.Element msg
+biggerStickerText text =
+  El.text text
+  |> El.el [ Font.size (scaledInt 2) ]
+  |> sticker
+
+
+smallerStickerText : String -> El.Element msg
+smallerStickerText text =
+  El.text text
+  |> El.el [ Font.size (scaledInt -1) ]
+  |> sticker
 
 
 button :

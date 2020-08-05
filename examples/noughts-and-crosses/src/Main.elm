@@ -759,10 +759,10 @@ viewWhoseTurnOrWinner state =
     InProgress ->
       case state.turn of
         XMark ->
-          UI.stickerText "X to play"
+          UI.biggerStickerText "X to play"
 
         OMark ->
-          UI.stickerText "O to play"
+          UI.biggerStickerText "O to play"
 
 
 viewWinner : Maybe Mark -> El.Element Msg
@@ -780,7 +780,7 @@ viewWinner mMark =
           "It's a draw! "
   in
   El.row [ El.spacing 30 ]
-  [ UI.stickerText winText
+  [ UI.biggerStickerText winText
   , El.text "Click to play again"
     |> El.el [ El.pointer, Font.underline ]
     |> El.el [ Events.onClick <| ClickedPlayAgain ]
