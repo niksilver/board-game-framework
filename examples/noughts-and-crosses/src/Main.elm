@@ -730,7 +730,7 @@ viewPlay state width =
       , El.row [ El.spacing 30 ]
         [ viewPlayerCount state
         , viewConnectivity state
-        ]
+        ] |> padder
       , viewRef state |> padder
       ]
     ]
