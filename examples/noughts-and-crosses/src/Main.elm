@@ -646,11 +646,20 @@ viewPlay state width =
     , viewPlayerCount state
     ]
   else
+    let
+      stickerPad =
+        El.el
+        [ El.paddingEach { top = 100, left = 30, right = 0, bottom = 0 }
+        ]
+    in
     El.row []
     [ viewGrid state
-    , El.column [El.width El.fill]
-      [ viewWhoseTurnOrWinner state
-      , viewPlayerCount state
+    , El.column
+      [ El.width El.fill
+      , El.alignTop
+      ]
+      [ viewWhoseTurnOrWinner state |> stickerPad
+      , viewPlayerCount state |> stickerPad
       ]
     ]
 
@@ -737,7 +746,6 @@ viewClickableCell i state =
   |> El.el
     [ El.width (El.px cellWidth)
     , El.height (El.px cellWidth)
-    -- , Background.color cellColour
     ]
   |> El.el cellEvent
 
@@ -774,7 +782,7 @@ viewWinner mMark =
   UI.sticker
   [ El.text winText
   , El.text "Click to play again"
-    |> El.el [ Font.underline ]
+    |> El.el [ El.pointer, Font.underline ]
     |> El.el [ Events.onClick <| ClickedPlayAgain ]
   ]
 

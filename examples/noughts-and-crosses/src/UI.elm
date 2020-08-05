@@ -158,6 +158,11 @@ sticker textElts =
   El.paragraph
   [ El.padding (scaledInt -1)
   , El.width El.fill
+  , Font.family
+    [ Font.typeface "Courier"
+    , Font.monospace
+    ]
+  , Font.bold
   , Font.color mp.text
   , Background.color mp.background
   ]
