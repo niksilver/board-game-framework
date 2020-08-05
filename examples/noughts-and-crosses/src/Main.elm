@@ -626,13 +626,13 @@ viewEntrance state =
     , placeholderText = "Game ID"
     , label = "Game ID"
     , fontScale = 12
-    , miniPalette = UI.miniPaletteThunderCloud
+    , miniPalette = UI.miniPaletteBlack
     }
   , UI.button
     { onPress = Just (ConfirmGameId state.draftGameId)
     , label = "Go"
     , enabled = enabled
-    , miniPalette = UI.miniPaletteThunderCloud
+    , miniPalette = UI.miniPaletteBlack
     }
   ]
 

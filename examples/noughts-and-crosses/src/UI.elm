@@ -5,8 +5,7 @@
 
 module UI exposing
   ( fontSize, scaled, scaledInt
-  , miniPaletteWhite, miniPaletteThunderCloud, miniPaletteWaterfall
-  --, heading, redLight, amberLight, greenLight, link
+  , miniPaletteBlack, miniPaletteWhite
   , button, inputText
   )
 
@@ -37,16 +36,10 @@ scaledInt =
 
 
 -- Colours
--- From https://www.canva.com/learn/100-color-combinations/
+
 
 white = El.rgb 1.0 1.0 1.0
 black = El.rgb 0.0 0.0 0.0
-
-
-thunderCloud = rgbHex "505160"
-waterfall = rgbHex "68829e"
-moss = rgbHex "aebd38"
-meadow = rgbHex "598234"
 
 
 -- A colour palette for a single-coloured area.
@@ -86,43 +79,23 @@ miniPaletteWhite =
   }
 
 
-miniPaletteThunderCloud : MiniPalette
-miniPaletteThunderCloud =
+miniPaletteBlack : MiniPalette
+miniPaletteBlack =
   let
-    closer = darken thunderCloud
+    closer = lighten black
   in
-  { background = thunderCloud
+  { background = black
   , title = white
   , text = white
   , buttonEnabledBg = closer white 0.9
   , buttonEnabledText = white
   , buttonEnabledBorder = closer white 0.5
   , buttonEnabledMouseOver = [ Background.color <| closer white 0.8 ]
-  , buttonDisabledBg = closer white 0.8
-  , buttonDisabledText = closer white 0.6
+  , buttonDisabledBg = closer white 0.95
+  , buttonDisabledText = closer white 0.75
   , buttonDisabledBorder = closer white 0.9
   , buttonDisabledMouseOver = []
-  , placeholder = closer white 0.7
-  }
-
-
-miniPaletteWaterfall : MiniPalette
-miniPaletteWaterfall =
-  let
-    closer = darken waterfall
-  in
-  { background = waterfall
-  , title = white
-  , text = white
-  , buttonEnabledBg = closer white 0.8
-  , buttonEnabledText = white
-  , buttonEnabledBorder = closer white 0.5
-  , buttonEnabledMouseOver = [ Background.color <| closer white 0.7 ]
-  , buttonDisabledBg = closer white 0.7
-  , buttonDisabledText = closer white 0.5
-  , buttonDisabledBorder = closer white 0.9
-  , buttonDisabledMouseOver = []
-  , placeholder = closer white 0.7
+  , placeholder = closer white 0.8
   }
 
 
@@ -176,66 +149,6 @@ lighten base paint degree =
 
 -- Elements
 
-
-{-
-heading : String -> Int -> El.Element msg
-heading text size =
-  El.el
-  [ Font.family [ Font.serif ]
-  , Font.size (fontSize * size)
-  , El.centerX
-  ]
-  (El.text text)
-
-
-redLight : String -> El.Element msg
-redLight text =
-  El.el
-  [ Background.color (El.rgb 1.0 0.3 0.3)
-  , Font.color (El.rgb 1 1 1)
-  , El.width (fontSize * 8 |> El.px)
-  , Font.center
-  , Border.rounded 15
-  , Border.width 0
-  , El.padding (scaledInt -5)
-  ]
-  (El.text text)
-
-
-amberLight : String -> El.Element msg
-amberLight text =
-  El.el
-  [ Background.color (El.rgb 1.0 1.0 0.3)
-  , Font.color (El.rgb 0 0 0)
-  , El.width (fontSize * 20 |> El.px)
-  , Font.center
-  , Border.rounded 15
-  , Border.width 0
-  , El.padding (scaledInt -5)
-  ]
-  (El.text text)
-
-
-greenLight : String -> El.Element msg
-greenLight text =
-  El.el
-  [ Background.color (El.rgb 0.3 0.9 0.3)
-  , Font.color (El.rgb 0 0 0)
-  , El.width (fontSize * 8 |> El.px)
-  , Font.center
-  , Border.rounded 15
-  , Border.width 0
-  , El.padding (scaledInt -5)
-  ]
-  (El.text text)
-
-
-link : { url : String, label : El.Element msg } -> El.Element msg
-link desc =
-  El.link
-  [ Font.underline
-  ] desc
--}
 
 button :
   { enabled : Bool
@@ -299,7 +212,10 @@ inputText desc =
     El.text desc.placeholderText
     |> Input.placeholder [Font.color mp.placeholder]
     |> Just
-  , label = El.text desc.label |> Input.labelLeft []
+  , label =
+      El.text desc.label
+      |> El.el [Font.color mp.text]
+      |> Input.labelLeft []
   }
 
 
