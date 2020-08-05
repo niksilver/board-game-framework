@@ -236,7 +236,7 @@ initialScreen url key =
     Ok gameId ->
       ( Playing
         { gameId = gameId
-        , connectivity = BGF.Opened
+        , connectivity = BGF.Connected
         , playerCount = 1
         , moveNumber = 0
         , envNum = 2^31-1
@@ -800,13 +800,13 @@ viewNetworking state =
 viewConnectivity : PlayingState -> El.Element Msg
 viewConnectivity state =
   case state.connectivity of
-    BGF.Opened ->
+    BGF.Connected ->
       El.none
 
     BGF.Connecting ->
       El.text "Connecting" |> UI.smallSticker
 
-    BGF.Closed ->
+    BGF.Disconnected ->
       El.text "Disconnected" |> UI.smallSticker
 
 

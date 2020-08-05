@@ -160,17 +160,18 @@ test('Opened envelope sent only after stable period', function(t) {
     bgf._delay = function(){ return 1; };
 
     let tests = async function() {
-        // Do the open action, register onopen, the expect the 'opened'
+        // Do the open action, register onopen, the expect the 'connected'
         // envelope only after the stable period.
         bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
         websocket.onopen({});
 
         t.equal(connections, 1);
 
-        // No 'opened' envelope yet... but should be after the stable period
+        // No 'connected' envelope yet...
+        // but should be after the stable period
         t.deepEqual(lastEnv, {connection: 'connecting'});
         await sleep(bgf._stablePeriod * 1.5);
-        t.deepEqual(lastEnv, {connection: 'opened'});
+        t.deepEqual(lastEnv, {connection: 'connected'});
     };
 
     tests().then(result => {
@@ -199,7 +200,7 @@ test('Opened envelope sent as soon as message received', function(t) {
 
     let tests = async function() {
         // Do the open action, expect it to say it's connecting,
-        // register onopen, then expect the 'opened'
+        // register onopen, then expect the 'connected'
         // envelope only after the stable period.
         bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
         t.deepEqual(envelopes, [{connection: 'connecting'}]);
@@ -210,10 +211,11 @@ test('Opened envelope sent as soon as message received', function(t) {
         t.equal(connections, 1);
         t.deepEqual(envelopes, []);
 
-        // Should get an 'opened' envelope as soon as a message is received
-        // message is received
+        // Should get an 'connected' envelope as soon as a message is
+        // received message is received
         websocket.onmessage({data: '{"my": "Test message"}'});
-        t.deepEqual(envelopes, [{connection: 'opened'}, {my: 'Test message'}]);
+        t.deepEqual(envelopes,
+            [{connection: 'connected'}, {my: 'Test message'}]);
     };
 
     tests().then(result => {
@@ -242,7 +244,7 @@ test('Should not get second Opened envelope after message received', function(t)
 
     let tests = async function() {
         // Do the open action, expect a 'connecting' message,
-        // register onopen, then expect the 'opened'
+        // register onopen, then expect the 'connected'
         // envelope only after the stable period.
         bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
         t.deepEqual(envelopes, [{connection: 'connecting'}]);
@@ -253,12 +255,13 @@ test('Should not get second Opened envelope after message received', function(t)
         t.equal(connections, 1);
         t.deepEqual(envelopes, []);
 
-        // Should get an 'opened' envelope as soon as a message is received
-        // message is received
+        // Should get an 'connected' envelope as soon as a message is
+        // received message is received
         websocket.onmessage({data: '{"my": "Test message"}'});
-        t.deepEqual(envelopes, [{connection: 'opened'}, {my: 'Test message'}]);
+        t.deepEqual(envelopes,
+            [{connection: 'connected'}, {my: 'Test message'}]);
 
-        // Shouldn't get another 'opened' envelope (e.g. from the original
+        // Shouldn't get another 'connected' envelope (e.g. from the original
         // onopen being declared stable).
         envelopes = [];
         await sleep(bgf._stablePeriod * 1.5);
@@ -291,7 +294,7 @@ test('Should not get second Opened envelope after second message', function(t) {
 
     let tests = async function() {
         // Do the open action, expect a 'connecting' envelope,
-        // register onopen, then expect the 'opened'
+        // register onopen, then expect the 'connected'
         // envelope only after the stable period.
         bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
         t.deepEqual(envelopes, [{connection: 'connecting'}]);
@@ -302,12 +305,13 @@ test('Should not get second Opened envelope after second message', function(t) {
         t.equal(connections, 1);
         t.deepEqual(envelopes, []);
 
-        // Should get an 'opened' envelope as soon as a message is received
-        // message is received
+        // Should get an 'connected' envelope as soon as a message is
+        // received message is received
         websocket.onmessage({data: '{"my": "Test message"}'});
-        t.deepEqual(envelopes, [{connection: 'opened'}, {my: 'Test message'}]);
+        t.deepEqual(envelopes,
+            [{connection: 'connected'}, {my: 'Test message'}]);
 
-        // Shouldn't get another 'opened' envelope, even if we get
+        // Shouldn't get another 'connected' envelope, even if we get
         // another message.
         envelopes = [];
         websocket.onmessage({data: '{"my": "Second message"}'});
@@ -340,7 +344,7 @@ test('Opened envelope not sent while reconnecting', function(t) {
 
     let tests = async function() {
         // Do the open action, expect a 'connecting' envelope,
-        // register onopen, the expect the 'opened'
+        // register onopen, the expect the 'connected'
         // envelope only after the stable period.
         bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
         t.deepEqual(lastEnv, {connection: 'connecting'});
@@ -349,7 +353,7 @@ test('Opened envelope not sent while reconnecting', function(t) {
 
         t.equal(connections, 1);
 
-        // No 'opened' envelope yet... and we'll cut the connection
+        // No 'connected' envelope yet... and we'll cut the connection
         // before the stable period, repeatedly.
 
         t.equal(lastEnv, 'Untouched');
@@ -371,11 +375,11 @@ test('Opened envelope not sent while reconnecting', function(t) {
         await sleep(bgf._stablePeriod * 0.5);
         await websocket.onclose({});
 
-        // Should get one (and only one) 'opened' envelope
+        // Should get one (and only one) 'connected' envelope
         t.equal(connections, 4);
         websocket.onopen({});
         await sleep(bgf._stablePeriod * 1.5);
-        t.deepEqual(lastEnv, {connection: 'opened'});
+        t.deepEqual(lastEnv, {connection: 'connected'});
         lastEnv = 'Untouched'
         await sleep(bgf._stablePeriod * 1.5);
         t.deepEqual(lastEnv, 'Untouched');

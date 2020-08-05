@@ -280,9 +280,9 @@ decodeTest =
     , describe "Decode connection" <|
       [ test "Good opened" <|
         \_ ->
-          Enc.object [ ("connection", Enc.string "opened") ]
+          Enc.object [ ("connection", Enc.string "connected") ]
           |> decode simpleDecoder
-          |> Expect.equal (Ok (Connection Opened))
+          |> Expect.equal (Ok (Connection Connected))
 
       , test "Good connecting" <|
         \_ ->
@@ -292,9 +292,9 @@ decodeTest =
 
       , test "Good closed" <|
         \_ ->
-          Enc.object [ ("connection", Enc.string "closed") ]
+          Enc.object [ ("connection", Enc.string "disconnected") ]
           |> decode simpleDecoder
-          |> Expect.equal (Ok (Connection Closed))
+          |> Expect.equal (Ok (Connection Disconnected))
 
       , test "Bad connection (string)" <|
         \_ ->

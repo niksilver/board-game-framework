@@ -36,7 +36,7 @@ function BoardGameFramework() {
     this._sentWebsocketError = false;
 
     // The string in the last connection envelope we've sent:
-    // opened, connecting, or closed.
+    // connected, connecting, or disconnected.
     this._lastConnEnv = null;
 
     // A timeout ID for a function that fires when the timeout is stable;
@@ -100,7 +100,7 @@ function BoardGameFramework() {
             // Take action when this connection is deemed stable
             top._stableTimeoutID =
                 setTimeout(function() {
-                    top._sendConnEnv('opened');
+                    top._sendConnEnv('connected');
                 }, top._stablePeriod);
         }
 
@@ -127,7 +127,7 @@ function BoardGameFramework() {
             }
 
             // We accept this close
-            top._sendConnEnv('closed');
+            top._sendConnEnv('disconnected');
             top._ws = null;
             top._baseURL = null;
             top._num = -1;
@@ -145,7 +145,7 @@ function BoardGameFramework() {
 
             // An envelope means we've got a stable connection
             clearTimeout(top._stableTimeoutID);
-            top._sendConnEnv('opened');
+            top._sendConnEnv('connected');
 
             // Get the received envelope as structured data
             env = JSON.parse(evt.data);

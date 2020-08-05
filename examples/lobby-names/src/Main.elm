@@ -69,7 +69,7 @@ init myId url key =
     , gameId = maybeId
     , players = Dict.singleton myId ""
     , error = Nothing
-    , connectivity = BGF.Closed
+    , connectivity = BGF.Disconnected
     }
     , cmd
   )
@@ -410,7 +410,7 @@ middleBlock =
 joinEnabled : Model -> Bool
 joinEnabled model =
   let
-    disconnected = (model.connectivity /= BGF.Opened)
+    disconnected = (model.connectivity /= BGF.Connected)
   in
   case model.gameId of
     Just gameId ->
@@ -428,13 +428,13 @@ joinEnabled model =
 viewConnectivity : Model -> El.Element Msg
 viewConnectivity model =
   case model.connectivity of
-    BGF.Opened ->
+    BGF.Connected ->
       UI.greenLight "Connected"
 
     BGF.Connecting ->
       UI.redLight "Connecting"
 
-    BGF.Closed ->
+    BGF.Disconnected ->
       UI.redLight "Disconnected"
 
 

@@ -251,24 +251,24 @@ type Envelope a =
   | Connection Connectivity
 
 
-{-| The current connectivity state, sent when it changes.
+{-| The current connectivity state, received when it changes.
 
 `Connecting` can also be interpretted as "reconnecting", because
 if the connection is lost then the underlying JavaScript will try to
 reconnect.
 
-`Closed` will only be received if the client explicitly
-asks for the connection to be closed; otherwise if a closed connection
-is detected the JavaScript will retry to reconnect.
+`Disconnected` will only be received if the client explicitly
+asks for the connection to be closed; otherwise if a disconnection
+is detected the JavaScript will try to reconnect.
 
-Both `Connecting` and `Closed` mean there isn't a server connection,
-but `Closed` means that the underlying JavaScript isn't attempting to
+Both `Connecting` and `Disconnected` mean there isn't a server connection,
+but `Disconnected` means that the underlying JavaScript isn't attempting to
 change that.
 -}
 type Connectivity =
-  Opened
+  Connected
   | Connecting
-  | Closed
+  | Disconnected
 
 
 {-| Errors reading the incoming envelope. If an error bubbles up from
@@ -449,14 +449,14 @@ decode bodyDecoder v =
         Result.map4 make toRes fromRes numRes timeRes
         |> Result.mapError Json
 
-    Ok ("connection", "opened") ->
-      Ok (Connection Opened)
+    Ok ("connection", "connected") ->
+      Ok (Connection Connected)
 
     Ok ("connection", "connecting") ->
       Ok (Connection Connecting)
 
-    Ok ("connection", "closed") ->
-      Ok (Connection Closed)
+    Ok ("connection", "disconnected") ->
+      Ok (Connection Disconnected)
 
     Ok ("error", str) ->
       Err (LowLevel str)
