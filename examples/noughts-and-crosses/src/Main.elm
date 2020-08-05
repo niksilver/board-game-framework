@@ -615,6 +615,8 @@ updateBoard envNum body state =
 -- View
 
 
+clearance = UI.scaledInt 2
+bigClearance = UI.scaledInt 4
 borderWidth = 20
 cellWidth = 200
 gridColour = El.rgba 0.4 0.4 0.4 0.5
@@ -629,7 +631,7 @@ view model =
   , body =
     List.singleton
       <| El.layout
-        [ El.padding (UI.scaledInt 2)
+        [ El.padding clearance
         , Font.size UI.fontSize
         , Background.image "images/background.jpg"
         ]
@@ -674,16 +676,43 @@ viewEntrance state =
 viewPlay : PlayingState -> Int -> El.Element Msg
 viewPlay state width =
   if width <= 1000 then
+    let
+      padderTop =
+        El.el
+        [ El.paddingEach
+          { top = 0
+          , left = clearance
+          , right = 0
+          , bottom = clearance
+          }
+        ]
+      padderBottom =
+        El.el
+        [ El.paddingEach
+          { top = clearance
+          , left = 0
+          , right = 0
+          , bottom = 0
+          }
+        ]
+    in
     El.column []
-    [ viewWhoseTurnOrWinner state
+    [ viewWhoseTurnOrWinner state |> padderTop
     , viewGrid state
-    , viewNetworking state
+    , viewNetworking state |> padderBottom
+    , viewRef state |> padderBottom
     ]
+
   else
     let
-      stickerPad =
+      padder =
         El.el
-        [ El.paddingEach { top = 100, left = 30, right = 0, bottom = 0 }
+        [ El.paddingEach
+          { top = bigClearance
+          , left = clearance
+          , right = 0
+          , bottom = 0
+          }
         ]
     in
     El.row [ El.width El.fill ]
@@ -692,9 +721,9 @@ viewPlay state width =
       [ El.width El.fill
       , El.alignTop
       ]
-      [ viewWhoseTurnOrWinner state |> stickerPad
-      , viewNetworking state |> stickerPad
-      , viewRef state |> stickerPad
+      [ viewWhoseTurnOrWinner state |> padder
+      , viewNetworking state |> padder
+      , viewRef state |> padder
       ]
     ]
 
