@@ -688,23 +688,27 @@ viewEntrance state =
         Err _ ->
           False
   in
-  El.paragraph
-  []
-  [ UI.inputText
+  El.row
+  [ El.spacing (UI.scaledInt -1) ]
+  [ El.text""
+  , UI.inputText
     { onChange = NewDraftGameId
     , text = state.draftGameId
     , placeholderText = "Game ID"
     , label = "Game ID"
     , fontScale = 12
-    , miniPalette = UI.miniPaletteBlack
+    , miniPalette = UI.miniPaletteWhite
     }
   , UI.button
     { onPress = Just (ConfirmGameId state.draftGameId)
     , label = "Go"
     , enabled = enabled
-    , miniPalette = UI.miniPaletteBlack
+    , miniPalette = UI.miniPaletteWhite
     }
+  , El.text""
   ]
+  |> UI.sticker
+  |> UI.rotate 0.02
 
 
 viewPlay : PlayingState -> Int -> El.Element Msg
