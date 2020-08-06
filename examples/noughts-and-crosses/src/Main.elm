@@ -673,7 +673,7 @@ viewEntrance state =
 
 viewPlay : PlayingState -> Int -> El.Element Msg
 viewPlay state width =
-  if width <= 1000 then
+  if width <= 1200 then
     let
       padderTop =
         El.el
@@ -694,7 +694,7 @@ viewPlay state width =
           }
         ]
     in
-    El.column []
+    El.column [ El.centerX ]
     [ viewWhoseTurnOrWinner state |> padderTop
     , viewGrid state
     , El.row [ El.spacing clearance ]
