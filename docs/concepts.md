@@ -1,14 +1,14 @@
 # General concepts
 
-This document describes general concepts, regardless of what
-layer of the system we're looking at. These concepts are
-described in general terms, independent of programming language.
+This document describes general concepts of the board game framework,
+These concepts are
+described in general terms, mostly independent of programming language.
 
 ## Overview of concepts
 
 Once a client connects to the server it can send and receive messages.
 A client sends a simple message (almost certainly JSON).
-The server wraps it in an envelope with some metadata,
+The server wraps it in an envelope with some metadata
 and sends that out to all the clients,
 including the client which originally sent it.
 The server also sends envelopes when clients leave and join the game.
@@ -18,32 +18,35 @@ which describes the nature of the envelope contents.
 These are the envelope intents that a client can receive:
 
 * Welcome. Received by a client when it joins.
-* Joiner. Received by a client when a new client joins the game.
-* Leaver. Received by a client when a client leaves the game.
-* Peer. Containing a message sent by another client.
-* Receipt. Containing the client's own message when it sends one.
+* Joiner. Received when another new client joins the game.
+* Leaver. Received when another client leaves the game.
+* Peer. Envelope containing a message sent by another client.
+* Receipt. Containing the client's own message, indicating that the server
+  has sent that message to all the other clients.
 
-A JavaScript small layer sits between a client application and the server
+A small JavaScript layer sits between a client application and the server
 to make connectivity easier. It adds two other kinds of messages for clients:
 
 * Connection. Provides a simple update when the connection status changes.
-* Error. If there is some error either decoding JSON or with the connection.
+* Error. If there is some error with the connectivity.
 
 ## Connecting to the server
 
-When a client connects to the server for the first time it is given a
-unique ID, which is a string: two long integers separated by a dot.
+When a the JavaScript layer is initialised it creates a unique client
+ID, which is a string: two long integers separated by a dot.
 The unique ID only lasts until the page is reloaded.
+The ID allows clients to identify and distinguish each other.
 
 ## Envelope basics
 
 When a client sends a message to the server, the server wraps it in an
 envelope and sends that envelope to all other clients in the same game.
+At the same time, it sends a receipt to the original client.
 
 Suppose client `123.456` is in a game with two other clients, `222.234`
 and `333.345`. If it sends some arbitrary game message that looks like this
 
-```
+```js
 { turn: 0
   spaces: 3
   letters: ["D", "K", "G"]
@@ -52,7 +55,7 @@ and `333.345`. If it sends some arbitrary game message that looks like this
 
 it will be wrapped and sent to the other clients like this:
 
-```
+```js
 { From: ["123.456"]
   To: ["222.234", "333.345"]
   Num: 8
@@ -79,8 +82,9 @@ it will be wrapped and sent to the other clients like this:
 The fields `From`, `To`, `Num`, `Time` and `Intent` appear in all
 envelopes apart from Closed, which doesn't have any other fields.
 
-The Elm library adjusts these names slightly to exploit type safety
-and consistency.
+*Note:* The Elm library adjusts these names slightly to exploit type safety
+and consistency. See [the Elm API documentation](../README.md)
+for details.
 
 ## Envelope details
 
@@ -98,11 +102,10 @@ currently connected.
 There is no `Body`.
 Additionally it will have `Num` and `Time` fields.
 
-If a client is given ID `123.456` when it joins a game with `222.234`
+If a client has ID `123.456` and it joins a game with `222.234`
 and `333.345` then the envelope it receives looks like this:
 
-
-```
+```js
 { From: ["222.234", "333.345"]
   To: ["123.456"]
   Time: 76487293
@@ -128,7 +131,7 @@ and `333.345` then this is the format of the envelope those last two
 clients receive:
 
 
-```
+```js
 { From: ["123.456"]
   To: ["222.234", "333.345"]
   Time: 76487293
@@ -138,7 +141,8 @@ clients receive:
 
 The `Num` and `Time` fields will be the same in all Joiner envelopes,
 and they will be the same as the `Num` and `Time` fields in the
-new client's Welcome envelope. This is to aid synchronisation, if needed.
+new client's corresponding Welcome envelope.
+This is to aid synchronisation, if needed.
 
 ### Leaver
 
@@ -158,8 +162,7 @@ If client `123.456` leaves a game with clients `222.234`
 and `333.345` then this is the format of the envelope those last two
 clients receive:
 
-
-```
+```js
 { From: ["123.456"]
   To: ["222.234", "333.345"]
   Time: 76487293
@@ -183,16 +186,16 @@ So suppose, as above,
 client `123.456` is in a game with two other clients, `222.234`
 and `333.345`. If it sends a game message that looks like this
 
-```
+```js
 { turn: 0
   spaces: 3
   letters: ["D", "K", "G"]
 }
 ```
 
-it will receive a Receipt that looks like something like this:
+it will receive a Receipt that looks like this:
 
-```
+```js
 { From: ["123.456"]
   To: ["222.234", "333.345"]
   Num: 8
@@ -204,15 +207,30 @@ it will receive a Receipt that looks like something like this:
         }
 }
 ```
+
 Just as with the Welcome/Joiner envelopes, the corresponding
 Peer/Receipt envelopes will all have the same values in the
 `Num` and `Time` fields. This is to aid synchronisation.
 
-
 ### Connection messages
 
-See documentaton on the Elm and Javascript libraries for more on these,
+See documentation on the [Elm API](../README.md) and the
+[Javascript library](javascript.md) for more on these,
 as the details are specific to each library.
+
+## Identifying leavers
+
+If a client disconnects from the server for more than 5 seconds the
+server will regard it as a leaver, and send out a Leaver envelope to
+the remaining clients. The JavaScript layer will try to reconnect
+if it detects a disconnection (unless it's been told to close the
+connection, of course), so a quick network glitch shouldn't trigger
+a leaver envelope. If it rejoins within 5 seconds then it's still
+regarded as in the game and won't miss out on any envelopes.
+
+However, if a disconnected client reconnects after the 5 second period
+then it will receive a Welcome message. The other clients will see it
+as first a leaver and then a joiner.
 
 ## Message ordering
 
@@ -229,6 +247,11 @@ and when the server sends out a batch of envelopes they will all have
 the same Num: a Welcome envelope and its corresponding Joiner envelopes
 will all have the same Num, and a Receipt envelope and its corresponding
 Peer envelopes will all have the same Num.
+
+The Num only resets for a game after all clients have left.
+That means if several clients join a game, then all leave, then one of
+them joins again, its Welcome message will almost certainly be lower
+than the last Num it received before it left.
 
 ## Limits
 
