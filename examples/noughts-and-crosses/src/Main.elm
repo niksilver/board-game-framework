@@ -674,7 +674,7 @@ view model =
           viewEntrance draftGameId
 
         Playing state ->
-          viewPlay state model.width
+          viewPlay model state
   }
 
 
@@ -732,12 +732,13 @@ viewGameIdBox state =
   |> UI.rotate 0.02
 
 
-viewPlay : PlayingState -> Int -> El.Element Msg
-viewPlay state width =
-  if width <= 1200 then
+viewPlay : Model -> PlayingState -> El.Element Msg
+viewPlay model state =
+  if model.width <= 1200 then
     -- Narrow layout
     El.column [ El.centerX ]
     [ viewWhoseTurnOrWinner state |> padderTop
+    , viewInvitation model |> padderTop
     , viewGrid state
     , El.row [ El.spacing clearance ]
       [ viewPlayerCount state |> El.el [ El.alignTop ]
@@ -757,6 +758,7 @@ viewPlay state width =
       , El.alignTop
       ]
       [ viewWhoseTurnOrWinner state |> padderBigTop
+      , viewInvitation model |> padderBigTop
       , El.row [ El.spacing 30 ]
         [ viewPlayerCount state
         , viewConnectivity state
@@ -896,12 +898,18 @@ viewWinner mMark =
   ]
 
 
-viewNetworking : PlayingState -> El.Element Msg
-viewNetworking state =
-  El.row [ El.spacing 30 ]
-  [ viewPlayerCount state
-  , viewConnectivity state
+viewInvitation : Model -> El.Element Msg
+viewInvitation model =
+  El.paragraph []
+  [ El.text "Tell your friends to join you at "
+  , El.link
+    [ El.pointer, Font.underline ]
+    { url = model.url |> Url.toString
+    , label = model.url |> Url.toString |> El.text
+    }
   ]
+  |> UI.smallSticker
+  |> UI.rotate -0.01
 
 
 viewConnectivity : PlayingState -> El.Element Msg
