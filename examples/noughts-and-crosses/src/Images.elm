@@ -8,6 +8,8 @@ module Images exposing (Ref, xRef, oRef)
 
 import Array exposing (Array)
 
+import Marks exposing (Mark(..))
+
 
 type alias Ref =
   { src : String
@@ -28,34 +30,29 @@ os =
   |> Array.fromList
 
 
-xRef : Int -> Ref
-xRef num =
+markRef : Ref -> Array Ref -> Int -> Ref
+markRef default array num =
   let
     idx =
       num
-      |> modBy (Array.length xs)
+      |> modBy (Array.length array)
   in
-  case Array.get idx xs of
+  case Array.get idx array of
     Nothing ->
-      xHead
+      default
 
     Just ref ->
       ref
+
+
+xRef : Int -> Ref
+xRef =
+  markRef xHead xs
 
 
 oRef : Int -> Ref
-oRef num =
-  let
-    idx =
-      num
-      |> modBy (Array.length os)
-  in
-  case Array.get idx os of
-    Nothing ->
-      oHead
-
-    Just ref ->
-      ref
+oRef =
+  markRef oHead os
 
 
 xHead : Ref

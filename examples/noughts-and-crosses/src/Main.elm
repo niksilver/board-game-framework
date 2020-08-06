@@ -24,6 +24,7 @@ import Element.Input as Input
 import BoardGameFramework as BGF
 
 import UI
+import Marks exposing (Mark(..))
 import Images
 
 
@@ -74,9 +75,6 @@ type alias PlayingState =
   , winner : Winner
   , refX : (Images.Ref, String)
   }
-
-
-type Mark = XMark | OMark
 
 
 type Winner = InProgress | WonBy (Maybe Mark)
