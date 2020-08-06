@@ -680,6 +680,27 @@ view model =
 
 viewEntrance : EntranceState -> El.Element Msg
 viewEntrance state =
+  El.column
+  [ El.spacing clearance ]
+  [ viewInstructions
+  , viewGameIdBox state
+  ]
+
+
+viewInstructions : El.Element Msg
+viewInstructions =
+  "Noughts and crosses (also known as tic tac toe). " ++
+  "Use the game ID below and click Go to start. Or enter a game ID " ++
+  "from a friend and click Go to join their game."
+  |> El.text
+  |> List.singleton
+  |> El.paragraph []
+  |> UI.sticker
+  |> UI.rotate -0.01
+
+
+viewGameIdBox : EntranceState -> El.Element Msg
+viewGameIdBox state =
   let
     enabled =
       case state.draftGameId |> BGF.gameId of
