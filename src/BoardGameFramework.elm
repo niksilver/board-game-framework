@@ -13,22 +13,24 @@ module BoardGameFramework exposing (
 
 {-| Types and functions help create remote multiplayer board games
 using the related framework. See
-[https://github.com/niksilver/board-game-framework](https://github.com/niksilver/board-game-framework)
-for detailed documentation and example code.
+[the detailed documentation and example
+code](https://github.com/niksilver/board-game-framework/tree/master/docs)
+for a proper introduction.
 
 # Game IDs
-Enable players to a unique game ID, so they can join up with each other.
+Players with the same game ID (on the same server) are playing the same game.
 @docs GameId, gameId, fromGameId, idGenerator
 
 # Connecting
-@docs Server, wsServer, wssServer, withPort, Address, withGameId, toUrlString
+@docs Server, wsServer, wssServer, withPort, withGameId, Address, toUrlString
 
 # Basic actions: open, send, close
 @docs open, send, close
 
 # Receiving messages
-Any message another client sends gets wrapped in envelope, and we get the
-envelope. Communication under the hood is in JSON, so we need to say
+We receive envelopes: either messages from other clients, or messages from
+the server about leavers and joiners, or messages about connectivity.
+Any game messages sent out are encoded into JSON, so we need to say
 how to decode our application's JSON messages into some suitable Elm type.
 @docs ClientId, Envelope, Connectivity, Error, decode
 -}
@@ -95,8 +97,8 @@ To create a `Cmd` that generates a random name, we can use code like this:
     -- Make sure our Msg can handle a generated game id
     Msg =
       ...
-      GeneratedGameId GameId
-      ...
+      | GeneratedGameId BGF.GameId
+      | ...
 
 
     -- Our update function
@@ -181,10 +183,12 @@ type Address =
     }
 
 
-{- | Create the address of an actual game we can connect to.
+{-| Create the address of an actual game we can connect to.
 
-    -- If we have game ID `gid1` as `"voter-when"` and
-    -- game ID `gid2` as `"poor-modern"` then...
+    gid1 = gameId "voter-when"
+    gid2 = gameId "poor-modern"
+
+
     wsServer "localhost"
     |> withPort 8080
     |> withGameId gid1    -- We will join `ws://localhost:8080/g/voter-when`
@@ -199,6 +203,10 @@ withGameId gId (Server server) =
     }
 
 
+{-| Turn an `Address` into a URL, expressed as a string.
+This is useful for debugging, or otherwise seeing what's going on under
+the hood.
+-}
 toUrlString : Address -> String
 toUrlString (Address addr) =
   let
@@ -217,7 +225,7 @@ toUrlString (Address addr) =
 type alias ClientId = String
 
 
-{-| A message from the server, or the connection layer.
+{-| A message from the server, or the JavaScript connection layer.
 See [the concepts document](https://github.com/niksilver/board-game-framework/blob/master/docs/concepts.md)
 for many more details.
 
@@ -230,17 +238,16 @@ The envelopes are:
 * Change of status with the server connection.
 
 The field names have consistent types and meaning:
-* `me`: our client's own ID.
+* `me`: our client's own client ID.
 * `others`: the IDs of all other clients currently in the game.
 * `from`: the ID of the client (not us) who sent the message.
 * `to`: the IDs of the clients to whom a message was sent, including us.
 * `joiner`: the ID of a client who has just joined.
 * `leaver`: the ID of a client who has just left.
-* `num`: the ID of the envelope. After a Welcomem envelope, nums will
+* `num`: the ID of the envelope. After a Welcome envelope, nums will
   be consecutive.
 * `time`: when the envelope was sent, in milliseconds since the epoch.
 * `body`: the application-specific message sent by the client.
-  The message is of type `a`.
 -}
 type Envelope a =
   Welcome {me: ClientId, others: List ClientId, num: Int, time: Int}
@@ -259,7 +266,7 @@ reconnect.
 
 `Disconnected` will only be received if the client explicitly
 asks for the connection to be closed; otherwise if a disconnection
-is detected the JavaScript will try to reconnect.
+is detected the JavaScript will be trying to reconnect.
 
 Both `Connecting` and `Disconnected` mean there isn't a server connection,
 but `Disconnected` means that the underlying JavaScript isn't attempting to
@@ -295,18 +302,20 @@ singletonStringDecoder =
   |> Dec.andThen singleDecoder
 
 
-{-| Decode an incoming envelope, which is initially expressed as JSON.
-An envelope may include a body, which a message from our peers (other
-clients) of some type `a`.
-Since a body is also JSON, and specific to our application,
+{-| Decode an incoming envelope. It is encoded as JSON, and our framework
+can handle most of that. It only needs help when the envelope contains
+a message from a client peer (a body), because that's application-specific.
+
+The body is said to be of some type `a`.
+Since the body is also encoded as JSON
 we need to provide a JSON decoder for that part.
-It will decode JSON and produce an `a`.
+The decoder should decode JSON and produce an `a`.
+
 If the decoding of the envelope is successful we will get an
 `Ok (Envelope a)`. If there is a problem we will get an `Err Error`.
 
 In this example we expect our envelope body to be a JSON object
-containing a `"players"` field (which is a map of strings to strings)
-and an `"entered"` field (which is a boolean).
+containing an `id` field and a `name` field, both of which are strings.
 
     import Dict exposing (Dict)
     import Json.Decode as Dec
@@ -314,9 +323,13 @@ and an `"entered"` field (which is a boolean).
     import BoardGameFramework as BGF
 
 
+    -- Raw JSON envelopes come into this port
+    port incoming : (Enc.Value -> msg) -> Sub msg
+
+
     type alias Body =
-      { players : Dict String String
-      , entered : Bool
+      { id : BGF.ClientId
+      , name : String
       }
 
 
@@ -326,26 +339,36 @@ and an `"entered"` field (which is a boolean).
     -- A JSON decoder which transforms our JSON object into a Body.
     bodyDecoder : Dec.Decoder Body
     bodyDecoder =
-      let
-        playersDec =
-          Dec.field "players" (Dec.dict Dec.string)
-        enteredDec =
-          Dec.field "entered" Dec.bool
-      in
-      Dec.map2 Body
-        playersDec
-        enteredDec
+      Dec.map2
+        Body
+        (Dec.field "id" Dec.string)
+        (Dec.field "name" Dec.string)
 
 
-    -- Parse an envelope, which is some JSON value `v`.
-    result : Enc.value -> Result BGF.Error MyEnvelope
-    result v =
+    type Msg =
+      ...
+      | Received (Result BGF.Error MyEnvelope)
+      | ...
+
+
+    -- Turn some envelope into a `Msg` which we can handle in our
+    -- usual `update` function.
+    receive : Enc.Value -> Msg
+    receive v =
       BGF.decode bodyDecoder v
+      |> Received
 
-In the above example we could also define `result` like this:
 
-    result =
-      BGF.decode bodyDecoder
+    -- We'll use this in our usual `main` function to subscribe to
+    -- incoming envelopes and process them.
+    subscriptions : Model -> Sub Msg
+    subscriptions model =
+      incoming receive
+
+So after subscribing to what comes into our port, the sequence is:
+an envelope gets decoded as a `Result BGF.Error MyEnvelope; this
+gets wrapped into an application-specific `Received` type; we will
+handle that in our usual `update` function.
 -}
 decode : Dec.Decoder a -> Enc.Value -> Result Error (Envelope a)
 decode bodyDecoder v =
