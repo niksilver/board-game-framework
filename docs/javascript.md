@@ -10,26 +10,26 @@ the application. It
 * passes message envelopes from the server to the application;
 * passes a connecton envelope to the application when the connection
   status changes;
-* passes an error envelope to the application if there is a problem.
+* passes an error envelope to the application if there is a network problem.
 
 The Elm library interacts with the JavaScript layer, so if you're
 going to write in Elm there is no need to look further here.
 
 A simple example of the JavaScript layer in use can be found in
-[the simple JavaScript demo](../examples/simple-data-demo/data-demo-js.html).
+[the simple JavaScript demo](https://github.com/niksilver/board-game-framework/tree/master/examples/simple-js-demo).
 
-## Using the framework
+## Using the JavaScript layer
 
-First create a new instance of the framework:
+First create a new instance of the board game framework:
 ```js
 var bgf = new BoardGameFramework();
 ```
+
 You can tell the object to take an action by calling
 
 ```js
 bgf.act(data)
 ```
-
 where `data` is one of the following structures:
 
 ```js
@@ -55,14 +55,15 @@ This will send some arbitrary JSON object to the server, as a game message
 to all the players. The `act()` function will JSON.stringify the `body`
 field.
 
-When the board game framework object wants to send an envelope to
-the application it calls its own `toApp(env)` function. So after
-creating a `new BoardGameFramework()` object set that value:
+When the board game framework object wants to send an envelope into
+our application it calls its own `toApp(env)` function. So after
+creating a `new BoardGameFramework()` object we should set that value:
 ```js
 bgf.toApp = function(env) {
     // Put something here to process the envelope
 }
 ```
+
 ## Envelopes
 
 The `toApp()` function will be called with all envelopes from the game server.
@@ -72,16 +73,18 @@ envelopes with the `Intent`:
 * Joiner - when another client joins;
 * Leaver - when a client leaves;
 * Peer - when another client has sent a message;
-* Receipt - when this client has sent a message.
+* Receipt - when this client has sent a message and the server is
+  sending it out to other clients as a Peer message.
 
 Additionally `toApp()` will be called with one of these three envelopes when
 something changes with the connection:
-* `{connection: "Connecting"}` when the JavaScript layer is connecting or
+* `{connection: "connecting"}` when the JavaScript layer is connecting or
   (in the event of a lost connection) reconnecting;
-* `{connection: "Opened"}` when a connection is successfully opened;
-* `{connection: "Closed"}` when a connection is closed (and the JavaScript
-  is not trying to reconnect. This will happen only after `act()` has been
-  called with a "Closed" instruction.
+* `{connection: "connected"}` when a connection is successfully opened;
+* `{connection: "disconnected"}` when a connection is closed
+  and the JavaScript is not trying to reconnect.
+  This will happen only after `act()` has been
+  called with a "Close" instruction.
 
 Finally, `toApp()` can be called with
 * `{error: "Some error message"}`. This will happen if there is a
