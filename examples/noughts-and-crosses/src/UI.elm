@@ -8,6 +8,7 @@ module UI exposing
   , miniPaletteBlack, miniPaletteWhite
   , sticker, bigSticker, smallSticker
   , stickerText, bigStickerText, smallStickerText
+  , rotate
   , button, inputText
   )
 
@@ -149,7 +150,7 @@ lighten base paint degree =
   |> El.fromRgb
 
 
--- Elements
+-- Sticker-like display
 
 
 sticker : El.Element msg -> El.Element msg
@@ -199,6 +200,14 @@ bigStickerText text =
 smallStickerText : String -> El.Element msg
 smallStickerText text =
   smallSticker (El.text text)
+
+
+rotate : Float -> El.Element msg -> El.Element msg
+rotate radians =
+  El.el [ El.rotate radians ]
+
+
+-- Input elements
 
 
 button :

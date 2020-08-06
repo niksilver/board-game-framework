@@ -621,6 +621,42 @@ gridColour = El.rgba 0.4 0.4 0.4 0.5
 cellColour = El.rgba 0.5 0 0 0.5
 
 
+padderTop : El.Element msg -> El.Element msg
+padderTop =
+  El.el
+  [ El.paddingEach
+    { top = 0
+    , left = clearance
+    , right = 0
+    , bottom = clearance
+    }
+  ]
+
+
+padderBottom : El.Element msg -> El.Element msg
+padderBottom =
+  El.el
+  [ El.paddingEach
+    { top = clearance
+    , left = 0
+    , right = 0
+    , bottom = 0
+    }
+  ]
+
+
+padderBigTop : El.Element msg -> El.Element msg
+padderBigTop =
+  El.el
+  [ El.paddingEach
+    { top = bigClearance
+    , left = clearance
+    , right = 0
+    , bottom = 0
+    }
+  ]
+
+
 view : Model -> Browser.Document Msg
 view model =
   -- Background by Mike Maguire on Flickr
@@ -674,26 +710,7 @@ viewEntrance state =
 viewPlay : PlayingState -> Int -> El.Element Msg
 viewPlay state width =
   if width <= 1200 then
-    let
-      padderTop =
-        El.el
-        [ El.paddingEach
-          { top = 0
-          , left = clearance
-          , right = 0
-          , bottom = clearance
-          }
-        ]
-      padderBottom =
-        El.el
-        [ El.paddingEach
-          { top = clearance
-          , left = 0
-          , right = 0
-          , bottom = 0
-          }
-        ]
-    in
+    -- Narrow layout
     El.column [ El.centerX ]
     [ viewWhoseTurnOrWinner state |> padderTop
     , viewGrid state
@@ -707,29 +724,19 @@ viewPlay state width =
     ]
 
   else
-    let
-      padder =
-        El.el
-        [ El.paddingEach
-          { top = bigClearance
-          , left = clearance
-          , right = 0
-          , bottom = 0
-          }
-        ]
-    in
+    -- Wide layout
     El.row [ El.width El.fill ]
     [ viewGrid state
     , El.column
       [ El.width El.fill
       , El.alignTop
       ]
-      [ viewWhoseTurnOrWinner state |> padder
+      [ viewWhoseTurnOrWinner state |> padderBigTop
       , El.row [ El.spacing 30 ]
         [ viewPlayerCount state
         , viewConnectivity state
-        ] |> padder
-      , viewRef state |> padder
+        ] |> padderBigTop
+      , viewRef state |> padderBigTop
       ]
     ]
 
@@ -834,10 +841,10 @@ viewWhoseTurnOrWinner state =
     InProgress ->
       case state.turn of
         XMark ->
-          UI.bigStickerText "X to play"
+          UI.bigStickerText "X to play" |> UI.rotate -0.06
 
         OMark ->
-          UI.bigStickerText "O to play"
+          UI.bigStickerText "O to play" |> UI.rotate -0.06
 
 
 viewWinner : Maybe Mark -> El.Element Msg
@@ -855,11 +862,12 @@ viewWinner mMark =
           "It's a draw! "
   in
   El.row [ El.spacing 30 ]
-  [ UI.bigStickerText winText
+  [ UI.bigStickerText winText |> UI.rotate -0.06
   , El.text "Click to play again"
     |> El.el [ El.pointer, Font.underline ]
     |> El.el [ Events.onClick <| ClickedPlayAgain ]
     |> UI.sticker
+    |> UI.rotate 0.04
   ]
 
 
@@ -878,10 +886,14 @@ viewConnectivity state =
       El.none
 
     BGF.Connecting ->
-      El.text "Connecting" |> UI.smallSticker
+      El.text "Connecting"
+      |> UI.smallSticker
+      |> UI.rotate -0.03
 
     BGF.Disconnected ->
-      El.text "Disconnected" |> UI.smallSticker
+      El.text "Disconnected"
+      |> UI.smallSticker
+      |> UI.rotate -0.03
 
 
 viewPlayerCount : PlayingState -> El.Element Msg
@@ -889,13 +901,16 @@ viewPlayerCount state =
   case state.playerCount of
     1 ->
       UI.stickerText "No other players online"
+      |> UI.rotate 0.05
 
     2 ->
       UI.stickerText "One other player online"
+      |> UI.rotate 0.05
 
     p ->
       (String.fromInt p) ++ " other players online"
       |> UI.stickerText
+      |> UI.rotate 0.05
 
 
 viewRef : PlayingState -> El.Element Msg
@@ -909,3 +924,4 @@ viewRef state =
   , label = prefix ++ " by " ++ ref.name |> El.text
   }
   |> UI.smallSticker
+  |> UI.rotate -0.04
