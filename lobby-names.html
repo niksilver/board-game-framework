@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta charset="utf-8">
+    <!-- Load the Javascript library for our board game framework -->
+    <script type="text/javascript" src="lib/board-game-framework.js"></script>
+    <!-- Load our Elm app -->
+    <script type="text/javascript" src="lobby-names.js"></script>
+    </head>
+    <body>
+        <div id="app"></div>
+    </body>
+    <script type="text/javascript">
+        // Set up an instance of our connectivity library
+        var bgf = new BoardGameFramework();
+
+        // Insert our Elm app into the page
+        var app = Elm.Main.init({
+            node: document.getElementById('app'),
+            flags: bgf.id
+        });
+
+        // Link incoming envelopes to our app
+        bgf.toApp = function(env) {
+            app.ports.incoming.send(env);
+        };
+
+        // List out for data coming out of our Elm app
+        app.ports.outgoing.subscribe(function(data) {
+            bgf.act(data);
+        });
+    </script>
+</html>
