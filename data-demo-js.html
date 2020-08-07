@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta charset="utf-8">
+    <!-- Load the Javascript library for our board game framework -->
+    <script type="text/javascript" src="lib/board-game-framework.js"></script>
+    <script>
+        // Application-specific code
+
+        serverURL = "wss://bgf.pigsaw.org";
+
+        window.addEventListener("load", function(evt) {
+            // Elements of our page
+            var gameid = document.getElementById("gameid");
+            var words = document.getElementById("words");
+            var truth = document.getElementById("truth");
+            var wholenumber = document.getElementById("wholenumber");
+            var output = document.getElementById("output");
+
+            // Functions specific to our simple demo application
+
+            // Add content to the output div, just below the header
+            var print = function(message) {
+                var d = document.createElement("p");
+                d.textContent = message;
+                second = output.childNodes.item(1);
+                output.insertBefore(d, second);
+            };
+
+            // An instance of our connectivity layer
+            var bgf = new BoardGameFramework();
+
+            // On our page, show the URL we're using and our client ID
+            document.getElementById("serverURL").textContent = serverURL;
+            document.getElementById("clientid").textContent = bgf.id;
+
+            // This is what we'll do when the framework sends data to our app
+            bgf.toApp = function(env) {
+                print(JSON.stringify(env));
+            }
+
+            // Event for our application
+            document.getElementById("open").onclick = function(evt) {
+                bgf.act({
+                    instruction: "Open",
+                    url: serverURL + "/g/" + gameid.value,
+                });
+                return false;
+            };
+            document.getElementById("send").onclick = function(evt) {
+                msg = {
+                    words: words.value,
+                    truth: truth.checked,
+                    wholenumber: parseInt(wholenumber.value)
+
+                };
+                bgf.act({instruction: "Send", body: msg});
+                return false;
+            };
+            document.getElementById("close").onclick = function(evt) {
+                bgf.act({instruction: "Close" });
+                return false;
+            };
+        });
+    </script>
+    </head>
+    <body>
+        <p>
+        Choose a game ID, then click "Open" to connect to the server.
+        "Send" to send the structured data to other clients in the same game.
+        "Close" to close the connection. 
+        You can edit the structured data and send multiple times.
+        </p>
+        <form>
+            <p>
+            <span id="serverURL"></span>/g/<input id="gameid" type="text" value="sample-game-id">
+            <button id="open">Open</button>
+            <button id="close">Close</button>
+            </p>
+            <p>
+            {<br/>
+            &nbsp;&nbsp;&nbsp;Words:
+            <input id="words" type="text" value="Hello world!"><br/>
+            &nbsp;&nbsp;&nbsp;Truth:
+            <input id="truth" type="checkbox" checked="true"><br/>
+            &nbsp;&nbsp;&nbsp;Whole number:
+            <input id="wholenumber" type="text" value="27"><br/>
+            }<br/>
+            </p>
+            <p><button id="send">Send</button></p>
+        </form>
+
+        <p>
+            Client ID <span id="clientid"></span>.
+        </p>
+        <div id="output"><p>
+            Messages appear here, latest first:
+        </p></div>
+    </body>
+</html>
