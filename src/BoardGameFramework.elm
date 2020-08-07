@@ -498,10 +498,10 @@ decode bodyDecoder v =
 
     port outgoing : Enc.Value -> Cmd msg
 
-    server = BGF.wsServer "bgf.pigsaw.org"
+    server = BGF.wssServer "bgf.pigsaw.org"
     gameId = BGF.gameId "notice-handle"
 
-    -- Open a connection to ws://bgf.pigsaw.org/g/notice-handle
+    -- Open a connection to wss://bgf.pigsaw.org/g/notice-handle
     BGF.open outgoing server gameId
 -}
 open : (Enc.Value -> Cmd msg) -> Server -> GameId -> Cmd msg

@@ -31,7 +31,7 @@ main =
 
 
 server : BGF.Server
-server = BGF.wsServer "bgf.pigsaw.org"
+server = BGF.wssServer "bgf.pigsaw.org"
 
 
 type alias Model =
