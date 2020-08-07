@@ -6,9 +6,9 @@
 module BoardGameFramework exposing (
   GameId, gameId, fromGameId , idGenerator
   , Server, wsServer, wssServer, withPort, Address, withGameId, toUrlString
-  , ClientId
-  , Envelope(..), Connectivity(..), Error(..), open, send, close
-  , encode, decode
+  , open, send, close
+  , ClientId, Envelope(..), Connectivity(..), Error(..)
+  , decode
   )
 
 {-| Types and functions help create remote multiplayer board games
@@ -21,7 +21,7 @@ for a proper introduction.
 Players with the same game ID (on the same server) are playing the same game.
 @docs GameId, gameId, fromGameId, idGenerator
 
-# Connecting
+# Server connection
 @docs Server, wsServer, wssServer, withPort, withGameId, Address, toUrlString
 
 # Basic actions: open, send, close
@@ -351,15 +351,15 @@ containing an `id` field and a `name` field, both of which are strings.
       | ...
 
 
-    -- Turn some envelope into a `Msg` which we can handle in our
-    -- usual `update` function.
+    -- Turn some envelope into a Msg which we can handle in our
+    -- usual update function.
     receive : Enc.Value -> Msg
     receive v =
       BGF.decode bodyDecoder v
       |> Received
 
 
-    -- We'll use this in our usual `main` function to subscribe to
+    -- We'll use this in our usual main function to subscribe to
     -- incoming envelopes and process them.
     subscriptions : Model -> Sub Msg
     subscriptions model =
@@ -491,54 +491,37 @@ decode bodyDecoder v =
       Err (Json desc)
 
 
--- Instruction to be sent through a port.
-type Instruction a =
-  Open Address
-  | Send a
-  | Close
-
-
--- Encode a `Instruction` to the server. It needs a JSON encoder for our
--- application-specific messages (type `a`) that get sent between peers.
-encode : (a -> Enc.Value) -> Instruction a -> Enc.Value
-encode encoder instr =
-  case instr of
-    Open addr ->
+open : (Enc.Value -> Cmd msg) -> Server -> GameId -> Cmd msg
+open cmder server gId =
+  let
+    addr = server |> withGameId gId
+    encode =
       Enc.object
         [ ("instruction", Enc.string "Open")
         , ("url", toUrlString addr |> Enc.string)
         ]
-
-    Send body ->
-      Enc.object
-        [ ("instruction", Enc.string "Send")
-        , ("body", encoder body )
-        ]
-
-    Close ->
-      Enc.object
-        [ ("instruction", Enc.string "Close")
-        ]
-
-
-open : (Enc.Value -> Cmd msg) -> Server -> GameId -> Cmd msg
-open cmder server gId =
-  server
-  |> withGameId gId
-  |> Open
-  |> encode (\_ -> Enc.null)
-  |> cmder
+  in
+  cmder encode
 
 
 send : (Enc.Value -> Cmd msg) -> (a -> Enc.Value) -> a -> Cmd msg
 send cmder encoder body =
-  Send body
-  |> encode encoder
-  |> cmder
+  let
+    encode =
+      Enc.object
+        [ ("instruction", Enc.string "Send")
+        , ("body", encoder body )
+        ]
+  in
+  cmder encode
 
 
 close : (Enc.Value -> Cmd msg) -> Cmd msg
 close cmder =
-  Close
-  |> encode (\_ -> Enc.null)
-  |> cmder
+  let
+    encode =
+      Enc.object
+        [ ("instruction", Enc.string "Close")
+        ]
+  in
+  cmder encode
