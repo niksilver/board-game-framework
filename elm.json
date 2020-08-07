@@ -1,7 +1,7 @@
 {
     "type": "package",
     "name": "niksilver/board-game-framework",
-    "summary": "Functions for interacting with board game framework",
+    "summary": "API for a multi-player board game framework",
     "license": "GPL-3.0",
     "version": "1.0.0",
     "exposed-modules": [

@@ -58,10 +58,10 @@ to communicate, especially in URLs.
 This test passes if it's five to thirty characters long (inclusive)
 and consists of just alphanumerics, dots, dashes, and forward slashes.
 
-    gameId "pancake-road" == Ok "pancake-road"
-    gameId "backgammon/pancake-road" == Ok "pancake-road"
-    gameId "#345#" == Err "Bad characters"
-    gameId "road" == Err "Too short"
+    gameId "pancake-road"            == Ok ...
+    gameId "backgammon/pancake-road" == Ok ...
+    gameId "#345#"                   == Err "Bad characters"
+    gameId "road"                    == Err "Too short"
 -}
 gameId : String -> Result String GameId
 gameId str =
@@ -90,9 +90,9 @@ fromGameId (GameId str) =
 "_word_-_word_".
 
 To create a `Cmd` that generates a random name, we can use code like this:
+
     import Random
     import BoardGameFramework as BGF
-
 
     -- Make sure our Msg can handle a generated game id
     Msg =
@@ -100,13 +100,15 @@ To create a `Cmd` that generates a random name, we can use code like this:
       | GeneratedGameId BGF.GameId
       | ...
 
-
     -- Our update function
     update : Msg -> Model -> (Model, Cmd)
     update msg model =
       case msg of
         ... ->
-          (updatedModel, Random.generate GeneratedGameId BGF.idGenerator)
+          -- Generate a game ID
+          ( updatedModel
+          , Random.generate GeneratedGameId BGF.idGenerator
+          )
 
         GeneratedGameId gameId ->
           -- Use the generated game ID
@@ -135,7 +137,9 @@ type Server =
 
 {-| Create a `Server` that uses a websocket connection (not a secure
 websocket connection). For example
+
     wsServer "bgf.pigsaw.org"
+
 will allow us to make connections of the form `ws://bgf.pigsaw.org/...`.
 -}
 wsServer : String -> Server
@@ -148,7 +152,9 @@ wsServer domain =
 
 {-| Create a `Server` that uses a secure websocket connection.
 A call of the form
+
     wssServer "bgf.pigsaw.org"
+
 will allow us to make connections of the form `wss://bgf.pigsaw.org/...`.
 -}
 wssServer : String -> Server
@@ -162,6 +168,7 @@ wssServer domain =
 {-| Explicitly set the port of a server, if we don't want to connect to
 the default port. The default port is 80 for insecure connections and
 443 for secure connections.
+
     wsServer "localhost" |> withPort 8080    -- ws://localhost:8080
 -}
 withPort : Int -> Server -> Server
@@ -188,11 +195,10 @@ type Address =
     gid1 = gameId "voter-when"
     gid2 = gameId "poor-modern"
 
-
     wsServer "localhost"
     |> withPort 8080
-    |> withGameId gid1    -- We will join `ws://localhost:8080/g/voter-when`
-    |> withGameId gid2    -- Changes to `ws://localhost:8080/g/poor-modern`
+    |> withGameId gid1    -- We can join ws://localhost:8080/g/voter-when
+    |> withGameId gid2    -- Changes to  ws://localhost:8080/g/poor-modern
 -}
 withGameId : GameId -> Server -> Address
 withGameId gId (Server server) =
@@ -226,8 +232,10 @@ type alias ClientId = String
 
 
 {-| A message from the server, or the JavaScript connection layer.
+It may contain a message specific to our application, which we say
+is of type `a`.
 See [the concepts document](https://github.com/niksilver/board-game-framework/blob/master/docs/concepts.md)
-for many more details.
+for many more details of envelopes.
 
 The envelopes are:
 * A welcome when our client joins;
@@ -278,7 +286,7 @@ type Connectivity =
   | Disconnected
 
 
-{-| Errors reading the incoming envelope. If an error bubbles up from
+{-| An error reading the incoming envelope. If an error bubbles up from
 the JavaScript library, or if the envelope intent is something unexpected,
 that's a `LowLevel` error. If we can't decode
 the JSON with the given decoder, that's a `Json` error, with the
@@ -302,14 +310,15 @@ singletonStringDecoder =
   |> Dec.andThen singleDecoder
 
 
-{-| Decode an incoming envelope. It is encoded as JSON, and our framework
-can handle most of that. It only needs help when the envelope contains
-a message from a client peer (a body), because that's application-specific.
+{-| Decode an incoming envelope.
+When an envelope is sent it is encoded as JSON, so it needs to be
+decoded when it's received. Our framework
+can handle most of that, but it needs help when the envelope contains
+a message from a client peer (a body), because that's specific to our
+application.
 
-The body is said to be of some type `a`.
-Since the body is also encoded as JSON
-we need to provide a JSON decoder for that part.
-The decoder should decode JSON and produce an `a`.
+The body is said to be of some type `a`,
+so we need to provide a JSON that produces an `a`.
 
 If the decoding of the envelope is successful we will get an
 `Ok (Envelope a)`. If there is a problem we will get an `Err Error`.
@@ -322,19 +331,15 @@ containing an `id` field and a `name` field, both of which are strings.
     import Json.Encode as Enc
     import BoardGameFramework as BGF
 
-
     -- Raw JSON envelopes come into this port
     port incoming : (Enc.Value -> msg) -> Sub msg
-
 
     type alias Body =
       { id : BGF.ClientId
       , name : String
       }
 
-
     type alias MyEnvelope = BGF.Envelope Body
-
 
     -- A JSON decoder which transforms our JSON object into a Body.
     bodyDecoder : Dec.Decoder Body
@@ -344,12 +349,10 @@ containing an `id` field and a `name` field, both of which are strings.
         (Dec.field "id" Dec.string)
         (Dec.field "name" Dec.string)
 
-
     type Msg =
       ...
       | Received (Result BGF.Error MyEnvelope)
       | ...
-
 
     -- Turn some envelope into a Msg which we can handle in our
     -- usual update function.
@@ -357,7 +360,6 @@ containing an `id` field and a `name` field, both of which are strings.
     receive v =
       BGF.decode bodyDecoder v
       |> Received
-
 
     -- We'll use this in our usual main function to subscribe to
     -- incoming envelopes and process them.
@@ -490,13 +492,11 @@ decode bodyDecoder v =
     Err desc ->
       Err (Json desc)
 
-{-| Open a connection to server, with a given game ID, via a port.
+{-| Open a connection to server, with a given game ID, via an Elm port.
 
     import BoardGameFramework as BGF
 
-
     port outgoing : Enc.Value -> Cmd msg
-
 
     server = BGF.wsServer "bgf.pigsaw.org"
     gameId = BGF.gameId "notice-handle"
@@ -524,12 +524,10 @@ requires us defining a JSON encoder for it.
 
     import BoardGameFramework as BGF
 
-
     type alias Body =
       { id : BGF.ClientId
       , name : String
       }
-
 
     bodyEncoder : Body -> Enc.Value
     bodyEncoder body =
@@ -538,15 +536,12 @@ requires us defining a JSON encoder for it.
       , ("name" , Enc.string body.name)
       ]
 
-
     port outgoing : Enc.Value -> Cmd msg
-
 
     body =
       { id = "123.456"
       , name = "Tango"
       }
-
 
     -- Send body to the other clients (and we'll get a receipt).
     BGF.send outgoing bodyEncoder body
@@ -569,9 +564,7 @@ because opening a new connection will automatically close an existing one.
 
     import BoardGameFramework as BGF
 
-
     port outgoing : Enc.Value -> Cmd msg
-
 
     -- Close our connection
     BGF.close outgoing

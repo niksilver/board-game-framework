@@ -3,7 +3,7 @@
 Elm client library for the board game framework, which makes it
 easy to write networked games with just client-side code.
 If this is your first time here, it's best to
-[look at the overview](docs/README.md) before going further
+[look at the overview and examples](docs/README.md) before going further.
 
 Key elements of any board game will be:
 * Generating a random game ID for your players;
@@ -12,8 +12,9 @@ Key elements of any board game will be:
 
 You don't need to worry about disconnecting, but you can if you like.
 
-You don't need to build your own server---there is currently one
-available to you---but if you would really like to, then you can
+You don't need to build your own server - there is currently one
+available to you at `bgf.pigsaw.org` -
+but if you would really like to, then you can
 [check out the server
 code](https://github.com/niksilver/board-game-framework-server).
 
@@ -25,48 +26,20 @@ examples. But here are some particular things to look out for.
 ## Integrating with the JavaScript layer
 
 Every game will need to communicate with the server (and the other clients)
-via ports. To embed our app into a web page we will need this code, where
-`lobby-names.js` is the JavaScript file our Elm code has been compiled into:
+via ports. To embed our app into a web page we will need a simple
+HTML and JavaScript shell page.
+For a good simple example take a look at [the HTML for the lobby names
+code](https://github.com/niksilver/board-game-framework/blob/master/examples/lobby-names/lobby-names.html).
 
-```html
-<!DOCTYPE html>
-<html>
-    <head>
-    <meta charset="utf-8">
-    <!-- Load the Javascript library for our board game framework -->
-    <script type="text/javascript" src="lib/board-game-framework.js"></script>
-    <!-- Load our Elm app -->
-    <script type="text/javascript" src="lobby-names.js"></script>
-    </head>
-    <body>
-        <div id="app"></div>
-    </body>
-    <script type="text/javascript">
-        // Set up an instance of our connectivity library
-        var bgf = new BoardGameFramework();
+The key parts of this HTML and JavaScript shell are:
+* Include the board game framework's JavaScript layer,
+  [`board-game-framework.js`](https://github.com/niksilver/board-game-framework/tree/master/examples/simple-data-demo/lib).
+* Create a new instance of the board game framework.
+* Initialise the Elm app, including our client ID as a flag.
+* Set up the inbound and outboard Elm ports.
 
-        // Insert our Elm app into the page
-        var app = Elm.Main.init({
-            node: document.getElementById('app'),
-            flags: bgf.id
-        });
-
-        // Link incoming envelopes to our app
-        bgf.toApp = function(env) {
-            app.ports.incoming.send(env);
-        };
-
-        // List out for data coming out of our Elm app
-        app.ports.outgoing.subscribe(function(data) {
-            bgf.act(data);
-        });
-    </script>
-</html>
-```
-See this repository for
-[the JavaScript layer, `board-game-framework.js`](https://github.com/niksilver/board-game-framework/tree/master/examples/simple-data-demo/lib).
-
-In our Elm code we need to define a ports module and its ports, like this:
+Then in our Elm code we need to define a ports module and its ports,
+like this:
 
 ```elm
 port outgoing : Enc.Value -> Cmd msg
@@ -81,16 +54,14 @@ or messages about the state of the server connection.
 
 ## Connecting and disconnecting to the server
 
-To connect to a game, our client code needs use know the name of the
+To connect to a game, our client code needs to know the name of the
 server, and a unique game ID that will bring together all the players:
 
 ```elm
 import BoardGameFramework as BGF
 
-
 server : BGF.Server
 server = BGF.wsServer "bgf.pigsaw.org"
-
 
 openCmd : BGF.GameId -> Cmd Msg
 openCmd id =
@@ -102,7 +73,7 @@ to the server with some game ID.
 
 The game ID is typically a simple string which is easy to communicate
 to other players, and each to remember.
-The API also provides a function for randomly generating nice game IDs
+The API provides a function for randomly generating nice game IDs
 as two English words separated by a hyphen.
 
 To disconnect from the server we simply call
@@ -125,12 +96,10 @@ Here's an example of some type `Body` and how we might encode it:
 import Json.Encode as Enc
 import BoardGameFramework as BGF
 
-
 type alias Body =
   { id : String
   , name : String
   }
-
 
 bodyEncoder : Body -> Enc.Value
 bodyEncoder body =
@@ -148,8 +117,6 @@ sendCmd body =
   BGF.send outgoing bodyEncoder body
 ```
 
-A sent message will go to all the other clients (and we'll receive a receipt).
-
 ## Receiving messages
 
 To receive messages we use our inbound `incoming` port defined
@@ -158,7 +125,6 @@ above, plus a JSON decoder:
 ```elm
 import Json.Decode as Dec
 import BoardGameFramework as BGF
-
 
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
@@ -176,13 +142,13 @@ changed connection states. So we can define an envelope specifically for
 our `Body` type:
 
 ```elm
-type alias Envelope = BGF.Envelope Body
+type alias MyEnvelope = BGF.Envelope Body
 ```
 
 When we use our JSON decoder to decode an envelope we may get error.
 That might be because it doesn't recognise the JSON it received, or there
 might be some other low-level error. So the result of that decoding
-will be `Result BGF.Error Envelope`. To feed that into our application
+will be `Result BGF.Error MyEnvelope`. To feed that into our application
 we can usefully make it part of our usual `Msg` type:
 
 
@@ -190,18 +156,17 @@ we can usefully make it part of our usual `Msg` type:
 type Msg =
   -- Some message tags not shown
   -- ...
-  | Received (Result BGF.Error Envelope)
+  | Received (Result BGF.Error MyEnvelope)
 ```
 
 And given all of that, we can now create a `subscriptions` function
-that listens to the `incoming` port, decodes the envelopes, and packages
-them up as a `Msg` for our model.
+that listens to the `incoming` port, decodes an envelope, and packages
+it up as a `Msg` for our model.
 
 ```elm
 subscriptions : Model -> Sub Msg
 subscriptions model =
   incoming receive
-
 
 receive : Enc.Value -> Msg
 receive v =
