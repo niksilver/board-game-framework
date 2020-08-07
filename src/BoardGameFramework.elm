@@ -490,7 +490,20 @@ decode bodyDecoder v =
     Err desc ->
       Err (Json desc)
 
+{-| Open a connection to server, with a given game ID, via a port.
 
+    import BoardGameFramework as BGF
+
+
+    port outgoing : Enc.Value -> Cmd msg
+
+
+    server = BGF.wsServer "bgf.pigsaw.org"
+    gameId = BGF.gameId "notice-handle"
+
+    -- Open a connection to ws://bgf.pigsaw.org/g/notice-handle
+    BGF.open outgoing server gameId
+-}
 open : (Enc.Value -> Cmd msg) -> Server -> GameId -> Cmd msg
 open cmder server gId =
   let
@@ -504,6 +517,40 @@ open cmder server gId =
   cmder encode
 
 
+{-| Send a message to the other clients.
+
+In this example we'll send a `Body` message to other clients, which
+requires us defining a JSON encoder for it.
+
+    import BoardGameFramework as BGF
+
+
+    type alias Body =
+      { id : BGF.ClientId
+      , name : String
+      }
+
+
+    bodyEncoder : Body -> Enc.Value
+    bodyEncoder body =
+      Enc.object
+      [ ("id" , Enc.string body.id)
+      , ("name" , Enc.string body.name)
+      ]
+
+
+    port outgoing : Enc.Value -> Cmd msg
+
+
+    body =
+      { id = "123.456"
+      , name = "Tango"
+      }
+
+
+    -- Send body to the other clients (and we'll get a receipt).
+    BGF.send outgoing bodyEncoder body
+-}
 send : (Enc.Value -> Cmd msg) -> (a -> Enc.Value) -> a -> Cmd msg
 send cmder encoder body =
   let
@@ -516,6 +563,19 @@ send cmder encoder body =
   cmder encode
 
 
+{-| Close the connection to the game server.
+Not strictly necessary in most cases,
+because opening a new connection will automatically close an existing one.
+
+    import BoardGameFramework as BGF
+
+
+    port outgoing : Enc.Value -> Cmd msg
+
+
+    -- Close our connection
+    BGF.close outgoing
+-}
 close : (Enc.Value -> Cmd msg) -> Cmd msg
 close cmder =
   let
