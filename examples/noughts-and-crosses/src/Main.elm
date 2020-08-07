@@ -97,7 +97,7 @@ type Msg =
 
 
 server : BGF.Server
-server = BGF.wsServer "bgf.pigsaw.org"
+server = BGF.wssServer "bgf.pigsaw.org"
 
 
 openCmd : BGF.GameId -> Cmd Msg

@@ -12,7 +12,7 @@ Key elements of any board game will be:
 
 You don't need to worry about disconnecting, but you can if you like.
 
-You don't need to build your own server - there is currently one
+You don't need to build your own server - there is currently an SSL server
 available to you at `bgf.pigsaw.org` -
 but if you would really like to, then you can
 [check out the server
@@ -61,7 +61,7 @@ server, and a unique game ID that will bring together all the players:
 import BoardGameFramework as BGF
 
 server : BGF.Server
-server = BGF.wsServer "bgf.pigsaw.org"
+server = BGF.wssServer "bgf.pigsaw.org"
 
 openCmd : BGF.GameId -> Cmd Msg
 openCmd id =
