@@ -4,8 +4,31 @@ This document describes general concepts of the board game framework,
 These concepts are
 described in general terms, mostly independent of programming language.
 
-To see all this in action, in a very simple way, take a look
-at the simple JavaScript demo.
+## Don't just read - try it!
+
+While reading this documentation you can play around and see the ideas
+in action.
+Go to either [the simple JavaScript
+demo](https://niksilver.github.io/games/simple-js.html)
+or
+[the equivalent Elm
+demo](https://niksilver.github.io/games/simple-elm.html).
+Play around with it. Bring it up in two or more browser tabs to see
+what happens when multiple clients connect.
+Try using different game IDs.
+All the while, watch what messages get received by each client.
+
+These simple applications are also a really good way to see what happens
+in a real application, such as the [noughts and crosses
+game](https://niksilver.github.io/games/ooxx.html). If you connect
+the simple JavaScript or Elm demo to the noughts and crosses
+game then you'll be able to see what messages it sends out.
+Don't forget to use the same game ID.
+
+You can also use the simple
+demos to send a JSON message which the game won't be able to interpret -
+that might be useful if you want to see how your own application
+handles a nonsensical message.
 
 ## Overview of concepts
 
@@ -37,7 +60,7 @@ to make connectivity easier. It adds two other kinds of messages for clients:
 
 A server can host many distinct games at one time. At the time of writing
 there is a server which can be used freely at `bgf.pigsaw.org` (this
-one happens to use SSL).
+one happens to accept both SSL and non-SSL connections).
 
 Each game on that server is identified
 by a simple string - a game ID - which brings together all the client

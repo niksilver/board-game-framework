@@ -12,9 +12,10 @@ Key elements of any board game will be:
 
 You don't need to worry about disconnecting, but you can if you like.
 
-You don't need to build your own server - there is currently an SSL server
-available to you at `bgf.pigsaw.org` -
-but if you would really like to, then you can
+You don't need to build your own server - there is currently one
+available to you at `bgf.pigsaw.org`, and it accepts both SSL and
+non-SSL connection.
+But if you would really like to build and run your own server, then you can
 [check out the server
 code](https://github.com/niksilver/board-game-framework-server).
 
