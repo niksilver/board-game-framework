@@ -15,7 +15,7 @@ latest game state", or anything else.
 Clients are intended to be written in Elm, but there is also a simple
 JavaScript example.
 
-* [Concepts](docs/concepts.md)
+* [Concepts](concepts.md)
 * [Elm API](../README.md)
 * Example code:
   * A very simple JavaScript-only demo.
@@ -30,8 +30,8 @@ JavaScript example.
   * Multi-player noughts and crosses (aka tic tac toe).
     * [Live demo](https://niksilver.github.io/games/ooxx.html)
     * [Source code](https://github.com/niksilver/board-game-framework/tree/master/examples/noughts-and-crosses)
-* [Details of the lower-level JavaScript layer](docs/javascript.md)
-* [Server design principles](docs/server.md)
+* [Details of the lower-level JavaScript layer](javascript.md)
+* [Server design principles](server.md)
 * [Server code](https://github.com/niksilver/board-game-framework-server/)
 
 Inspired by the [open source version of Codenames](https://github.com/jbowens/codenames/).
