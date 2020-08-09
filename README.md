@@ -16,7 +16,7 @@ You don't need to worry about disconnecting, but you can if you like.
 
 You don't need to build your own server - there is currently one
 available to you at `bgf.pigsaw.org`, and it accepts both SSL and
-non-SSL connection.
+non-SSL connections.
 But if you would really like to build and run your own server, then you can
 [check out the server
 code](https://github.com/niksilver/board-game-framework-server).
@@ -40,7 +40,7 @@ The key parts of this HTML and JavaScript shell are:
   [`board-game-framework.js`](https://github.com/niksilver/board-game-framework/tree/master/examples/simple-data-demo/lib).
 * Create a new instance of the board game framework.
 * Initialise the Elm app, including our client ID as a flag.
-* Set up the inbound and outboard Elm ports.
+* Set up the inbound and outbound Elm ports, on the JavaScript side.
 
 Then in our Elm code we need to define a ports module and its ports,
 like this:
@@ -53,7 +53,8 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 `outgoing` allows us to send some game-specific message (encoded as JSON)
 to the other clients. `incoming` allows us to subscribe to incoming
 envelopes from the server. These envelopes may contain messages
-from other clients (which we'll have to decode from JSON to Elm values)
+from other clients (which we'll have to decode from JSON to Elm values),
+messages about other clients,
 or messages about the state of the server connection.
 
 ## Connecting and disconnecting to the server
@@ -113,7 +114,8 @@ bodyEncoder body =
   ]
 ```
 
-Now we can define a convenience function to send a `Body` message:
+Now we can define a convenience function to send a `Body` message via
+the `outgoing` port:
 
 ```elm
 sendCmd : Body -> Cmd Msg
