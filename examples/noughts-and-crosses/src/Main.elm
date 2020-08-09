@@ -310,7 +310,10 @@ update msg model =
       let
         (screen, cmd) = initialScreen url model.key
       in
-      ( { model | screen = screen }
+      ( { model
+        | url = url
+        , screen = screen
+        }
       , cmd
       )
 
