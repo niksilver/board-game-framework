@@ -3,7 +3,9 @@
 Elm client library for the board game framework, which makes it
 easy to write networked games with just client-side code.
 If this is your first time here, it's best to
-[look at the overview and examples](docs/README.md) before going further.
+[look at the concepts and
+examples](https://github.com/niksilver/board-game-framework/blob/master/docs/README.md)
+before going further.
 
 Key elements of any board game will be:
 * Generating a random game ID for your players;
@@ -21,8 +23,9 @@ code](https://github.com/niksilver/board-game-framework-server).
 
 # Writing your own game
 
-The best way to see how to write your own board game is to look at the
-examples. But here are some particular things to look out for.
+The best way to see how to write your own board game is to
+[look at the examples](https://github.com/niksilver/board-game-framework/tree/master/examples).
+But here are some particular things to look out for.
 
 ## Integrating with the JavaScript layer
 

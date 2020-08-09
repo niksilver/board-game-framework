@@ -16,7 +16,7 @@ The Elm library interacts with the JavaScript layer, so if you're
 going to write in Elm there is no need to look further here.
 
 A simple example of the JavaScript layer in use can be found in
-[the simple JavaScript demo](https://github.com/niksilver/board-game-framework/tree/master/examples/simple-js-demo).
+[the simple JavaScript demo](https://niksilver.github.io/games/simple-js.html).
 
 ## Using the JavaScript layer
 

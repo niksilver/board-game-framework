@@ -19,17 +19,17 @@ JavaScript example.
 * [Elm API](../README.md)
 * Example code:
   * A very simple JavaScript-only demo.
+    * [Live demo](https://niksilver.github.io/games/simple-js.html)
     * [Source code](https://github.com/niksilver/board-game-framework/tree/master/examples/simple-data-demo)
-    * Live demo
   * The same thing, but demonstrating use of the Elm API.
+    * [Live demo](https://niksilver.github.io/games/simple-elm.html)
     * [Source code](https://github.com/niksilver/board-game-framework/tree/master/examples/simple-data-demo)
-    * Live demo
   * An example of clients joining in a lobby.
+    * [Live demo](https://niksilver.github.io/games/lobby-names.html)
     * [Source code](https://github.com/niksilver/board-game-framework/tree/master/examples/lobby-names-demo)
-    * Live demo
   * Multi-player noughts and crosses (aka tic tac toe).
+    * [Live demo](https://niksilver.github.io/games/ooxx.html)
     * [Source code](https://github.com/niksilver/board-game-framework/tree/master/examples/noughts-and-crosses)
-    * Live demo
 * [Details of the lower-level JavaScript layer](docs/javascript.md)
 * [Server design principles](docs/server.md)
 * [Server code](https://github.com/niksilver/board-game-framework-server/)
