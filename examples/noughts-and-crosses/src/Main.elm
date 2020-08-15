@@ -22,6 +22,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import BoardGameFramework as BGF
+import BoardGameFramework.Lobby as Lobby exposing (Lobby)
 
 import UI
 import Marks exposing (Mark(..))
@@ -56,12 +57,8 @@ type alias Model =
 
 
 type Screen =
-  Entrance EntranceState
+  Entrance (Lobby Msg PlayingState)
   | Playing PlayingState
-
-
-type alias EntranceState =
-  { draftGameId : String }
 
 
 type alias PlayingState =
@@ -83,8 +80,7 @@ type Winner = InProgress | WonBy (Maybe Mark)
 type Msg =
   UrlChanged Url.Url
   | UrlRequested Browser.UrlRequest
-  | GeneratedGameId BGF.GameId
-  | NewDraftGameId String
+  | ToLobby Lobby.Msg
   | Resized Int
   | ConfirmGameId String
   | CellClicked Int
@@ -207,6 +203,26 @@ init v url key =
   )
 
 
+initialLobby : Lobby Msg PlayingState
+initialLobby =
+  Lobby.lobby
+    { stateMaker =
+      \gameId ->
+        { gameId = gameId
+        , connectivity = BGF.Connected
+        , playerCount = 1
+        , moveNumber = 0
+        , envNum = 2^31-1
+        , turn = XMark
+        , board = cleanBoard
+        , winner = InProgress
+        , refX = backgroundRefX
+        }
+    , openCmd = openCmd
+    , msgWrapper = ToLobby
+    }
+
+
 type alias Flags =
   { width : Int
   , myId : String
@@ -227,38 +243,35 @@ decodeFlags v =
   |> Result.withDefault { width = 1000, myId = "Unknown" }
 
 
+initialPlayingState : BGF.GameId -> PlayingState
+initialPlayingState gameId =
+  { gameId = gameId
+  , connectivity = BGF.Connected
+  , playerCount = 1
+  , moveNumber = 0
+  , envNum = 2^31-1
+  , turn = XMark
+  , board = cleanBoard
+  , winner = InProgress
+  , refX = backgroundRefX
+  }
+
+
 initialScreen : Url.Url -> Nav.Key -> (Screen, Cmd Msg)
 initialScreen url key =
   let
-    frag = url.fragment |> Maybe.withDefault ""
+    (entry, cmd) = Lobby.enter initialLobby url key
   in
-  case BGF.gameId frag of
-    Ok gameId ->
-      ( Playing
-        { gameId = gameId
-        , connectivity = BGF.Connected
-        , playerCount = 1
-        , moveNumber = 0
-        , envNum = 2^31-1
-        , turn = XMark
-        , board = cleanBoard
-        , winner = InProgress
-        , refX = backgroundRefX
-        }
-      , openCmd gameId
+  case entry of
+    Lobby.In lobby ->
+      ( Entrance lobby
+      , cmd
       )
 
-    Err _ ->
-      case url.fragment of
-        Just str ->
-          ( Entrance { draftGameId = frag }
-          , Cmd.none
-          )
-
-        Nothing ->
-          ( Entrance { draftGameId = frag }
-          , Random.generate GeneratedGameId BGF.idGenerator
-          )
+    Lobby.Out state ->
+      ( Playing state
+      , cmd
+      )
 
 
 backgroundRefX : (Images.Ref, String)
@@ -327,16 +340,14 @@ update msg model =
           , Nav.load str
           )
 
-    GeneratedGameId gameId ->
-      ( model |> setDraftGameId (BGF.fromGameId gameId)
-      , Cmd.none
-      )
-
-    NewDraftGameId draft ->
+    ToLobby lMsg ->
       case model.screen of
-        Entrance _ ->
-          ( model |> setDraftGameId draft
-          , Cmd.none
+        Entrance lobby ->
+          let
+            (lobby2, cmd) = Lobby.update lMsg lobby
+          in
+          ( { model | screen = Entrance lobby2 }
+          , cmd
           )
 
         Playing _ ->
@@ -437,14 +448,6 @@ update msg model =
           ( { model | screen = Playing state2 }
           , Cmd.none
           )
-
-
-setDraftGameId : String -> Model -> Model
-setDraftGameId draft model =
-  { model
-  | screen = Entrance { draftGameId = draft  }
-  }
-
 
 
 setFragment : Url.Url -> String -> Url.Url
@@ -673,20 +676,20 @@ view model =
         , Background.image "images/background.jpg"
         ]
       <| case model.screen of
-        Entrance draftGameId ->
-          viewEntrance draftGameId
+        Entrance lobby ->
+          viewEntrance lobby
 
         Playing state ->
           viewPlay model state
   }
 
 
-viewEntrance : EntranceState -> El.Element Msg
-viewEntrance state =
+viewEntrance : Lobby Msg PlayingState -> El.Element Msg
+viewEntrance lobby =
   El.column
   [ El.spacing clearance ]
   [ viewInstructions
-  , viewGameIdBox state
+  , viewGameIdBox lobby
   ]
 
 
@@ -702,31 +705,23 @@ viewInstructions =
   |> UI.rotate -0.01
 
 
-viewGameIdBox : EntranceState -> El.Element Msg
-viewGameIdBox state =
-  let
-    enabled =
-      case state.draftGameId |> BGF.gameId of
-        Ok _ ->
-          True
-        Err _ ->
-          False
-  in
+viewGameIdBox : Lobby Msg PlayingState -> El.Element Msg
+viewGameIdBox lobby =
   El.row
   [ El.spacing (UI.scaledInt -1) ]
   [ El.text""
   , UI.inputText
-    { onChange = NewDraftGameId
-    , text = state.draftGameId
+    { onChange = Lobby.newDraftGameId lobby
+    , text = Lobby.draftGameId lobby
     , placeholderText = "Game ID"
     , label = "Game ID"
     , fontScale = 12
     , miniPalette = UI.miniPaletteWhite
     }
   , UI.button
-    { onPress = Just (ConfirmGameId state.draftGameId)
+    { onPress = Just (ConfirmGameId <| Lobby.draftGameId lobby)
     , label = "Go"
-    , enabled = enabled
+    , enabled = Lobby.okGameId lobby
     , miniPalette = UI.miniPaletteWhite
     }
   , El.text""
