@@ -190,7 +190,7 @@ bodyDecoder =
 init : Enc.Value -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init v url key =
   let
-    (screen, cmd) = initialScreen url key
+    (screen, cmd) = initialScreen url
     flags = decodeFlags v
   in
   ( { url = url
@@ -257,10 +257,10 @@ initialPlayingState gameId =
   }
 
 
-initialScreen : Url.Url -> Nav.Key -> (Screen, Cmd Msg)
-initialScreen url key =
+initialScreen : Url.Url -> (Screen, Cmd Msg)
+initialScreen url =
   let
-    (entry, cmd) = Lobby.enter initialLobby url key
+    (entry, cmd) = Lobby.enter initialLobby url
   in
   case entry of
     Lobby.In lobby ->
@@ -321,7 +321,7 @@ update msg model =
   case msg of
     UrlChanged url ->
       let
-        (screen, cmd) = initialScreen url model.key
+        (screen, cmd) = initialScreen url
       in
       ( { model
         | url = url

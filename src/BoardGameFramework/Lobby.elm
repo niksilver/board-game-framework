@@ -73,8 +73,8 @@ lobby config =
     }
 
 
-enter : Lobby msg s -> Url.Url -> Nav.Key -> (Entry msg s, Cmd msg)
-enter (Lobby lob) url key =
+enter : Lobby msg s -> Url.Url -> (Entry msg s, Cmd msg)
+enter (Lobby lob) url =
   let
     frag = url.fragment |> Maybe.withDefault ""
   in
