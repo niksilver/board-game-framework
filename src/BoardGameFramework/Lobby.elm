@@ -139,8 +139,10 @@ update msg (Lobby lob) =
     Init ->
       case lob.url.fragment of
         Nothing ->
-          ( Lobby lob
-            |> Debug.log "Init Nothing, Lobby"
+          ( Lobby
+              { lob
+              | draftGameId = ""
+              }
           , Nothing
           , Random.generate GeneratedGameId BGF.idGenerator
             |> Cmd.map lob.msgWrapper
@@ -149,15 +151,19 @@ update msg (Lobby lob) =
         Just frag ->
           case BGF.gameId frag of
             Ok gameId ->
-              ( Lobby { lob | draftGameId = frag }
-                |> Debug.log "Init Just Ok, Lobby"
+              ( Lobby
+                  { lob
+                  | draftGameId = frag
+                  }
               , Just <| lob.stateMaker gameId
               , lob.openCmd gameId
               )
 
             Err _ ->
-              ( Lobby { lob | draftGameId = frag }
-                |> Debug.log "Init Just Err, Lobby"
+              ( Lobby
+                  { lob
+                  | draftGameId = frag
+                  }
               , Nothing
               , Cmd.none
               )
@@ -176,7 +182,6 @@ update msg (Lobby lob) =
 
     UrlChanged url_ ->
       Lobby { lob | url = url_ }
-      |> Debug.log "UrlChanged, Lobby"
       |> update Init
 
     GeneratedGameId gameId ->
