@@ -77,7 +77,6 @@ type Msg =
   UrlRequested Browser.UrlRequest
   | ToLobby Lobby.Msg
   | Resized Int
-  | ConfirmGameId String
   | CellClicked Int
   | Received (Result BGF.Error (BGF.Envelope Body))
   | ClickedPlayAgain
@@ -325,11 +324,6 @@ update msg model =
       , Cmd.none
       )
 
-    ConfirmGameId id ->
-      ( model
-      , id |> setFragment model.url |> Url.toString |> Nav.pushUrl model.key
-      )
-
     CellClicked i ->
       case model.playing of
         Just state ->
@@ -413,11 +407,6 @@ update msg model =
           ( { model | playing = Just state2 }
           , Cmd.none
           )
-
-
-setFragment : Url.Url -> String -> Url.Url
-setFragment url fragment =
-  { url | fragment = Just fragment }
 
 
 -- Game mechanics
@@ -679,7 +668,7 @@ viewGameIdBox lobby =
     , miniPalette = UI.miniPaletteWhite
     }
   , UI.button
-    { onPress = Just (ConfirmGameId <| Lobby.draftGameId lobby)
+    { onPress = Just (Lobby.confirm ToLobby)
     , label = "Go"
     , enabled = Lobby.okGameId lobby
     , miniPalette = UI.miniPaletteWhite

@@ -4,7 +4,8 @@
 
 
 module BoardGameFramework.Lobby exposing (
-  Lobby, Config, Msg, newDraftGameId, urlChanged, lobby
+  Lobby, Config, Msg, lobby
+  , urlChanged, newDraftGameId, confirm
   , update
   , urlString, draftGameId, okGameId
   )
@@ -56,6 +57,12 @@ type Msg =
   | UrlChanged Url.Url
   | GeneratedGameId BGF.GameId
   | NewDraftGameId String
+  | Confirm
+
+
+urlChanged : (Msg -> msg) -> Url.Url -> msg
+urlChanged msgWrapper url =
+  msgWrapper <| UrlChanged url
 
 
 newDraftGameId : Lobby msg s -> String -> msg
@@ -63,9 +70,9 @@ newDraftGameId (Lobby lob) draft =
   lob.msgWrapper <| NewDraftGameId draft
 
 
-urlChanged : (Msg -> msg) -> Url.Url -> msg
-urlChanged msgWrapper url =
-  msgWrapper <| UrlChanged url
+confirm : (Msg -> msg) -> msg
+confirm msgWrapper =
+  msgWrapper <| Confirm
 
 
 {-| Create a lobby.
@@ -130,6 +137,21 @@ update msg (Lobby lob) =
       , Nothing
       , Cmd.none
       )
+
+    Confirm ->
+      ( Lobby lob
+      , Nothing
+      , lob.draftGameId
+        |> setFragment lob.url
+        |> Url.toString
+        |> Nav.pushUrl lob.key
+      )
+
+
+setFragment : Url.Url -> String -> Url.Url
+setFragment url fragment =
+  { url | fragment = Just fragment }
+
 
 
 urlString : Lobby msg s -> String
