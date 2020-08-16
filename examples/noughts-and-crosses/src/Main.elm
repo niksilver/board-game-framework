@@ -39,7 +39,7 @@ main =
   , update = update
   , subscriptions = subscriptions
   , onUrlRequest = UrlRequested
-  , onUrlChange = UrlChanged
+  , onUrlChange = Lobby.urlChanged ToLobby
   , view = view
   }
 
@@ -52,13 +52,9 @@ type alias Model =
   , key : Nav.Key
   , myId : BGF.ClientId
   , width : Int
-  , screen : Screen
+  , lobby : Lobby Msg PlayingState
+  , playing : Maybe PlayingState
   }
-
-
-type Screen =
-  Entrance (Lobby Msg PlayingState)
-  | Playing PlayingState
 
 
 type alias PlayingState =
@@ -78,8 +74,7 @@ type Winner = InProgress | WonBy (Maybe Mark)
 
 
 type Msg =
-  UrlChanged Url.Url
-  | UrlRequested Browser.UrlRequest
+  UrlRequested Browser.UrlRequest
   | ToLobby Lobby.Msg
   | Resized Int
   | ConfirmGameId String
@@ -190,37 +185,37 @@ bodyDecoder =
 init : Enc.Value -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init v url key =
   let
-    (screen, cmd) = initialScreen url
     flags = decodeFlags v
+    (lobby, playing, cmd) = Lobby.lobby lobbyConfig url key
   in
   ( { url = url
     , key = key
     , myId = flags.myId
     , width = flags.width
-    , screen = screen
+    , lobby = lobby
+    , playing = playing
     }
   , cmd
   )
 
 
-initialLobby : Lobby Msg PlayingState
-initialLobby =
-  Lobby.lobby
-    { stateMaker =
-      \gameId ->
-        { gameId = gameId
-        , connectivity = BGF.Connected
-        , playerCount = 1
-        , moveNumber = 0
-        , envNum = 2^31-1
-        , turn = XMark
-        , board = cleanBoard
-        , winner = InProgress
-        , refX = backgroundRefX
-        }
-    , openCmd = openCmd
-    , msgWrapper = ToLobby
-    }
+lobbyConfig : Lobby.Config Msg PlayingState
+lobbyConfig =
+  { stateMaker =
+    \gameId ->
+      { gameId = gameId
+      , connectivity = BGF.Connected
+      , playerCount = 1
+      , moveNumber = 0
+      , envNum = 2^31-1
+      , turn = XMark
+      , board = cleanBoard
+      , winner = InProgress
+      , refX = backgroundRefX
+      }
+  , openCmd = openCmd
+  , msgWrapper = ToLobby
+  }
 
 
 type alias Flags =
@@ -255,23 +250,6 @@ initialPlayingState gameId =
   , winner = InProgress
   , refX = backgroundRefX
   }
-
-
-initialScreen : Url.Url -> (Screen, Cmd Msg)
-initialScreen url =
-  let
-    (entry, cmd) = Lobby.enter initialLobby url
-  in
-  case entry of
-    Lobby.In lobby ->
-      ( Entrance lobby
-      , cmd
-      )
-
-    Lobby.Out state ->
-      ( Playing state
-      , cmd
-      )
 
 
 backgroundRefX : (Images.Ref, String)
@@ -319,17 +297,6 @@ makeRefInt state cellNum =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    UrlChanged url ->
-      let
-        (screen, cmd) = initialScreen url
-      in
-      ( { model
-        | url = url
-        , screen = screen
-        }
-      , cmd
-      )
-
     UrlRequested req ->
       case req of
         Browser.Internal url ->
@@ -341,17 +308,15 @@ update msg model =
           )
 
     ToLobby lMsg ->
-      case model.screen of
-        Entrance lobby ->
-          let
-            (lobby2, cmd) = Lobby.update lMsg lobby
-          in
-          ( { model | screen = Entrance lobby2 }
-          , cmd
-          )
-
-        Playing _ ->
-          (model, Cmd.none)
+      let
+        (lobby, playing, cmd) = Lobby.update lMsg model.lobby
+      in
+      ( { model
+        | lobby = lobby
+        , playing = playing
+        }
+      , cmd
+      )
 
     Resized width ->
       ( { model
@@ -366,8 +331,8 @@ update msg model =
       )
 
     CellClicked i ->
-      case model.screen of
-        Playing state ->
+      case model.playing of
+        Just state ->
           let
             -- We set the envNum to a large int, because we'll only really
             -- trust the move when it comes back as a receipt... or perhaps
@@ -383,7 +348,7 @@ update msg model =
               , winner = winner board2
               }
           in
-          ( { model | screen = Playing state2 }
+          ( { model | playing = Just state2 }
           , sendCmd
             { moveNumber = state2.moveNumber
             , turn = state2.turn
@@ -391,21 +356,21 @@ update msg model =
             }
           )
 
-        Entrance _ ->
+        Nothing ->
           (model, Cmd.none)
 
     Received envRes ->
-      case model.screen of
-        Entrance _ ->
+      case model.playing of
+        Nothing ->
           (model, Cmd.none)
 
-        Playing state ->
+        Just state ->
           case envRes of
             Ok env ->
               let
                 (state2, cmd) = updateWithEnvelope env state
               in
-              ( { model | screen = Playing state2 }
+              ( { model | playing = Just state2 }
               , cmd
               )
 
@@ -414,8 +379,8 @@ update msg model =
               (model, Cmd.none)
 
     ClickedPlayAgain ->
-      case model.screen of
-        Playing state ->
+      case model.playing of
+        Just state ->
           let
             state2 =
               { state
@@ -425,7 +390,7 @@ update msg model =
               , winner = InProgress
               }
           in
-          ( { model | screen = Playing state2 }
+          ( { model | playing = Just state2 }
           , sendCmd
             { moveNumber = state2.moveNumber
             , turn = state2.turn
@@ -433,19 +398,19 @@ update msg model =
             }
           )
 
-        Entrance _ ->
+        Nothing ->
           (model, Cmd.none)
 
     ShowRefX refX ->
-      case model.screen of
-        Entrance _ ->
+      case model.playing of
+        Nothing ->
           (model, Cmd.none)
 
-        Playing state ->
+        Just state ->
           let
             state2 = { state | refX = refX }
           in
-          ( { model | screen = Playing state2 }
+          ( { model | playing = Just state2 }
           , Cmd.none
           )
 
@@ -453,11 +418,6 @@ update msg model =
 setFragment : Url.Url -> String -> Url.Url
 setFragment url fragment =
   { url | fragment = Just fragment }
-
-
-setUrl : Url.Url -> Model -> Model
-setUrl url model =
-  { model | url = url }
 
 
 -- Game mechanics
@@ -675,11 +635,11 @@ view model =
         , Font.size UI.fontSize
         , Background.image "images/background.jpg"
         ]
-      <| case model.screen of
-        Entrance lobby ->
-          viewEntrance lobby
+      <| case model.playing of
+        Nothing ->
+          viewEntrance model.lobby
 
-        Playing state ->
+        Just state ->
           viewPlay model state
   }
 
@@ -902,8 +862,8 @@ viewInvitation model =
   [ El.text "Tell your friends to join you at "
   , El.link
     [ El.pointer, Font.underline ]
-    { url = model.url |> Url.toString
-    , label = model.url |> Url.toString |> El.text
+    { url = model.lobby |> Lobby.urlString
+    , label = model.lobby |> Lobby.urlString |> El.text
     }
   ]
   |> UI.smallSticker
