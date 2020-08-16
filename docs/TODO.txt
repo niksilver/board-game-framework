@@ -1,3 +1,6 @@
+TO DO:
+- Noughts and crosses. Fix bug: In the game, clicking the game's link
+  goes to an empty lobby.
 
 DONE:
 
@@ -86,3 +89,4 @@ DONE:
 - Noughts and crosses demo: Make it pretty.
 - Noughts and crosses demo: Fix bug where first player entering a game
   doesn't see the correct URL in the invitation text.
+- Create Lobby module.
