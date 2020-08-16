@@ -38,7 +38,7 @@ main =
   { init = init
   , update = update
   , subscriptions = subscriptions
-  , onUrlRequest = UrlRequested
+  , onUrlRequest = Lobby.urlRequested ToLobby
   , onUrlChange = Lobby.urlChanged ToLobby
   , view = view
   }
@@ -74,8 +74,7 @@ type Winner = InProgress | WonBy (Maybe Mark)
 
 
 type Msg =
-  UrlRequested Browser.UrlRequest
-  | ToLobby Lobby.Msg
+  ToLobby Lobby.Msg
   | Resized Int
   | CellClicked Int
   | Received (Result BGF.Error (BGF.Envelope Body))
@@ -296,16 +295,6 @@ makeRefInt state cellNum =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    UrlRequested req ->
-      case req of
-        Browser.Internal url ->
-          (model, Cmd.none)
-
-        Browser.External str ->
-          ( model
-          , Nav.load str
-          )
-
     ToLobby lMsg ->
       let
         (lobby, playing, cmd) = Lobby.update lMsg model.lobby
@@ -660,7 +649,7 @@ viewGameIdBox lobby =
   [ El.spacing (UI.scaledInt -1) ]
   [ El.text""
   , UI.inputText
-    { onChange = Lobby.newDraftGameId lobby
+    { onChange = Lobby.newDraftGameId ToLobby
     , text = Lobby.draftGameId lobby
     , placeholderText = "Game ID"
     , label = "Game ID"

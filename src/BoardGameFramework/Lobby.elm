@@ -5,7 +5,7 @@
 
 module BoardGameFramework.Lobby exposing (
   Lobby, Config, Msg, lobby
-  , urlChanged, newDraftGameId, confirm
+  , urlRequested, urlChanged, newDraftGameId, confirm
   , update
   , urlString, draftGameId, okGameId
   )
@@ -15,6 +15,7 @@ module BoardGameFramework.Lobby exposing (
 -}
 
 
+import Browser
 import Browser.Navigation as Nav
 import Random
 import Url
@@ -54,10 +55,19 @@ type alias Config msg s =
 -}
 type Msg =
   Init
+  | UrlRequested Browser.UrlRequest
   | UrlChanged Url.Url
   | GeneratedGameId BGF.GameId
   | NewDraftGameId String
   | Confirm
+
+
+{-| Default handler for links being clicked. External links are loaded,
+internal links are ignored.
+-}
+urlRequested : (Msg -> msg) -> Browser.UrlRequest -> msg
+urlRequested msgWrapper request =
+  msgWrapper <| UrlRequested request
 
 
 urlChanged : (Msg -> msg) -> Url.Url -> msg
@@ -65,9 +75,9 @@ urlChanged msgWrapper url =
   msgWrapper <| UrlChanged url
 
 
-newDraftGameId : Lobby msg s -> String -> msg
-newDraftGameId (Lobby lob) draft =
-  lob.msgWrapper <| NewDraftGameId draft
+newDraftGameId : (Msg -> msg) -> String -> msg
+newDraftGameId msgWrapper draft =
+  msgWrapper <| NewDraftGameId draft
 
 
 confirm : (Msg -> msg) -> msg
@@ -115,6 +125,20 @@ update msg (Lobby lob) =
               , Nothing
               , Cmd.none
               )
+
+    UrlRequested req ->
+      case req of
+        Browser.Internal url ->
+          ( Lobby lob
+          , Nothing
+          , Cmd.none
+          )
+
+        Browser.External str ->
+          ( Lobby lob
+          , Nothing
+          , Nav.load str
+          )
 
     UrlChanged url ->
       Lobby { lob | url = url }
