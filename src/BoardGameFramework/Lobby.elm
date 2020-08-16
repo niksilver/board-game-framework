@@ -104,7 +104,7 @@ update msg (Lobby lob) =
               )
 
             Err _ ->
-              ( Lobby lob
+              ( Lobby { lob | draftGameId = frag }
               , Nothing
               , Cmd.none
               )
