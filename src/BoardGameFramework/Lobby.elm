@@ -7,7 +7,9 @@ module BoardGameFramework.Lobby exposing (
   Lobby, Config, Msg, lobby
   , urlRequested, urlChanged, newDraftGameId, confirm
   , update
-  , urlString, draftGameId, okGameId
+  , url, urlString, draftGameId, okGameId
+  -- Only expost this for testing
+  , fakeLobby
   )
 
 
@@ -32,9 +34,16 @@ type Lobby msg s =
     , openCmd : BGF.GameId -> Cmd msg
     , msgWrapper : Msg -> msg
     , url : Url.Url
-    , key : Nav.Key
+    , key : Key
     , draftGameId : String
     }
+
+
+-- We have to use this hidden type to allow our tests to simulate having
+-- a Nav.Key, which Elm doesn't allow us to generate outside a browser.
+type Key =
+  Real Nav.Key
+  | Fake
 
 
 {-| How the lobby interoperates with the main app. We need:
@@ -71,8 +80,8 @@ urlRequested msgWrapper request =
 
 
 urlChanged : (Msg -> msg) -> Url.Url -> msg
-urlChanged msgWrapper url =
-  msgWrapper <| UrlChanged url
+urlChanged msgWrapper url_ =
+  msgWrapper <| UrlChanged url_
 
 
 newDraftGameId : (Msg -> msg) -> String -> msg
@@ -88,16 +97,40 @@ confirm msgWrapper =
 {-| Create a lobby.
 -}
 lobby : Config msg s -> Url.Url -> Nav.Key -> (Lobby msg s, Maybe s, Cmd msg)
-lobby config url key =
+lobby config url_ key =
   Lobby
     { stateMaker = config.stateMaker
     , openCmd = config.openCmd
     , msgWrapper = config.msgWrapper
-    , url = url
-    , key = key
+    , url = url_
+    , key = Real key
     , draftGameId = ""
     }
   |> update Init
+
+
+-- Should only be exposed during testing.
+fakeLobby : Config msg s -> Url.Url -> () -> (Lobby msg s, Maybe s, Cmd msg)
+fakeLobby config url_ key =
+  Lobby
+    { stateMaker = config.stateMaker
+    , openCmd = config.openCmd
+    , msgWrapper = config.msgWrapper
+    , url = url_
+    , key = Fake
+    , draftGameId = ""
+    }
+  |> update Init
+
+
+pushUrl : Key -> String -> Cmd msg
+pushUrl k url_ =
+  case k of
+    Real key ->
+      Nav.pushUrl key url_
+
+    Fake ->
+      Cmd.none
 
 
 update : Msg -> Lobby msg s -> (Lobby msg s, Maybe s, Cmd msg)
@@ -107,6 +140,7 @@ update msg (Lobby lob) =
       case lob.url.fragment of
         Nothing ->
           ( Lobby lob
+            |> Debug.log "Init Nothing, Lobby"
           , Nothing
           , Random.generate GeneratedGameId BGF.idGenerator
             |> Cmd.map lob.msgWrapper
@@ -115,24 +149,24 @@ update msg (Lobby lob) =
         Just frag ->
           case BGF.gameId frag of
             Ok gameId ->
-              ( Lobby lob
+              ( Lobby { lob | draftGameId = frag }
+                |> Debug.log "Init Just Ok, Lobby"
               , Just <| lob.stateMaker gameId
               , lob.openCmd gameId
               )
 
             Err _ ->
               ( Lobby { lob | draftGameId = frag }
+                |> Debug.log "Init Just Err, Lobby"
               , Nothing
               , Cmd.none
               )
 
     UrlRequested req ->
       case req of
-        Browser.Internal url ->
-          ( Lobby lob
-          , Nothing
-          , Cmd.none
-          )
+        Browser.Internal url_ ->
+          Lobby { lob | url = url_ }
+          |> update Init
 
         Browser.External str ->
           ( Lobby lob
@@ -140,8 +174,9 @@ update msg (Lobby lob) =
           , Nav.load str
           )
 
-    UrlChanged url ->
-      Lobby { lob | url = url }
+    UrlChanged url_ ->
+      Lobby { lob | url = url_ }
+      |> Debug.log "UrlChanged, Lobby"
       |> update Init
 
     GeneratedGameId gameId ->
@@ -168,14 +203,18 @@ update msg (Lobby lob) =
       , lob.draftGameId
         |> setFragment lob.url
         |> Url.toString
-        |> Nav.pushUrl lob.key
+        |> pushUrl lob.key
       )
 
 
 setFragment : Url.Url -> String -> Url.Url
-setFragment url fragment =
-  { url | fragment = Just fragment }
+setFragment url_ fragment =
+  { url_ | fragment = Just fragment }
 
+
+url : Lobby msg s -> Url.Url
+url (Lobby lob) =
+  lob.url
 
 
 urlString : Lobby msg s -> String
