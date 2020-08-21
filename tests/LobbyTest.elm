@@ -112,6 +112,31 @@ updateTest =
         , Expect.equal Nothing <| game2
         -- Cannot test cmd2
         ]
+
+    , test "Clicking same game URL gives nothing" <|
+      \_ ->
+        let
+          url1 =
+            { protocol = Url.Https
+            , host = "some.example.com"
+            , port_ = Nothing
+            , path = "/mygame"
+            , query = Nothing
+            , fragment = Just "square-bananas"
+            }
+          (lobby1, game1, cmd1) = Lobby.fakeLobby lobbyConfig url1 ()
+          req2 = Browser.Internal url1
+          (ToLobby msg) = Lobby.urlRequested ToLobby req2
+          (lobby2, game2, cmd2) =
+            lobby1
+            |> Lobby.update msg
+        in
+        requireAll
+        [ Expect.equal url1 <| Lobby.url lobby2
+        , Expect.equal "square-bananas" <| Lobby.draftGameId lobby2
+        , Expect.equal Nothing <| game2
+        ]
+
     ]
   ]
 

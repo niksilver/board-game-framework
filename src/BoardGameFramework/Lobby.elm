@@ -8,12 +8,18 @@ module BoardGameFramework.Lobby exposing (
   , urlRequested, urlChanged, newDraftGameId, confirm
   , update
   , url, urlString, draftGameId, okGameId
-  -- Only expost this for testing
+  -- Only expose this for testing
   , fakeLobby
   )
 
 
-{-| Managing the lobby - selecting the game ID and the player name.
+{-| Managing the lobby - selecting the game ID and handling URL changes.
+
+There are no view functions in this module. You should write your own
+view function for the user to enter their own game ID. But this also allows
+you to add any other information onto the lobby page, such as the player's
+name, or which team they way to play on. It also allows you to use any
+form and validation libraries you like.
 -}
 
 
@@ -25,8 +31,12 @@ import Url
 import BoardGameFramework as BGF
 
 
-{-| The state of the lobby. We can leave the lobby when we have a valid
-game ID, and (optionally) a valid player name.
+{-|
+The lobby is the gateway to the main game.
+It maintains the game ID
+(from what the user types, before they start the main game,
+or from the URL), and hence the URL, too.
+It also issues any commands resulting from a game ID (or URL) change.
 -}
 type Lobby msg s =
   Lobby
@@ -79,16 +89,27 @@ urlRequested msgWrapper request =
   msgWrapper <| UrlRequested request
 
 
+{-| Default handler for when the URL has changed in the browser.
+This is called before any page rendering.
+-}
 urlChanged : (Msg -> msg) -> Url.Url -> msg
 urlChanged msgWrapper url_ =
   msgWrapper <| UrlChanged url_
 
 
+{-| Tell the lobby that the draft game ID has changed - for example, when
+the user types another character into the lobby's text box, asking which
+game they'd like to join.
+-}
 newDraftGameId : (Msg -> msg) -> String -> msg
 newDraftGameId msgWrapper draft =
   msgWrapper <| NewDraftGameId draft
 
 
+{-| Confirm that the draft gameID should be used as the actual game ID -
+for example, when the user has clicked a Go button after typing in a game
+ID. There is no need to check if the game ID is valid.
+-}
 confirm : (Msg -> msg) -> msg
 confirm msgWrapper =
   msgWrapper <| Confirm
@@ -133,6 +154,31 @@ pushUrl k url_ =
       Cmd.none
 
 
+{-| Handle any message for the lobby. Returns the new lobby, maybe a
+new game (if the game ID has changed) and any commands that need to be
+issued (such as opening a connection to a new game).
+
+The example below is the `update` function of some main app.
+We defined our `Lobby` with a `msgWrapper` of
+`ToLobby`, and our model maintains the game-in-progress state as
+its `playing` field.
+
+    update : Msg -> Model -> (Model, Cmd Msg)
+    update msg model =
+      case msg of
+        ToLobby lMsg ->
+          let
+            (lobby, playing, cmd) = Lobby.update lMsg model.lobby
+          in
+          ( { model
+            | lobby = lobby
+            , playing = playing
+            }
+          , cmd
+          )
+
+        ... ->
+-}
 update : Msg -> Lobby msg s -> (Lobby msg s, Maybe s, Cmd msg)
 update msg (Lobby lob) =
   case msg of
@@ -171,8 +217,14 @@ update msg (Lobby lob) =
     UrlRequested req ->
       case req of
         Browser.Internal url_ ->
-          Lobby { lob | url = url_ }
-          |> update Init
+          if url_ == lob.url then
+            ( Lobby lob
+            , Nothing
+            , Cmd.none
+            )
+          else
+            Lobby { lob | url = url_ }
+            |> update Init
 
         Browser.External str ->
           ( Lobby lob
@@ -217,21 +269,31 @@ setFragment url_ fragment =
   { url_ | fragment = Just fragment }
 
 
+{-| Get the URL, which the `Lobby` is holding.
+-}
 url : Lobby msg s -> Url.Url
 url (Lobby lob) =
   lob.url
 
 
+{-| Get the URL as a string.
+-}
 urlString : Lobby msg s -> String
 urlString (Lobby lob) =
   lob.url |> Url.toString
 
 
+{-| Get the (possibly incomplete) game ID that the player is entering
+into the lobby UI.
+-}
 draftGameId : Lobby msg s -> String
 draftGameId (Lobby lob) =
   lob.draftGameId
 
 
+{-| See if the (possibly incomplete) game ID is a valid game ID.
+Useful for knowing if we should enable or disable a Go button in the UI.
+-}
 okGameId : Lobby msg s -> Bool
 okGameId (Lobby lob) =
   case lob.draftGameId |> BGF.gameId of
