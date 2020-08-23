@@ -138,13 +138,13 @@ viewLobby lobby =
   [ Html.text "Enter game ID: "
   , Html.input
     [ Events.onInput (Lobby.newDraft ToLobby)
-    , Attr.value (Lobby.draftGameId lobby)
+    , Attr.value (Lobby.draft lobby)
     ]
     []
   , Html.text " "
   , Html.button
     [ Events.onClick (Lobby.confirm ToLobby)
-    , Attr.disabled (not <| Lobby.okGameId lobby)
+    , Attr.disabled (not <| Lobby.okDraft lobby)
     ]
     [ Html.text "Go"
     ]

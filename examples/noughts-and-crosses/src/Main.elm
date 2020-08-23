@@ -649,8 +649,8 @@ viewGameIdBox lobby =
   [ El.spacing (UI.scaledInt -1) ]
   [ El.text""
   , UI.inputText
-    { onChange = Lobby.newDraftGameId ToLobby
-    , text = Lobby.draftGameId lobby
+    { onChange = Lobby.newDraft ToLobby
+    , text = Lobby.draft lobby
     , placeholderText = "Game ID"
     , label = "Game ID"
     , fontScale = 12
@@ -659,7 +659,7 @@ viewGameIdBox lobby =
   , UI.button
     { onPress = Just (Lobby.confirm ToLobby)
     , label = "Go"
-    , enabled = Lobby.okGameId lobby
+    , enabled = Lobby.okDraft lobby
     , miniPalette = UI.miniPaletteWhite
     }
   , El.text""
