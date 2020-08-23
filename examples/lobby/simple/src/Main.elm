@@ -33,7 +33,7 @@ main =
   }
 
 
--- Main type definitions
+-- Types and initialisation
 
 
 type alias Model =

@@ -113,7 +113,7 @@ newDraft msgWrapper draft_ =
   msgWrapper <| NewDraft draft_
 
 
-{-| Confirm that the draft gameID should be used as the actual game ID -
+{-| Confirm that we should try to use the draft gameID as the actual game ID -
 for example, when the user has clicked a Go button after typing in a game
 ID. There is no need to check if the game ID is valid.
 -}
@@ -279,7 +279,8 @@ setFragment url_ fragment =
   { url_ | fragment = Just fragment }
 
 
-{-| Get the URL, which the `Lobby` is holding.
+{-| Get the URL, which the `Lobby` is holding. This may be the URL of
+the game lobby or the actual game.
 -}
 url : Lobby msg s -> Url.Url
 url (Lobby lob) =
@@ -290,7 +291,8 @@ url (Lobby lob) =
 -}
 urlString : Lobby msg s -> String
 urlString (Lobby lob) =
-  lob.url |> Url.toString
+  lob.url
+  |> Url.toString
 
 
 {-| Get the (possibly incomplete) game ID that the player is entering
