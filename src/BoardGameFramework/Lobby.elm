@@ -40,6 +40,9 @@ import Url
 import BoardGameFramework as BGF
 
 
+-- Type definitions
+
+
 {-| The lobby is the gateway to the main game.
 It maintains the game ID
 (from what the user types, before they start the main game,
@@ -88,38 +91,7 @@ type Msg =
   | Confirm
 
 
-{-| Default handler for links being clicked. External links are loaded,
-internal links are ignored.
--}
-urlRequested : (Msg -> msg) -> Browser.UrlRequest -> msg
-urlRequested msgWrapper request =
-  msgWrapper <| UrlRequested request
-
-
-{-| Default handler for when the URL has changed in the browser.
-This is called before any page rendering.
--}
-urlChanged : (Msg -> msg) -> Url.Url -> msg
-urlChanged msgWrapper url_ =
-  msgWrapper <| UrlChanged url_
-
-
-{-| Tell the lobby that the draft game ID has changed - for example, when
-the user types another character into the lobby's text box, asking which
-game they'd like to join.
--}
-newDraft: (Msg -> msg) -> String -> msg
-newDraft msgWrapper draft_ =
-  msgWrapper <| NewDraft draft_
-
-
-{-| Confirm that we should try to use the draft gameID as the actual game ID -
-for example, when the user has clicked a Go button after typing in a game
-ID. There is no need to check if the game ID is valid.
--}
-confirm : (Msg -> msg) -> msg
-confirm msgWrapper =
-  msgWrapper <| Confirm
+-- Creating a lobby
 
 
 {-| Create a lobby.
@@ -186,14 +158,41 @@ forNewUrl (Lobby lob) =
           )
 
 
-pushUrl : Key -> String -> Cmd msg
-pushUrl k url_ =
-  case k of
-    Real key ->
-      Nav.pushUrl key url_
+-- Updating
 
-    Fake ->
-      Cmd.none
+
+{-| Default handler for links being clicked. External links are loaded,
+internal links are ignored.
+-}
+urlRequested : (Msg -> msg) -> Browser.UrlRequest -> msg
+urlRequested msgWrapper request =
+  msgWrapper <| UrlRequested request
+
+
+{-| Default handler for when the URL has changed in the browser.
+This is called before any page rendering.
+-}
+urlChanged : (Msg -> msg) -> Url.Url -> msg
+urlChanged msgWrapper url_ =
+  msgWrapper <| UrlChanged url_
+
+
+{-| Tell the lobby that the draft game ID has changed - for example, when
+the user types another character into the lobby's text box, asking which
+game they'd like to join.
+-}
+newDraft: (Msg -> msg) -> String -> msg
+newDraft msgWrapper draft_ =
+  msgWrapper <| NewDraft draft_
+
+
+{-| Confirm that we should try to use the draft gameID as the actual game ID -
+for example, when the user has clicked a Go button after typing in a game
+ID. There is no need to check if the game ID is valid.
+-}
+confirm : (Msg -> msg) -> msg
+confirm msgWrapper =
+  msgWrapper <| Confirm
 
 
 {-| Handle any message for the lobby. Returns the new lobby, maybe a
@@ -274,9 +273,22 @@ update msg (Lobby lob) =
       )
 
 
+pushUrl : Key -> String -> Cmd msg
+pushUrl k url_ =
+  case k of
+    Real key ->
+      Nav.pushUrl key url_
+
+    Fake ->
+      Cmd.none
+
+
 setFragment : Url.Url -> String -> Url.Url
 setFragment url_ fragment =
   { url_ | fragment = Just fragment }
+
+
+-- Querying
 
 
 {-| Get the URL, which the `Lobby` is holding. This may be the URL of
