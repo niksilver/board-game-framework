@@ -137,13 +137,14 @@ viewLobby : Lobby Msg BGF.GameId -> List (Html Msg)
 viewLobby lobby =
   [ Html.text "Enter game ID: "
   , Html.input
-    [ Events.onInput (Lobby.newDraftGameId ToLobby)
+    [ Events.onInput (Lobby.newDraft ToLobby)
     , Attr.value (Lobby.draftGameId lobby)
     ]
     []
   , Html.text " "
   , Html.button
     [ Events.onClick (Lobby.confirm ToLobby)
+    , Attr.disabled (not <| Lobby.okGameId lobby)
     ]
     [ Html.text "Go"
     ]

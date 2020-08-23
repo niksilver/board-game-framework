@@ -5,7 +5,7 @@
 
 module BoardGameFramework.Lobby exposing (
   Lobby, Config, Msg, lobby
-  , urlRequested, urlChanged, newDraftGameId, confirm
+  , urlRequested, urlChanged, newDraft, confirm
   , update
   , url, urlString, draftGameId, okGameId
   -- Only expose this for testing
@@ -73,8 +73,7 @@ type alias Config msg s =
 {-| A message to update the model of the lobby.
 -}
 type Msg =
-  Init
-  | UrlRequested Browser.UrlRequest
+  UrlRequested Browser.UrlRequest
   | UrlChanged Url.Url
   | GeneratedGameId BGF.GameId
   | NewDraftGameId String
@@ -101,8 +100,8 @@ urlChanged msgWrapper url_ =
 the user types another character into the lobby's text box, asking which
 game they'd like to join.
 -}
-newDraftGameId : (Msg -> msg) -> String -> msg
-newDraftGameId msgWrapper draft =
+newDraft: (Msg -> msg) -> String -> msg
+newDraft msgWrapper draft =
   msgWrapper <| NewDraftGameId draft
 
 
@@ -127,7 +126,7 @@ lobby config url_ key =
     , key = Real key
     , draftGameId = ""
     }
-  |> update Init
+  |> forNewUrl
 
 
 -- Should only be exposed during testing.
@@ -141,7 +140,42 @@ fakeLobby config url_ key =
     , key = Fake
     , draftGameId = ""
     }
-  |> update Init
+  |> forNewUrl
+
+
+-- Process a lobby which has a new URL
+forNewUrl : Lobby msg s -> (Lobby msg s, Maybe s, Cmd msg)
+forNewUrl (Lobby lob) =
+  case lob.url.fragment of
+    Nothing ->
+      ( Lobby
+          { lob
+          | draftGameId = ""
+          }
+      , Nothing
+      , Random.generate GeneratedGameId BGF.idGenerator
+        |> Cmd.map lob.msgWrapper
+      )
+
+    Just frag ->
+      case BGF.gameId frag of
+        Ok gameId ->
+          ( Lobby
+              { lob
+              | draftGameId = frag
+              }
+          , Just <| lob.stateMaker gameId
+          , lob.openCmd gameId
+          )
+
+        Err _ ->
+          ( Lobby
+              { lob
+              | draftGameId = frag
+              }
+          , Nothing
+          , Cmd.none
+          )
 
 
 pushUrl : Key -> String -> Cmd msg
@@ -182,38 +216,6 @@ its `playing` field.
 update : Msg -> Lobby msg s -> (Lobby msg s, Maybe s, Cmd msg)
 update msg (Lobby lob) =
   case msg of
-    Init ->
-      case lob.url.fragment of
-        Nothing ->
-          ( Lobby
-              { lob
-              | draftGameId = ""
-              }
-          , Nothing
-          , Random.generate GeneratedGameId BGF.idGenerator
-            |> Cmd.map lob.msgWrapper
-          )
-
-        Just frag ->
-          case BGF.gameId frag of
-            Ok gameId ->
-              ( Lobby
-                  { lob
-                  | draftGameId = frag
-                  }
-              , Just <| lob.stateMaker gameId
-              , lob.openCmd gameId
-              )
-
-            Err _ ->
-              ( Lobby
-                  { lob
-                  | draftGameId = frag
-                  }
-              , Nothing
-              , Cmd.none
-              )
-
     UrlRequested req ->
       case req of
         Browser.Internal url_ ->
@@ -224,7 +226,7 @@ update msg (Lobby lob) =
             )
           else
             Lobby { lob | url = url_ }
-            |> update Init
+            |> forNewUrl
 
         Browser.External str ->
           ( Lobby lob
@@ -234,7 +236,7 @@ update msg (Lobby lob) =
 
     UrlChanged url_ ->
       Lobby { lob | url = url_ }
-      |> update Init
+      |> forNewUrl
 
     GeneratedGameId gameId ->
       ( Lobby
