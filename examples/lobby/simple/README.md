@@ -21,6 +21,6 @@ Compile the Elm app using
 elm make src/Main.elm --output=simple.js
 ```
 
-and then use `elm reactor` to view `lobby-names.html` to see it running.
+and then use `elm reactor` to view `simple.html` to see it running.
 You need reactor because it's a `Browser.application`,
 which relies on running from a server, not the local filesystem.
