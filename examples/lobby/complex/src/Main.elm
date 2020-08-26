@@ -39,27 +39,32 @@ main =
 
 
 type alias Model =
-  { lobby : LobbyModel
-  , game : Maybe Game
+  { lobby : Lobby Msg Playing
+  , playing : Maybe Playing
+  }
+
+
+type Playing =
+  ProfilePage RawProfileModel
+  | InGame Profile
+
+
+type alias Profile =
+  { gameId : BGF.GameId  -- Carried over from raw profile
+  , name : String
+  , team : Team
   }
 
 
 -- Our model of the lobby is a composable-form model
-type alias LobbyModel =
-  Form.View.Model Input
+type alias RawProfileModel =
+  Form.View.Model RawProfile
 
 
-type alias Input =
-  { idLobby : Lobby Msg
+type alias RawProfile =
+  { gameId : BGF.GameId  -- Carried over from lobby
   , name : String
   , team : String
-  }
-
-
-type alias Game =
-  { gameId : BGF.GameId
-  , name : String
-  , team : Team
   }
 
 
@@ -68,31 +73,38 @@ type Team = TeamA | TeamB
 
 type Msg =
   ToLobby Lobby.Msg
-  | FormChanged LobbyModel
-  | ExitingLobby Game
+  | RawProfileChanged RawProfileModel
+  | EnteringGame Profile
   | Ignore
 
 
 init : BGF.ClientId -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
   let
-    (lobby, maybeGameId, cmd) = Lobby.lobby lobbyConfig url key
+    (lobby, maybePlaying, cmd) = Lobby.lobby lobbyConfig url key
   in
-  ( { lobby =
-        Form.View.idle
-        { idLobby = lobby
-        , name = ""
-        , team = "A"
-        }
-    , game = Nothing
+  ( { lobby = lobby
+    , playing = maybePlaying
     }
   , cmd
   )
 
 
-lobbyConfig : Lobby.Config Msg
+initProfile : BGF.GameId -> Playing
+initProfile gameId =
+  ProfilePage
+  ( Form.View.idle
+    { gameId = gameId
+    , name = ""
+    , team = "A"
+    }
+  )
+
+
+lobbyConfig : Lobby.Config Msg Playing
 lobbyConfig =
-  { openCmd = openCmd
+  { init = initProfile
+  , openCmd = openCmd
   , msgWrapper = ToLobby
   }
 
@@ -100,20 +112,9 @@ lobbyConfig =
 -- The lobby form
 
 
-form : Form Input Game
-form =
+form : BGF.GameId -> Form RawProfile Profile
+form gameId =
   let
-    gameIdField =
-      Form.textField
-        { parser = BGF.gameId
-        , value = \input -> Lobby.draft input.idLobby
-        , update = updateDraft
-        , error = always Nothing
-        , attributes =
-            { label = "Game ID"
-            , placeholder = "Game ID"
-            }
-        }
     nameField =
       Form.textField
         { parser = nameParser
@@ -137,17 +138,12 @@ form =
             }
         }
   in
-  Form.succeed Game
-  |> Form.append gameIdField
+  Form.succeed
+  (\name team ->
+    Profile gameId name team
+  )
   |> Form.append nameField
   |> Form.append teamField
-
-
-updateDraft : String -> Input -> Input
-updateDraft draft input =
-  { input
-  | idLobby = Lobby.newDraft draft input.idLobby
-  }
 
 
 nameParser : String -> Result String String
@@ -208,17 +204,27 @@ update msg model =
   case msg of
     ToLobby subMsg ->
       let
-        _ = subMsg |> Debug.log "ToLobby"
+        (lobby, maybePlaying, cmd) =
+          Lobby.update subMsg model.lobby
       in
-      (model, Cmd.none)
+      ( { model
+        | lobby = lobby
+        , playing = maybePlaying
+        }
+      , cmd
+      )
 
-    FormChanged input ->
-      ( { model | lobby = input }
+    RawProfileChanged rawProfileModel ->
+      ( { model
+        | playing = Just (ProfilePage rawProfileModel)
+        }
       , Cmd.none
       )
 
-    ExitingLobby game ->
-      ( { model | game = Just game }
+    EnteringGame profile ->
+      ( { model
+        | playing = Just (InGame profile)
+        }
       , Cmd.none
       )
 
@@ -233,30 +239,34 @@ view : Model -> Browser.Document Msg
 view model =
   { title = "Complex lobby example"
   , body =
-    case model.game of
+    case model.playing of
       Nothing ->
-        viewLobby model.lobby
+        [ Lobby.view model.lobby
+        ]
 
-      Just game ->
-        viewGame game
+      Just (ProfilePage rawProfileModel) ->
+        viewProfileForm rawProfileModel
+
+      Just (InGame profile) ->
+        viewGame profile
   }
 
 
-viewLobby : LobbyModel -> List (Html Msg)
-viewLobby lobbyModel =
+viewProfileForm : RawProfileModel -> List (Html Msg)
+viewProfileForm rawProfileModel =
   [ Form.View.asHtml
-    { onChange = FormChanged
+    { onChange = RawProfileChanged
     , action = "Enter"
     , loading = "Entering..."
     , validation = Form.View.ValidateOnBlur
     }
-    (Form.map ExitingLobby form)
-    lobbyModel
+    (Form.map EnteringGame (form rawProfileModel.values.gameId))
+    rawProfileModel
   ]
 
 
-viewGame : Game -> List (Html Msg)
-viewGame game =
+viewGame : Profile -> List (Html Msg)
+viewGame profile =
   let
     teamToString team =
       case team of
@@ -266,7 +276,7 @@ viewGame game =
         TeamB ->
           "Team B"
   in
-  [ Html.text <| "Game ID is " ++ (BGF.fromGameId game.gameId)
-  , Html.text <| "Your name is " ++ game.name
-  , Html.text <| "Your team is " ++ (teamToString game.team)
+  [ Html.p [] [ Html.text <| "Game ID is " ++ (BGF.fromGameId profile.gameId) ]
+  , Html.p [] [ Html.text <| "Your name is " ++ profile.name ]
+  , Html.p [] [ Html.text <| "Your team is " ++ (teamToString profile.team) ]
   ]
