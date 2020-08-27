@@ -18,13 +18,16 @@ module BoardGameFramework.Lobby exposing (
   )
 
 
-{-| Managing the lobby - selecting the game ID and handling URL changes.
+{-| The lobby - selecting the game ID and handling URL changes.
 
-There are no view functions in this module. You should write your own
-view function for the user to enter their own game ID. But this also allows
-you to add any other information onto the lobby page, such as the player's
-name, or which team they way to play on. It also allows you to use any
-form and validation libraries you like.
+The lobby is the first screen of any game, and allows the user to select
+the game ID. It will also randomly generate a game ID on first loading.
+But the game ID can also be selected by changing the URL,
+so this module also handles changes through that route.
+
+If a player needs to provide further information before entering a
+game (perhaps a name, a team, a role, etc) then that should
+be captured on a subsequent screen.
 
 # Defining
 @docs Lobby, Config, Msg, lobby
@@ -51,11 +54,10 @@ import Url
 import BoardGameFramework as BGF
 
 
+-- Defining
+
+
 {-| The lobby is the gateway to the main game.
-It maintains the game ID
-(from what the user types, before they start the main game,
-or from the URL), and hence the URL, too.
-It also issues any commands resulting from a game ID (or URL) change.
 -}
 type Lobby msg s =
   Lobby
@@ -89,6 +91,9 @@ type alias Config msg s =
   }
 
 
+-- Messages
+
+
 {-| A message to update the model of the lobby.
 -}
 type Msg =
@@ -101,6 +106,24 @@ type Msg =
 
 {-| Default handler for links being clicked. External links are loaded,
 internal links are ignored.
+
+    import BoardGameFramework as BGF
+    import BoardGameFramework.Lobby as Lobby
+
+    type Msg =
+      ToLobby Lobby.Msg
+      | ...
+
+    main : Program BGF.ClientId Model Msg
+    main =
+      Browser.application
+      { init = init
+      , update = update
+      , subscriptions = subscriptions
+      , onUrlRequest = Lobby.urlRequested ToLobby
+      , onUrlChange = Lobby.urlChanged ToLobby
+      , view = view
+      }
 -}
 urlRequested : (Msg -> msg) -> Browser.UrlRequest -> msg
 urlRequested msgWrapper request =
@@ -109,6 +132,7 @@ urlRequested msgWrapper request =
 
 {-| Default handler for when the URL has changed in the browser.
 This is called before any page rendering.
+See [`urlRequested`](#urlRequested) for an example of this being used.
 -}
 urlChanged : (Msg -> msg) -> Url.Url -> msg
 urlChanged msgWrapper url_ =
@@ -118,6 +142,10 @@ urlChanged msgWrapper url_ =
 {-| Tell the lobby that the draft game ID has changed - for example, when
 the user types another character into the lobby's text box, asking which
 game they'd like to join.
+
+You don't need to use this if you're using
+this module's [`view`](#view) function, but do look at the source of
+that function if you want to see how it's used.
 -}
 newDraft: (Msg -> msg) -> String -> msg
 newDraft msgWrapper draft_ =
@@ -127,13 +155,17 @@ newDraft msgWrapper draft_ =
 {-| Confirm that we should try to use the draft gameID as the actual game ID -
 for example, when the user has clicked a Go button after typing in a game
 ID. There is no need to check if the game ID is valid.
+
+You don't need to use this if you're using
+this module's [`view`](#view) function, but do look at the source of
+that function if you want to see how it's used.
 -}
 confirm : (Msg -> msg) -> msg
 confirm msgWrapper =
   msgWrapper <| Confirm
 
 
-{-| Create a lobby.
+{-| Create a lobby which handles game ID and URL changes.
 -}
 lobby : Config msg s -> Url.Url -> Nav.Key -> (Lobby msg s, Maybe s, Cmd msg)
 lobby config url_ key =
@@ -205,6 +237,9 @@ pushUrl k url_ =
 
     Fake ->
       Cmd.none
+
+
+-- Updating
 
 
 {-| Handle any message for the lobby. Returns the new lobby, maybe a
@@ -290,6 +325,9 @@ setFragment url_ fragment =
   { url_ | fragment = Just fragment }
 
 
+-- Querying
+
+
 {-| Get the URL, which the `Lobby` is holding. This may be the URL of
 the game lobby or the actual game.
 -}
@@ -308,6 +346,8 @@ urlString (Lobby lob) =
 
 {-| Get the (possibly incomplete) game ID that the player is entering
 into the lobby UI.
+This isn't necessary if you're using the
+[`view`](#view) function.
 -}
 draft : Lobby msg s -> String
 draft (Lobby lob) =
@@ -315,7 +355,9 @@ draft (Lobby lob) =
 
 
 {-| See if the (possibly incomplete) game ID is a valid game ID.
-Useful for knowing if we should enable or disable a Go button in the UI.
+Useful for knowing if we should enable or disable a Go button in the UI,
+but it isn't necessary if you're using the
+[`view`](#view) function.
 -}
 okDraft : Lobby msg s -> Bool
 okDraft (Lobby lob) =
@@ -330,20 +372,32 @@ okDraft (Lobby lob) =
 -- Viewing
 
 
-view : Lobby msg s -> Html msg
-view (Lobby lob) =
-  Html.div []
-  [ Html.text "Enter game ID: "
+{-| View the lobby form.
+
+You need to provide the label text (for outside the text box),
+the placeholder text (for within the text box), and the button text.
+For styling, the whole is in an HTML `div` of class `bgf-label`.
+-}
+view :
+  { label : String
+  , placeholder : String
+  , button : String
+  }
+  -> Lobby msg s -> Html msg
+view config (Lobby lob) =
+  Html.div
+  [ Attr.class "bgf-lobby"
+  ]
+  [ Html.label [] [ Html.text config.label ]
   , Html.input
     [ Events.onInput (newDraft lob.msgWrapper)
     , Attr.value (draft <| Lobby lob)
     ]
     []
-  , Html.text " "
   , Html.button
     [ Events.onClick (confirm <| lob.msgWrapper)
     , Attr.disabled (not <| okDraft <| Lobby lob)
     ]
-    [ Html.text "Go"
+    [ Html.label [] [ Html.text config.button ]
     ]
   ]

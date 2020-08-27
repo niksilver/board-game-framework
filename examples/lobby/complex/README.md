@@ -1,13 +1,14 @@
 # Complex lobby demo
 
-This is to demonstrate how to use the `Lobby` module in a fairly
-complex way. In the lobby we ask not just for a game ID, but
-also the player's name and which team they would like to play on.
+This is to demonstrate how to use the `Lobby` module in a slightly
+more interesting way. The lobby screen still just asks for a game ID,
+but when it gets a valid ID it then asks for more information before
+allowing the player in - their name and which team they will play on.
 The "game" itself is just a screen confirming this information.
 
 This application also uses
 [`hcrj/composable-form`](https://package.elm-lang.org/packages/hecrj/composable-form/latest/)
-to demonstrate integration with a form-building package.
+for that later information.
 
 ## Files and compilation
 

@@ -241,7 +241,12 @@ view model =
   , body =
     case model.playing of
       Nothing ->
-        [ Lobby.view model.lobby
+        [ Lobby.view
+          { label = "Enter game ID:"
+          , placeholder = "Game ID"
+          , button = "Go"
+          }
+          model.lobby
         ]
 
       Just (ProfilePage rawProfileModel) ->
