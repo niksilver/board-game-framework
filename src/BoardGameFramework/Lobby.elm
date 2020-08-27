@@ -29,6 +29,16 @@ If a player needs to provide further information before entering a
 game (perhaps a name, a team, a role, etc) then that should
 be captured on a subsequent screen.
 
+`Lobby` is designed assuming that a game will always have a lobby,
+and `Maybe` have a playing state of type `s`.
+(It won't have a playing state
+if the player has not left the lobby with a valid game ID.)
+Therefore after confirming a new game ID from the lobby
+the [`update`](#update) function will also return
+an initial playing state (of type `s`).
+The way this initial playing state is created is defined in the
+`init` field of the lobby's [`Config`](#Config).
+
 # Defining
 @docs Lobby, Config, Msg, lobby
 
@@ -243,7 +253,8 @@ pushUrl k url_ =
 
 
 {-| Handle any message for the lobby. Returns the new lobby, maybe a
-new game (if the game ID has changed) and any commands that need to be
+new playing state (if a new game ID has been confirmed)
+and any commands that need to be
 issued (such as opening a connection to a new game).
 
 The example below is the `update` function of some main app.
@@ -256,11 +267,11 @@ its `playing` field.
       case msg of
         ToLobby lMsg ->
           let
-            (lobby, playing, cmd) = Lobby.update lMsg model.lobby
+            (lobby, maybePlaying, cmd) = Lobby.update lMsg model.lobby
           in
           ( { model
             | lobby = lobby
-            , playing = playing
+            , playing = maybePlaying
             }
           , cmd
           )
