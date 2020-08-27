@@ -61,7 +61,7 @@ init _ url key =
 
 lobbyConfig : Lobby.Config Msg BGF.GameId
 lobbyConfig =
-  { stateMaker = identity
+  { init = identity
   , openCmd = openCmd
   , msgWrapper = ToLobby
   }
@@ -135,19 +135,12 @@ view model =
 
 viewLobby : Lobby Msg BGF.GameId -> List (Html Msg)
 viewLobby lobby =
-  [ Html.text "Enter game ID: "
-  , Html.input
-    [ Events.onInput (Lobby.newDraft ToLobby)
-    , Attr.value (Lobby.draft lobby)
-    ]
-    []
-  , Html.text " "
-  , Html.button
-    [ Events.onClick (Lobby.confirm ToLobby)
-    , Attr.disabled (not <| Lobby.okDraft lobby)
-    ]
-    [ Html.text "Go"
-    ]
+  [ Lobby.view
+    { label = "Enter game ID:"
+    , placeholder = "Game ID"
+    , button = "Go"
+    }
+    lobby
   ]
 
 
