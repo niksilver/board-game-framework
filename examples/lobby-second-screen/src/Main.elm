@@ -237,7 +237,7 @@ update msg model =
 
 view : Model -> Browser.Document Msg
 view model =
-  { title = "Complex lobby example"
+  { title = "Lobby with second screen"
   , body =
     case model.playing of
       Nothing ->

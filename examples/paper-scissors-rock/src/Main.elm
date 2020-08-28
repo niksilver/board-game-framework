@@ -33,13 +33,28 @@ main =
   }
 
 
--- Types and initialisation
+-- Main types
 
 
 type alias Model =
   { lobby : Lobby Msg BGF.GameId
-  , game : Maybe BGF.GameId
+  , gameId : Maybe BGF.GameId
+  , clients : Sync PlayerList
   }
+
+
+-- A client may have joined but not yet given a valid name.
+type alias Client =
+  { id : BGF.ClientId
+  , name : Maybe String
+  }
+
+
+-- A player list is 0-2 players plus a number of client-observers.
+type PlayerList =
+  NoPlayers (List Client)
+  | OnePlayer Client (List Client)
+  | TwoPlayers Client Client (List Client)
 
 
 type Msg =
@@ -47,13 +62,35 @@ type Msg =
   | Ignore
 
 
+-- Synchronisation
+
+type Sync a =
+  Sync { moveNumber : Int, envNum : Maybe Int } a
+
+
+-- Zero a sync point
+zero : a -> Sync a
+zero data =
+  Sync
+    { moveNumber = 0
+    , envNum = Nothing
+    }
+    data
+
+
+-- Initialisation functions
+
+
 init : BGF.ClientId -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
-init _ url key =
+init clientId url key =
   let
     (lobby, maybeGameId, cmd) = Lobby.lobby lobbyConfig url key
   in
   ( { lobby = lobby
-    , game = maybeGameId
+    , gameId = maybeGameId
+    , clients =
+        OnePlayer (Client clientId Nothing) []
+        |> zero
     }
   , cmd
   )
@@ -108,7 +145,7 @@ update msg model =
       in
       ( { model
         | lobby = lobby
-        , game = maybeGameId
+        , gameId = maybeGameId
         }
       , cmd
       )
@@ -122,14 +159,14 @@ update msg model =
 
 view : Model -> Browser.Document Msg
 view model =
-  { title = "Simple lobby example"
+  { title = "Paper, scissors, rock"
   , body =
-    case model.game of
+    case model.gameId of
       Nothing ->
         viewLobby model.lobby
 
       Just gameId ->
-        viewGame gameId
+        viewGame model gameId
   }
 
 
@@ -144,7 +181,7 @@ viewLobby lobby =
   ]
 
 
-viewGame : BGF.GameId -> List (Html Msg)
-viewGame id =
+viewGame : Model -> BGF.GameId -> List (Html Msg)
+viewGame model id =
   [ Html.text <| "Game ID is " ++ (BGF.fromGameId id)
   ]

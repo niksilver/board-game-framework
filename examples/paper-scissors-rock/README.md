@@ -10,7 +10,7 @@ This game demonstrates two things:
 ## Files and compilation
 
 * *src/Main.elm*. The main Elm app.
-* *pcr.html*. The shell page that the Elm app drops
+* *psr.html*. The shell page that the Elm app drops
   into. It sets up the JavaScript side of the ports integration and
   the initialisation values.
 * *lib/board-game-framework.js*. A copy of the JavaScript framework library
@@ -21,9 +21,9 @@ This game demonstrates two things:
 Compile the Elm app using
 
 ```
-elm make src/Main.elm --output=pcr.js
+elm make src/Main.elm --output=psr.js
 ```
 
-and then use `elm reactor` to view `pcr.html` to see it running.
+and then use `elm reactor` to view `psr.html` to see it running.
 You need reactor because it's a `Browser.application`,
 which relies on running from a server, not the local filesystem.
