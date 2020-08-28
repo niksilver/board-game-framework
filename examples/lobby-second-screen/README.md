@@ -1,4 +1,4 @@
-# Complex lobby demo
+# Lobby demo with a second screen
 
 This is to demonstrate how to use the `Lobby` module in a slightly
 more interesting way. The lobby screen still just asks for a game ID,
@@ -13,7 +13,7 @@ for that later information.
 ## Files and compilation
 
 * *src/Main.elm*. The main Elm app.
-* *complex.html*. The shell page that the Elm app drops
+* *second-screen.html*. The shell page that the Elm app drops
   into. It sets up the JavaScript side of the ports integration and
   the initialisation values.
 * *lib/board-game-framework.js*. A copy of the JavaScript framework library
@@ -24,9 +24,9 @@ for that later information.
 Compile the Elm app using
 
 ```
-elm make src/Main.elm --output=complex.js
+elm make src/Main.elm --output=second-screen.js
 ```
 
-and then use `elm reactor` to view `complex.html` to see it running.
+and then use `elm reactor` to view `second-screen.html` to see it running.
 You need reactor because it's a `Browser.application`,
 which relies on running from a server, not the local filesystem.

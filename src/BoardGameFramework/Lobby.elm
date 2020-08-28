@@ -253,7 +253,8 @@ pushUrl k url_ =
 
 
 {-| Handle any message for the lobby. Returns the new lobby, maybe a
-new playing state (if a new game ID has been confirmed)
+new playing state (if a new game ID has been confirmed or a new game link
+has been clicked on)
 and any commands that need to be
 issued (such as opening a connection to a new game).
 

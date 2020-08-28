@@ -1,7 +1,5 @@
 TO DO:
-- Lobby: Add styles and placeholder etc config to view.
-- Noughts and crosses. Fix bug: In the game, clicking the game's link
-  goes to an empty lobby.
+- Create paper scissors rock game.
 
 DONE:
 
@@ -93,3 +91,6 @@ DONE:
 - Create Lobby module.
 - Lobby: Simple example of game ID only.
 - Lobby: Example with choosing a name and team.
+- Lobby: Add styles and placeholder etc config to view.
+- Noughts and crosses. Fix bug: In the game, clicking the game's link
+  goes to an empty lobby.
