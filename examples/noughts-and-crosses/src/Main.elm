@@ -199,7 +199,7 @@ init v url key =
 
 lobbyConfig : Lobby.Config Msg PlayingState
 lobbyConfig =
-  { stateMaker =
+  { init =
     \gameId ->
       { gameId = gameId
       , connectivity = BGF.Connected
