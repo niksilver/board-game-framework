@@ -293,7 +293,7 @@ update msg model =
       in
       ( { model
         | lobby = lobby
-        , playing = playing
+        , playing = playing |> orElse model.playing
         }
       , cmd
       )
