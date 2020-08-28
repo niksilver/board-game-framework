@@ -76,23 +76,29 @@ type Sync a =
 
 -- Zero a sync point
 zero : a -> Sync a
-zero data =
+zero val =
   Sync
     { moveNumber = 0
     , envNum = Nothing
     }
-    data
+    val
 
 
--- Suggest a new value as the next step, but recognise that this is yet
+-- Assume a new data value as the next step, but recognise that this is yet
 -- to be confirmed.
-suggest : a -> Sync a -> Sync a
-suggest value (Sync code _) =
+assume : a -> Sync a -> Sync a
+assume dat (Sync code _) =
   Sync
     { moveNumber = code.moveNumber + 1
     , envNum = Nothing
     }
-    value
+    dat
+
+
+-- Return just the data value from the synchronisation point
+data : Sync a -> a
+data (Sync _ dat) =
+  dat
 
 
 -- Initialisation functions
@@ -186,7 +192,7 @@ update msg model =
           | name = Just name
           , players =
               model.players
-              |> suggest playerList
+              |> assume playerList
           }
         , Cmd.none
         )
@@ -220,7 +226,7 @@ view model =
             viewNameForm model
 
           Just name ->
-            viewGame gameId
+            viewGame model
   }
 
 
@@ -252,7 +258,50 @@ viewNameForm model =
   ]
 
 
-viewGame : BGF.GameId -> List (Html Msg)
-viewGame id =
-  [ Html.text <| "Game ID is " ++ (BGF.fromGameId id)
+viewGame : Model -> List (Html Msg)
+viewGame model =
+  let
+    ps =
+      model.players
+      |> data
+      |> extract
+  in
+  [ Html.div []
+    [ Html.p []
+      [ Html.text "Players: "
+      , if List.length ps.players == 0 then
+          Html.text "None"
+        else
+          Html.text <| String.join ", " ps.players
+      ]
+    , Html.p []
+      [ Html.text "Observers: "
+      , if List.length ps.observers == 0 then
+          Html.text "None"
+        else
+          Html.text <| String.join ", " ps.observers
+      ]
+    ]
   ]
+
+
+-- Handy functions for viewing the PlayerList
+
+
+extract : PlayerList -> { players : List String, observers : List String }
+extract players =
+  case players of
+    NoPlayers os ->
+      { players = []
+      , observers = List.map .name os
+      }
+
+    OnePlayer p1 os ->
+      { players = [ p1.name ]
+      , observers = List.map .name os
+      }
+
+    TwoPlayers p1 p2 os ->
+      { players = [ p1.name, p2.name ]
+      , observers = List.map .name os
+      }
