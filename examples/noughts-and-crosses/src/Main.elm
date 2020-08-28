@@ -48,10 +48,7 @@ main =
 
 
 type alias Model =
-  { url : Url.Url
-  , key : Nav.Key
-  , myId : BGF.ClientId
-  , width : Int
+  { width : Int
   , lobby : Lobby Msg PlayingState
   , playing : Maybe PlayingState
   }
@@ -186,10 +183,7 @@ init v url key =
     flags = decodeFlags v
     (lobby, playing, cmd) = Lobby.lobby lobbyConfig url key
   in
-  ( { url = url
-    , key = key
-    , myId = flags.myId
-    , width = flags.width
+  ( { width = flags.width
     , lobby = lobby
     , playing = playing
     }
@@ -218,22 +212,20 @@ lobbyConfig =
 
 type alias Flags =
   { width : Int
-  , myId : String
   }
 
 
 flagsDecoder : Dec.Decoder Flags
 flagsDecoder =
-  Dec.map2
+  Dec.map
     Flags
     (Dec.field "width" Dec.int)
-    (Dec.field "myId" Dec.string)
 
 
 decodeFlags : Enc.Value -> Flags
 decodeFlags v =
   Dec.decodeValue flagsDecoder v
-  |> Result.withDefault { width = 1000, myId = "Unknown" }
+  |> Result.withDefault { width = 1000 }
 
 
 initialPlayingState : BGF.GameId -> PlayingState
