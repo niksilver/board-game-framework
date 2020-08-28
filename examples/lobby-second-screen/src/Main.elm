@@ -109,7 +109,7 @@ lobbyConfig =
   }
 
 
--- The lobby form
+-- Form for the second screen
 
 
 form : BGF.GameId -> Form RawProfile Profile

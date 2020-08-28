@@ -37,20 +37,22 @@ main =
 
 
 type alias Model =
-  { lobby : Lobby Msg BGF.GameId
+  { myId : BGF.ClientId
+  , lobby : Lobby Msg BGF.GameId
   , gameId : Maybe BGF.GameId
+  , draftName : String
   , clients : Sync PlayerList
   }
 
 
--- A client may have joined but not yet given a valid name.
+-- Any client who has got into the game will have a name
 type alias Client =
   { id : BGF.ClientId
-  , name : Maybe String
+  , name : String
   }
 
 
--- A player list is 0-2 players plus a number of client-observers.
+-- A player list is 0, 1 or 2 players plus a number of client-observers.
 type PlayerList =
   NoPlayers (List Client)
   | OnePlayer Client (List Client)
@@ -63,6 +65,7 @@ type Msg =
 
 
 -- Synchronisation
+
 
 type Sync a =
   Sync { moveNumber : Int, envNum : Maybe Int } a
@@ -86,10 +89,12 @@ init clientId url key =
   let
     (lobby, maybeGameId, cmd) = Lobby.lobby lobbyConfig url key
   in
-  ( { lobby = lobby
+  ( { myId = clientId
+    , lobby = lobby
     , gameId = maybeGameId
+    , draftName = ""
     , clients =
-        OnePlayer (Client clientId Nothing) []
+        NoPlayers []
         |> zero
     }
   , cmd
