@@ -41,6 +41,7 @@ type alias Model =
   , lobby : Lobby Msg BGF.GameId
   , gameId : Maybe BGF.GameId
   , draftName : String
+  , name : Maybe String
   , clients : Sync PlayerList
   }
 
@@ -61,6 +62,8 @@ type PlayerList =
 
 type Msg =
   ToLobby Lobby.Msg
+  | NewDraftName String
+  | ConfirmedName
   | Ignore
 
 
@@ -93,6 +96,7 @@ init clientId url key =
     , lobby = lobby
     , gameId = maybeGameId
     , draftName = ""
+    , name = Nothing
     , clients =
         NoPlayers []
         |> zero
@@ -155,8 +159,31 @@ update msg model =
       , cmd
       )
 
+    NewDraftName draft ->
+      ( { model | draftName = draft }
+      , Cmd.none
+      )
+
+    ConfirmedName ->
+      let
+        maybeName =
+          if okName model.draftName then
+            Just model.draftName
+          else
+            Nothing
+      in
+      ( { model | name = maybeName }
+      , Cmd.none
+      )
+
     Ignore ->
       (model, Cmd.none)
+
+
+okName : String -> Bool
+okName draft =
+  (String.length draft >= 3)
+  && (String.length draft <= 20)
 
 
 -- View
@@ -171,7 +198,12 @@ view model =
         viewLobby model.lobby
 
       Just gameId ->
-        viewGame model gameId
+        case model.name of
+          Nothing ->
+            viewNameForm model
+
+          Just name ->
+            viewGame gameId
   }
 
 
@@ -180,13 +212,30 @@ viewLobby lobby =
   [ Lobby.view
     { label = "Enter game ID:"
     , placeholder = "Game ID"
-    , button = "Go"
+    , button = "Next"
     }
     lobby
   ]
 
 
-viewGame : Model -> BGF.GameId -> List (Html Msg)
-viewGame model id =
+viewNameForm : Model -> List (Html Msg)
+viewNameForm model =
+  [ Html.label [] [ Html.text "Your name" ]
+  , Html.input
+    [ Events.onInput NewDraftName
+    , Attr.value model.draftName
+    ]
+    []
+  , Html.button
+    [ Events.onClick ConfirmedName
+    , Attr.disabled (not <| okName model.draftName)
+    ]
+    [ Html.label [] [ Html.text "Go" ]
+    ]
+  ]
+
+
+viewGame : BGF.GameId -> List (Html Msg)
+viewGame id =
   [ Html.text <| "Game ID is " ++ (BGF.fromGameId id)
   ]
