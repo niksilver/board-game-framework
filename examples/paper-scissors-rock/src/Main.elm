@@ -42,7 +42,7 @@ type alias Model =
   , gameId : Maybe BGF.GameId
   , draftName : String
   , name : Maybe String
-  , clients : Sync PlayerList
+  , players : Sync PlayerList
   }
 
 
@@ -84,6 +84,17 @@ zero data =
     data
 
 
+-- Suggest a new value as the next step, but recognise that this is yet
+-- to be confirmed.
+suggest : a -> Sync a -> Sync a
+suggest value (Sync code _) =
+  Sync
+    { moveNumber = code.moveNumber + 1
+    , envNum = Nothing
+    }
+    value
+
+
 -- Initialisation functions
 
 
@@ -97,7 +108,7 @@ init clientId url key =
     , gameId = maybeGameId
     , draftName = ""
     , name = Nothing
-    , clients =
+    , players =
         NoPlayers []
         |> zero
     }
@@ -165,16 +176,22 @@ update msg model =
       )
 
     ConfirmedName ->
-      let
-        maybeName =
-          if okName model.draftName then
-            Just model.draftName
-          else
-            Nothing
-      in
-      ( { model | name = maybeName }
-      , Cmd.none
-      )
+      if okName model.draftName then
+        let
+          name = model.draftName
+          me = Client model.myId name
+          playerList = OnePlayer me []
+        in
+        ( { model
+          | name = Just name
+          , players =
+              model.players
+              |> suggest playerList
+          }
+        , Cmd.none
+        )
+      else
+        (model, Cmd.none)
 
     Ignore ->
       (model, Cmd.none)
