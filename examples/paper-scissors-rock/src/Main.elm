@@ -12,6 +12,7 @@ import Html exposing (Html)
 import Html.Attributes as Attr
 import Html.Events as Events
 import Json.Encode as Enc
+import Json.Decode as Dec
 import Url
 
 import BoardGameFramework as BGF
@@ -158,6 +159,96 @@ ignoreMessage : Enc.Value -> Msg
 ignoreMessage v =
   Ignore
 
+
+-- JSON encoders and decoders
+
+
+clientEncoder : Client -> Enc.Value
+clientEncoder cl =
+  Enc.object
+    [ ( "id", Enc.string cl.id )
+    , ( "name", Enc.string cl.name )
+    ]
+
+
+clientListEncoder : List Client -> Enc.Value
+clientListEncoder cs =
+  Enc.list clientEncoder cs
+
+
+playerListEncoder : PlayerList -> Enc.Value
+playerListEncoder pl =
+  let
+    clients =
+      case pl of
+        NoPlayers os ->
+          [[], os]
+
+        OnePlayer a os ->
+          [[a], os]
+
+        TwoPlayers a b os ->
+          [[a, b], os]
+  in
+  Enc.list
+    clientListEncoder
+    clients
+
+
+clientDecoder : Dec.Decoder Client
+clientDecoder =
+  Dec.map2 Client
+    (Dec.field "id" Dec.string)
+    (Dec.field "id" Dec.string)
+
+
+clientListDecoder : Dec.Decoder (List Client)
+clientListDecoder =
+  Dec.list clientDecoder
+
+
+noPlayersDecoder : Dec.Decoder PlayerList
+noPlayersDecoder =
+  Dec.map NoPlayers
+    (Dec.index 1 clientListDecoder)
+
+
+onePlayerDecoder : Dec.Decoder PlayerList
+onePlayerDecoder =
+  Dec.map2 OnePlayer
+    (Dec.index 0 (Dec.index 0 clientDecoder))
+    (Dec.index 1 clientListDecoder)
+
+
+twoPlayersDecoder : Dec.Decoder PlayerList
+twoPlayersDecoder =
+  Dec.map3 TwoPlayers
+    (Dec.index 0 (Dec.index 0 clientDecoder))
+    (Dec.index 0 (Dec.index 1 clientDecoder))
+    (Dec.index 1 clientListDecoder)
+
+
+playerListDecoder : Dec.Decoder PlayerList
+playerListDecoder =
+  let
+    nPlayersDecoder ps =
+      case List.length ps of
+        0 ->
+          noPlayersDecoder
+
+        1 ->
+          onePlayerDecoder
+
+        2 ->
+          twoPlayersDecoder
+
+        n ->
+          Dec.fail
+          <| "JSON for PlayerList has " ++ (String.fromInt n) ++ " players"
+  in
+  Dec.list clientListDecoder
+  |> Dec.andThen nPlayersDecoder
+  
 
 -- Updating the model
 
