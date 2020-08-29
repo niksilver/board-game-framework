@@ -61,11 +61,33 @@ type PlayerList =
   | TwoPlayers Client Client (List Client)
 
 
+-- How much progression have we made into the game?
+type Progression =
+  InLobby
+  | ChoosingName
+  | InGame
+
+
+progression : Model -> Progression
+progression model =
+  case model.gameId of
+    Nothing ->
+      InLobby
+
+    Just gameId ->
+      case model.name of
+        Nothing ->
+          ChoosingName
+
+        Just name ->
+          InGame
+
+
 type Msg =
   ToLobby Lobby.Msg
   | NewDraftName String
   | ConfirmedName
-  | Ignore
+  | Received (Result BGF.Error (BGF.Envelope (Sync PlayerList)))
 
 
 -- Synchronisation
@@ -100,6 +122,52 @@ assume dat (Sync code _) =
 data : Sync a -> a
 data (Sync _ dat) =
   dat
+
+
+-- Encode a synced data value for sending to another client
+syncEncoder : (a -> Enc.Value) -> Sync a -> Enc.Value
+syncEncoder enc (Sync code dat) =
+  Enc.object
+    [ ( "moveNumber", Enc.int code.moveNumber )
+    , ( "envNum", maybeEncoder Enc.int code.envNum )
+    , ( "data", enc dat)
+    ]
+
+
+-- Decode a synced data value received from another client
+syncDecoder : (Dec.Decoder a) -> Dec.Decoder (Sync a)
+syncDecoder dec =
+  Dec.map3 (\mn en dat -> Sync { moveNumber = mn, envNum = en } dat)
+    (Dec.field "moveNumber" Dec.int)
+    (Dec.field "envNum" (maybeDecoder Dec.int))
+    (Dec.field "data" dec)
+
+
+-- Encodes Nothing to [], and Just x to [x]
+maybeEncoder : (a -> Enc.Value) -> Maybe a -> Enc.Value
+maybeEncoder enc ma =
+  case ma of
+    Nothing ->
+      Enc.list enc []
+
+    Just x ->
+      Enc.list enc [x]
+
+
+-- Decodes [] to Nothing and [x] to Just x
+maybeDecoder : Dec.Decoder a -> Dec.Decoder (Maybe a)
+maybeDecoder dec =
+  let
+    innerDec list =
+      case list of
+        [] ->
+          Dec.succeed Nothing
+
+        head :: _ ->
+          Dec.succeed (Just head)
+  in
+  Dec.list dec
+  |> Dec.andThen innerDec
 
 
 -- Initialisation functions
@@ -151,13 +219,13 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
-  incoming ignoreMessage
+subscriptions _ =
+  incoming createMsg
 
 
-ignoreMessage : Enc.Value -> Msg
-ignoreMessage v =
-  Ignore
+createMsg : Enc.Value -> Msg
+createMsg v =
+  BGF.decode wrappedSyncPlayerListDecoder v |> Received 
 
 
 -- JSON encoders and decoders
@@ -195,10 +263,15 @@ playerListEncoder pl =
     clients
 
 
-playerListWrapperEncoder : PlayerList -> Enc.Value
-playerListWrapperEncoder pl =
+syncPlayerListEncoder : Sync PlayerList -> Enc.Value
+syncPlayerListEncoder spl =
+  syncEncoder playerListEncoder spl
+
+
+wrappedSyncPlayerListEncoder : Sync PlayerList -> Enc.Value
+wrappedSyncPlayerListEncoder pl =
   Enc.object
-    [ ( "players", playerListEncoder pl)
+    [ ( "players", syncPlayerListEncoder pl)
     ]
 
 
@@ -257,9 +330,15 @@ playerListDecoder =
   |> Dec.andThen nPlayersDecoder
 
 
-playerListWrapperDecoder : Dec.Decoder PlayerList
-playerListWrapperDecoder =
-  Dec.field "players" playerListDecoder
+syncPlayerListDecoder : Dec.Decoder (Sync PlayerList)
+syncPlayerListDecoder =
+  syncDecoder playerListDecoder
+
+
+wrappedSyncPlayerListDecoder : Dec.Decoder (Sync PlayerList)
+wrappedSyncPlayerListDecoder =
+  Dec.field "players" syncPlayerListDecoder
+
 
 -- Updating the model
 
@@ -301,7 +380,7 @@ update msg model =
       else
         (model, Cmd.none)
 
-    Ignore ->
+    Received envRes ->
       (model, Cmd.none)
 
 
@@ -318,17 +397,15 @@ view : Model -> Browser.Document Msg
 view model =
   { title = "Paper, scissors, rock"
   , body =
-    case model.gameId of
-      Nothing ->
+    case progression model of
+      InLobby ->
         viewLobby model.lobby
 
-      Just gameId ->
-        case model.name of
-          Nothing ->
-            viewNameForm model
+      ChoosingName ->
+        viewNameForm model
 
-          Just name ->
-            viewGame model
+      InGame ->
+        viewGame model
   }
 
 

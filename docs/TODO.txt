@@ -1,5 +1,6 @@
 TO DO:
 - Create paper scissors rock game.
+- Paper, scissors, rock: Sync {...} a -> Sync {... a}
 
 DONE:
 
