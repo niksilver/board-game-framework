@@ -195,6 +195,13 @@ playerListEncoder pl =
     clients
 
 
+playerListWrapperEncoder : PlayerList -> Enc.Value
+playerListWrapperEncoder pl =
+  Enc.object
+    [ ( "players", playerListEncoder pl)
+    ]
+
+
 clientDecoder : Dec.Decoder Client
 clientDecoder =
   Dec.map2 Client
@@ -248,7 +255,11 @@ playerListDecoder =
   in
   Dec.list clientListDecoder
   |> Dec.andThen nPlayersDecoder
-  
+
+
+playerListWrapperDecoder : Dec.Decoder PlayerList
+playerListWrapperDecoder =
+  Dec.field "players" playerListDecoder
 
 -- Updating the model
 
