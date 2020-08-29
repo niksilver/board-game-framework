@@ -208,7 +208,7 @@ server = BGF.wssServer "bgf.pigsaw.org"
 
 openCmd : BGF.GameId -> Cmd Msg
 openCmd =
-  BGF.open outgoing server
+  BGF.open outgoing server |> Debug.log "openCmd"
 
 
 sendPlayerListCmd : Sync PlayerList -> Cmd Msg
@@ -316,20 +316,27 @@ twoPlayersDecoder =
 playerListDecoder : Dec.Decoder PlayerList
 playerListDecoder =
   let
+    headLength ps =
+      List.head ps
+      |> Maybe.map List.length
     nPlayersDecoder ps =
-      case List.length ps of
-        0 ->
+      case headLength ps of
+        Just 0 ->
           noPlayersDecoder
 
-        1 ->
+        Just 1 ->
           onePlayerDecoder
 
-        2 ->
+        Just 2 ->
           twoPlayersDecoder
 
-        n ->
+        Just n ->
           Dec.fail
           <| "JSON for PlayerList has " ++ (String.fromInt n) ++ " players"
+
+        Nothing ->
+          Dec.fail
+          <| "JSON for PlayerList does not have a first element"
   in
   Dec.list clientListDecoder
   |> Dec.andThen nPlayersDecoder
@@ -357,9 +364,9 @@ update msg model =
       in
       ( { model
         | lobby = lobby
-        , gameId = maybeGameId
+        , gameId = maybeGameId |> Debug.log "maybeGameId"
         }
-      , cmd
+      , cmd |> Debug.log "Lobby cmd"
       )
 
     NewDraftName draft ->
@@ -369,30 +376,78 @@ update msg model =
 
     ConfirmedName ->
       if okName model.draftName then
+        -- With a good name we can send our name in the player list
         let
           name = model.draftName
           me = Client model.myId name
           playerList = OnePlayer me []
+          players =
+            model.players
+            |> assume playerList
         in
         ( { model
           | name = Just name
-          , players =
-              model.players
-              |> assume playerList
+          , players = players
           }
-        , Cmd.none
+        , sendPlayerListCmd players
         )
       else
         (model, Cmd.none)
 
     Received envRes ->
-      (model, Cmd.none)
+      case envRes |> Debug.log "envRes" of
+        Ok env ->
+          updateWithEnvelope env model
+
+        Err _ ->
+          -- Ignore an error for now
+          (model, Cmd.none)
 
 
 okName : String -> Bool
 okName draft =
   (String.length draft >= 3)
   && (String.length draft <= 20)
+
+
+updateWithEnvelope : BGF.Envelope (Sync PlayerList) -> Model -> (Model, Cmd Msg)
+updateWithEnvelope env model =
+  case env |> Debug.log "Received envelope" of
+    BGF.Welcome rec ->
+      -- We've joined the game, but no action required
+      ( model
+      , Cmd.none
+      )
+
+    BGF.Receipt rec ->
+      -- Our own message
+      ( model
+      , Cmd.none
+      )
+
+    BGF.Peer rec ->
+      -- A message from another peer
+      ( model
+      , Cmd.none
+      )
+
+    BGF.Joiner rec ->
+      -- Ignore a joiner
+      ( model
+      , Cmd.none
+      )
+
+    BGF.Leaver rec ->
+      -- Ignore a joiner
+      ( model
+      , Cmd.none
+      )
+
+    BGF.Connection conn ->
+      -- Ignore a connection change
+      ( model
+      , Cmd.none
+      )
 
 
 -- View
