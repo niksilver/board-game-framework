@@ -83,11 +83,19 @@ progress model =
           InGame
 
 
+-- Message types
+
+
 type Msg =
   ToLobby Lobby.Msg
   | NewDraftName String
   | ConfirmedName
-  | Received (Result BGF.Error (BGF.Envelope (Sync PlayerList)))
+  | Received (Result BGF.Error (BGF.Envelope PeerMsg))
+
+
+type PeerMsg =
+  MyNameMsg Client
+  | PlayerListMsg (Sync PlayerList)
 
 
 -- Synchronisation
@@ -216,6 +224,11 @@ sendPlayerListCmd =
   BGF.send outgoing wrappedSyncPlayerListEncoder
 
 
+sendMyNameCmd : Client -> Cmd Msg
+sendMyNameCmd =
+  BGF.send outgoing wrappedMyNameEncoder
+
+
 -- Peer-to-peer messages
 
 
@@ -230,7 +243,7 @@ subscriptions _ =
 
 createMsg : Enc.Value -> Msg
 createMsg v =
-  BGF.decode wrappedSyncPlayerListDecoder v |> Received 
+  BGF.decode peerMsgDecoder v |> Received 
 
 
 -- JSON encoders and decoders
@@ -280,11 +293,18 @@ wrappedSyncPlayerListEncoder pl =
     ]
 
 
+wrappedMyNameEncoder : Client -> Enc.Value
+wrappedMyNameEncoder client =
+  Enc.object
+    [ ( "myName", clientEncoder client)
+    ]
+
+
 clientDecoder : Dec.Decoder Client
 clientDecoder =
   Dec.map2 Client
     (Dec.field "id" Dec.string)
-    (Dec.field "id" Dec.string)
+    (Dec.field "name" Dec.string)
 
 
 clientListDecoder : Dec.Decoder (List Client)
@@ -352,6 +372,18 @@ wrappedSyncPlayerListDecoder =
   Dec.field "players" syncPlayerListDecoder
 
 
+wrappedMyNameDecoder : Dec.Decoder Client
+wrappedMyNameDecoder =
+  Dec.field "myName" clientDecoder
+
+
+peerMsgDecoder : Dec.Decoder PeerMsg
+peerMsgDecoder =
+  Dec.oneOf
+  [ Dec.map PlayerListMsg wrappedSyncPlayerListDecoder
+  , Dec.map MyNameMsg wrappedMyNameDecoder
+  ]
+
 -- Updating the model
 
 
@@ -376,7 +408,8 @@ update msg model =
 
     ConfirmedName ->
       if okName model.draftName then
-        -- With a good name we can send our name in the player list
+        -- With a good name we can send our name to any other clients
+        -- and our player list
         let
           name = model.draftName
           me = Client model.myId name
@@ -389,7 +422,10 @@ update msg model =
           | name = Just name
           , players = players
           }
-        , sendPlayerListCmd players
+        , Cmd.batch
+          [ sendMyNameCmd me
+          , sendPlayerListCmd players
+          ]
         )
       else
         (model, Cmd.none)
@@ -410,7 +446,7 @@ okName draft =
   && (String.length draft <= 20)
 
 
-updateWithEnvelope : BGF.Envelope (Sync PlayerList) -> Model -> (Model, Cmd Msg)
+updateWithEnvelope : BGF.Envelope PeerMsg -> Model -> (Model, Cmd Msg)
 updateWithEnvelope env model =
   case env |> Debug.log "Received envelope" of
     BGF.Welcome rec ->
