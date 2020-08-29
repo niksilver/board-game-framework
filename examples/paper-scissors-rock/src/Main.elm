@@ -61,15 +61,15 @@ type PlayerList =
   | TwoPlayers Client Client (List Client)
 
 
--- How much progression have we made into the game?
-type Progression =
+-- How much progress have we made into the game?
+type Progress =
   InLobby
   | ChoosingName
   | InGame
 
 
-progression : Model -> Progression
-progression model =
+progress : Model -> Progress
+progress model =
   case model.gameId of
     Nothing ->
       InLobby
@@ -209,6 +209,11 @@ server = BGF.wssServer "bgf.pigsaw.org"
 openCmd : BGF.GameId -> Cmd Msg
 openCmd =
   BGF.open outgoing server
+
+
+sendPlayerListCmd : Sync PlayerList -> Cmd Msg
+sendPlayerListCmd =
+  BGF.send outgoing wrappedSyncPlayerListEncoder
 
 
 -- Peer-to-peer messages
@@ -397,7 +402,7 @@ view : Model -> Browser.Document Msg
 view model =
   { title = "Paper, scissors, rock"
   , body =
-    case progression model of
+    case progress model of
       InLobby ->
         viewLobby model.lobby
 
