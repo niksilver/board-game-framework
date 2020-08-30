@@ -71,16 +71,32 @@ mapToNext fn (Sync rec) =
 
 -- Resolve which of two values should be considered the correct one.
 resolve : Int -> Sync a -> Sync a -> Sync a
-resolve envNum (Sync recNew) (Sync recOrig) =
+resolve newEnvNum (Sync recNew) (Sync recOrig) =
   let
-    recNew2 = { recNew | envNum = Just envNum }
+    recNew2 = { recNew | envNum = Just newEnvNum }
   in
-  if recNew2.step > recOrig.step then
-    Sync recNew2
-  else if recOrig.step > recNew2.step then
-    Sync recOrig
-  else
-    Sync recOrig
+  case compare recOrig.step recNew2.step of
+    GT ->
+      Sync recOrig
+
+    LT ->
+      Sync recNew2
+
+    EQ ->
+      case recOrig.envNum of
+        Nothing ->
+          Sync recNew2
+
+        Just origEnvNum ->
+          case compare origEnvNum newEnvNum of
+            LT ->
+              Sync recOrig
+
+            GT ->
+              Sync recNew2
+
+            EQ ->
+              Sync recOrig
 
 
 -- Encoding and decoding
