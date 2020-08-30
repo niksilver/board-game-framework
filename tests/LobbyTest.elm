@@ -18,7 +18,7 @@ type GameState = TheGame
 
 
 lobbyConfig =
-  { stateMaker = \_ -> TheGame
+  { init = \_ -> TheGame
   , openCmd = \_ -> Cmd.none
   , msgWrapper = ToLobby
   }
@@ -52,7 +52,7 @@ updateTest =
         in
         requireAll
         [ Expect.equal url2 <| Lobby.url lobby2
-        , Expect.equal "round-fish" <| Lobby.draftGameId lobby2
+        , Expect.equal "round-fish" <| Lobby.draft lobby2
         , Expect.equal (Just TheGame) <| game2
         ]
 
@@ -80,7 +80,7 @@ updateTest =
         in
         requireAll
         [ Expect.equal url2 <| Lobby.url lobby2
-        , Expect.equal "ro" <| Lobby.draftGameId lobby2
+        , Expect.equal "ro" <| Lobby.draft lobby2
         , Expect.equal Nothing <| game2
         ]
 
@@ -108,7 +108,7 @@ updateTest =
         in
         requireAll
         [ Expect.equal url2 <| Lobby.url lobby2
-        , Expect.equal "" <| Lobby.draftGameId lobby2
+        , Expect.equal "" <| Lobby.draft lobby2
         , Expect.equal Nothing <| game2
         -- Cannot test cmd2
         ]
@@ -133,7 +133,7 @@ updateTest =
         in
         requireAll
         [ Expect.equal url1 <| Lobby.url lobby2
-        , Expect.equal "square-bananas" <| Lobby.draftGameId lobby2
+        , Expect.equal "square-bananas" <| Lobby.draft lobby2
         , Expect.equal Nothing <| game2
         ]
 
