@@ -5,9 +5,9 @@
 
 module BoardGameFramework.Sync exposing
   -- Basics
-  ( Sync, zero, assume, data
+  ( Sync, zero, assume, value
   -- Transforming
-  , mapToNext
+  , mapToNext, resolve
   -- Encoding and decoding
   , encoder, decoder
   )
@@ -22,7 +22,7 @@ import Json.Decode as Dec
 
 type Sync a =
   Sync
-    { moveNumber : Int
+    { step : Int
     , envNum : Maybe Int
     , value : a
     }
@@ -32,7 +32,7 @@ type Sync a =
 zero : a -> Sync a
 zero val =
   Sync
-    { moveNumber = 0
+    { step = 0
     , envNum = Nothing
     , value = val
     }
@@ -43,15 +43,15 @@ zero val =
 assume : a -> Sync a -> Sync a
 assume val (Sync rec) =
   Sync
-    { moveNumber = rec.moveNumber + 1
+    { step = rec.step + 1
     , envNum = Nothing
     , value = val
     }
 
 
 -- Return just the data value from the synchronisation point
-data : Sync a -> a
-data (Sync rec) =
+value : Sync a -> a
+value (Sync rec) =
   rec.value
 
 
@@ -63,10 +63,24 @@ data (Sync rec) =
 mapToNext : (a -> a) -> Sync a -> Sync a
 mapToNext fn (Sync rec) =
   Sync
-    { moveNumber = rec.moveNumber +1
+    { step = rec.step + 1
     , envNum = Nothing
     , value = fn rec.value
     }
+
+
+-- Resolve which of two values should be considered the correct one.
+resolve : Int -> Sync a -> Sync a -> Sync a
+resolve envNum (Sync recNew) (Sync recOrig) =
+  let
+    recNew2 = { recNew | envNum = Just envNum }
+  in
+  if recNew2.step > recOrig.step then
+    Sync recNew2
+  else if recOrig.step > recNew2.step then
+    Sync recOrig
+  else
+    Sync recOrig
 
 
 -- Encoding and decoding
@@ -76,7 +90,7 @@ mapToNext fn (Sync rec) =
 encoder : (a -> Enc.Value) -> Sync a -> Enc.Value
 encoder enc (Sync rec) =
   Enc.object
-    [ ( "moveNumber", Enc.int rec.moveNumber )
+    [ ( "step", Enc.int rec.step )
     , ( "envNum", maybeEncoder Enc.int rec.envNum )
     , ( "data", enc rec.value)
     ]
@@ -87,9 +101,9 @@ decoder : (Dec.Decoder a) -> Dec.Decoder (Sync a)
 decoder dec =
   Dec.map3
     (\mn en val ->
-      Sync { moveNumber = mn, envNum = en, value = val}
+      Sync { step = mn, envNum = en, value = val}
     )
-    (Dec.field "moveNumber" Dec.int)
+    (Dec.field "step" Dec.int)
     (Dec.field "envNum" (maybeDecoder Dec.int))
     (Dec.field "data" dec)
 
