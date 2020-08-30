@@ -132,6 +132,17 @@ data (Sync _ dat) =
   dat
 
 
+-- Set the next step of the data value with a mapping function (old to new).
+-- The new data will not yet be verified.
+mapToNext : (a -> a) -> Sync a -> Sync a
+mapToNext fn (Sync code dat) =
+  Sync
+    { moveNumber = code.moveNumber +1
+    , envNum = Nothing
+    }
+    (fn dat)
+
+
 -- Encode a synced data value for sending to another client
 syncEncoder : (a -> Enc.Value) -> Sync a -> Enc.Value
 syncEncoder enc (Sync code dat) =
@@ -176,6 +187,58 @@ maybeDecoder dec =
   in
   Dec.list dec
   |> Dec.andThen innerDec
+
+
+-- PlayerList functions
+
+
+{-- plMap : (Client -> Client) -> PlayerList -> PlayerList
+plMap fn pos =
+  case ps of
+    NoPlayers obs ->
+      NoPlayers (List.map fn obs)
+
+    OnePlayer p1 obs ->
+      OnePlayer (fn p1) (List.map fn obs)
+
+    TwoPlayers p2 p2 obs ->
+      TwoPlayers (fn p1) (fn p2) (List.map fn obs)
+      --}
+
+
+addIfNotPresent : Client -> PlayerList -> PlayerList
+addIfNotPresent client pos =
+  let
+    matches c =
+      client.id == c.id
+    isPresent =
+      case pos of
+        NoPlayers obs ->
+          List.any matches obs
+
+        OnePlayer p1 obs ->
+          matches p1
+          || List.any matches obs
+
+        TwoPlayers p1 p2 obs ->
+          matches p1
+          || matches p2
+          || List.any matches obs
+  in
+  case isPresent of
+    True ->
+      pos
+
+    False ->
+      case pos of
+        NoPlayers obs ->
+          OnePlayer client obs
+
+        OnePlayer p1 obs ->
+          TwoPlayers p1 client obs
+
+        TwoPlayers p1 p2 obs ->
+          TwoPlayers p1 p2 (client :: obs)
 
 
 -- Initialisation functions
@@ -243,7 +306,7 @@ subscriptions _ =
 
 createMsg : Enc.Value -> Msg
 createMsg v =
-  BGF.decode peerMsgDecoder v |> Received 
+  BGF.decode peerMsgDecoder v |> Received
 
 
 -- JSON encoders and decoders
@@ -384,6 +447,7 @@ peerMsgDecoder =
   , Dec.map MyNameMsg wrappedMyNameDecoder
   ]
 
+
 -- Updating the model
 
 
@@ -463,9 +527,12 @@ updateWithEnvelope env model =
 
     BGF.Peer rec ->
       -- A message from another peer
-      ( model
-      , Cmd.none
-      )
+      case rec.body of
+        MyNameMsg client ->
+          updateWithMyName client model
+
+        PlayerListMsg syncPlayerList ->
+          updateWithPlayerList syncPlayerList model
 
     BGF.Joiner rec ->
       -- Ignore a joiner
@@ -484,6 +551,25 @@ updateWithEnvelope env model =
       ( model
       , Cmd.none
       )
+
+
+updateWithMyName : Client -> Model -> (Model, Cmd Msg)
+updateWithMyName client model =
+  let
+    syncPlayerList2 =
+      model.players
+      |> mapToNext (addIfNotPresent client)
+  in
+  ( { model
+    | players = syncPlayerList2
+    }
+  , sendPlayerListCmd model.players
+  )
+
+
+updateWithPlayerList : Sync PlayerList -> Model -> (Model, Cmd Msg)
+updateWithPlayerList spl model =
+  (model, Cmd.none |> Debug.log "To be implmeented!")
 
 
 -- View
