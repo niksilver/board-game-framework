@@ -102,7 +102,11 @@ type PeerMsg =
 
 
 type Sync a =
-  Sync { moveNumber : Int, envNum : Maybe Int } a
+  Sync
+    { moveNumber : Int
+    , envNum : Maybe Int
+    , value : a
+    }
 
 
 -- Zero a sync point
@@ -111,52 +115,55 @@ zero val =
   Sync
     { moveNumber = 0
     , envNum = Nothing
+    , value = val
     }
-    val
 
 
 -- Assume a new data value as the next step, but recognise that this is yet
 -- to be confirmed.
 assume : a -> Sync a -> Sync a
-assume dat (Sync code _) =
+assume val (Sync rec) =
   Sync
-    { moveNumber = code.moveNumber + 1
+    { moveNumber = rec.moveNumber + 1
     , envNum = Nothing
+    , value = val
     }
-    dat
 
 
 -- Return just the data value from the synchronisation point
 data : Sync a -> a
-data (Sync _ dat) =
-  dat
+data (Sync rec) =
+  rec.value
 
 
--- Set the next step of the data value with a mapping function (old to new).
--- The new data will not yet be verified.
+-- Set the next step of the data value with a mapping function.
+-- The new value will not yet be verified.
 mapToNext : (a -> a) -> Sync a -> Sync a
-mapToNext fn (Sync code dat) =
+mapToNext fn (Sync rec) =
   Sync
-    { moveNumber = code.moveNumber +1
+    { moveNumber = rec.moveNumber +1
     , envNum = Nothing
+    , value = fn rec.value
     }
-    (fn dat)
 
 
 -- Encode a synced data value for sending to another client
 syncEncoder : (a -> Enc.Value) -> Sync a -> Enc.Value
-syncEncoder enc (Sync code dat) =
+syncEncoder enc (Sync rec) =
   Enc.object
-    [ ( "moveNumber", Enc.int code.moveNumber )
-    , ( "envNum", maybeEncoder Enc.int code.envNum )
-    , ( "data", enc dat)
+    [ ( "moveNumber", Enc.int rec.moveNumber )
+    , ( "envNum", maybeEncoder Enc.int rec.envNum )
+    , ( "data", enc rec.value)
     ]
 
 
 -- Decode a synced data value received from another client
 syncDecoder : (Dec.Decoder a) -> Dec.Decoder (Sync a)
 syncDecoder dec =
-  Dec.map3 (\mn en dat -> Sync { moveNumber = mn, envNum = en } dat)
+  Dec.map3
+    (\mn en val ->
+      Sync { moveNumber = mn, envNum = en, value = val}
+    )
     (Dec.field "moveNumber" Dec.int)
     (Dec.field "envNum" (maybeDecoder Dec.int))
     (Dec.field "data" dec)
@@ -532,7 +539,7 @@ updateWithEnvelope env model =
           updateWithMyName client model
 
         PlayerListMsg syncPlayerList ->
-          updateWithPlayerList syncPlayerList model
+          updateWithPlayerList rec.num syncPlayerList model
 
     BGF.Joiner rec ->
       -- Ignore a joiner
@@ -567,9 +574,9 @@ updateWithMyName client model =
   )
 
 
-updateWithPlayerList : Sync PlayerList -> Model -> (Model, Cmd Msg)
-updateWithPlayerList spl model =
-  (model, Cmd.none |> Debug.log "To be implmeented!")
+updateWithPlayerList : Int -> Sync PlayerList -> Model -> (Model, Cmd Msg)
+updateWithPlayerList num spl model =
+  (model, Cmd.none |> Debug.log "To be implememented!")
 
 
 -- View
