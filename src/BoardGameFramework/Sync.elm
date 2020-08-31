@@ -9,7 +9,7 @@ module BoardGameFramework.Sync exposing
   -- Transforming
   , mapToNext, resolve
   -- Encoding and decoding
-  , encoder, decoder
+  , encode, decoder
   -- Utilities
   , envCompare
   )
@@ -94,17 +94,17 @@ resolve env (Sync recNew) (Sync recOrig) =
 {-| Encode a synced data value for sending to another client.
 You need to supply an encoder for the data value.
 -}
-encoder : (a -> Enc.Value) -> Sync a -> Enc.Value
-encoder enc (Sync rec) =
+encode : (a -> Enc.Value) -> Sync a -> Enc.Value
+encode enc (Sync rec) =
   Enc.object
     [ ( "step", Enc.int rec.step )
-    , ( "timing", timingEncoder rec.timing )
+    , ( "timing", encodeTiming rec.timing )
     , ( "data", enc rec.value)
     ]
 
 
-timingEncoder : Timing -> Enc.Value
-timingEncoder t =
+encodeTiming : Timing -> Enc.Value
+encodeTiming t =
   case t of
     SomeTiming rec ->
       Enc.list Enc.int [ rec.num, rec.time ]
