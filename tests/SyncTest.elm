@@ -31,6 +31,39 @@ jsonTest =
               Expect.fail <| "Bad decoder result: " ++ (Dec.errorToString decError)
 
 
+resolveTest : Test
+resolveTest =
+  describe "resolveTest"
+  [ test "Comparing with a later step should yield that (one way round)" <|
+    \_ ->
+      let
+        v0 = syncWithStep "zero" 0
+        v9 = syncWithStep "nine" 9
+        vResolved = Sync.resolve (env 100 10000) v9 v0
+      in
+      Expect.equal "nine" <| Sync.value vResolved
+
+  , test "Comparing with a later step should yield that (other way round)" <|
+    \_ ->
+      let
+        v0 = syncWithStep "zero" 0
+        v9 = syncWithStep "nine" 9
+        vResolved = Sync.resolve (env 100 10000) v0 v9
+      in
+      Expect.equal "nine" <| Sync.value vResolved
+
+  , test "Resolving the same step from an envelope should result in that" <|
+    \_ ->
+      let
+        vA = syncWithStep "Original value...." 9
+        vB = syncWithStep "Value from network" 9
+        vResolved = Sync.resolve (env 100 10000) vB vA
+      in
+      Expect.equal "Value from network" <| Sync.value vResolved
+
+  ]
+
+
 encodeDecode : Sync String -> Result Dec.Error (Sync String)
 encodeDecode ss =
   ss
@@ -99,3 +132,28 @@ env num time =
     , time = time
     , body = ()
     }
+
+
+syncWithStep : a -> Int -> Sync a
+syncWithStep val step =
+  let
+    sync0 = Sync.zero val
+    incStep state s1 =
+      Sync.mapToNext identity s1
+  in
+  List.foldl incStep sync0 (List.repeat step val)
+
+
+-- Require all the expectations to be good
+requireAll : List Expectation -> Expectation
+requireAll exps =
+  case exps of
+    head :: tail ->
+      if head == Expect.pass then
+        requireAll tail
+
+      else
+        head
+
+    [] ->
+      Expect.pass

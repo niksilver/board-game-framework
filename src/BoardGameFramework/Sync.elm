@@ -85,7 +85,23 @@ resolve env (Sync recNew) (Sync recOrig) =
   let
     recNew2 = { recNew | timing = timing env }
   in
-  (Sync recOrig) |> Debug.log "TO be implemented!"
+  case compare recOrig.step recNew2.step of
+    LT ->
+      Sync recNew2
+
+    GT ->
+      Sync recOrig
+
+    EQ ->
+      case timingCompare recOrig.timing recNew2.timing of
+        LT ->
+          Sync recOrig
+
+        GT ->
+          Sync recNew2
+
+        EQ ->
+          Sync recOrig
 
 
 -- Encoding and decoding
@@ -212,6 +228,11 @@ envCompare env1 env2 =
     timing1 = timing env1
     timing2 = timing env2
   in
+  timingCompare timing1 timing2
+
+
+timingCompare : Timing -> Timing -> Order
+timingCompare timing1 timing2 =
   case (timing1, timing2) of
     (NoTiming, NoTiming) ->
       EQ
