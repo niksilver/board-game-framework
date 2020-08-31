@@ -16,14 +16,10 @@ jsonTest =
   test "Decoding should undo encoding" <|
     \_ ->
       let
-        myDecoder = Sync.decoder Dec.string
-        myEncode = Sync.encode Enc.string
         mySyncedValue = Sync.zero "My value"
       in
         mySyncedValue
-        |> myEncode
-        |> Enc.encode 0
-        |> Dec.decodeString myDecoder
+        |> encodeDecode
         |> \result ->
           case result of
             Ok syncedVal ->
@@ -33,6 +29,14 @@ jsonTest =
 
             Err decError ->
               Expect.fail <| "Bad decoder result: " ++ (Dec.errorToString decError)
+
+
+encodeDecode : Sync String -> Result Dec.Error (Sync String)
+encodeDecode ss =
+  ss
+  |> Sync.encode Enc.string
+  |> Enc.encode 0
+  |> Dec.decodeString (Sync.decoder Dec.string)
 
 
 envCompareTest : Test
@@ -84,6 +88,8 @@ envCompareTest =
 
   ]
 
+
+-- Create an envelope with a given env num and a time.
 env : Int -> Int -> BGF.Envelope ()
 env num time =
   BGF.Peer
