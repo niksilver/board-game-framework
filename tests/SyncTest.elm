@@ -51,8 +51,36 @@ envCompareTest =
           |> Expect.equal expected
   in
   describe "envCompare test"
+  -- For these three, it's early time vs late time
   [ "Early num + early time vs late num + late time"
     |> try (earlyNum, earlyTime) (lateNum, lateTime) LT
+
+  , "Late num + early time vs early num + late time"
+    |> try (lateNum, earlyTime) (earlyNum, lateTime) LT
+
+  , "Same num + early time vs Same num + late time"
+    |> try (sameNum, earlyTime) (sameNum, lateTime) LT
+
+  -- For these three, it's late time vs early time
+  , "Early num + late time vs late num + early time"
+    |> try (earlyNum, lateTime) (lateNum, earlyTime) GT
+
+  , "Late num + late time vs early num + early time"
+    |> try (lateNum, lateTime) (earlyNum, earlyTime) GT
+
+  , "Same num + late time vs Same num + early time"
+    |> try (sameNum, lateTime) (sameNum, earlyTime) GT
+
+
+  -- For these three, it's same time vs same time
+  , "Early num + same time vs late num + same time"
+    |> try (earlyNum, sameTime) (lateNum, sameTime) LT
+
+  , "Late num + same time vs early num + same time"
+    |> try (lateNum, sameTime) (earlyNum, sameTime) GT
+
+  , "Same num + same time vs Same num + same time"
+    |> try (sameNum, sameTime) (sameNum, sameTime) EQ
 
   ]
 
