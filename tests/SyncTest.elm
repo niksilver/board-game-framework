@@ -61,6 +61,39 @@ resolveTest =
       in
       Expect.equal "Value from network" <| Sync.value vResolved
 
+  , test "Resolving the same step at the same time should yield the lower num (one way round" <|
+    \_ ->
+      let
+        v0 = syncWithStep "Original value......." 0
+        vB1 = syncWithStep "Value 1 from network" 9
+        vB2 = syncWithStep "Value 2 from network" 9
+        vB1WithEnv = Sync.resolve (env 100 10000) vB1 v0
+        vResolved = Sync.resolve (env 101 10000) vB2 vB1WithEnv
+      in
+      Expect.equal "Value 1 from network" <| Sync.value vResolved
+
+  , test "Resolving the same step at the same time should yield the lower num (other way round" <|
+    \_ ->
+      let
+        v0 = syncWithStep "Original value......." 0
+        vB1 = syncWithStep "Value 1 from network" 9
+        vB2 = syncWithStep "Value 2 from network" 9
+        vB2WithEnv = Sync.resolve (env 101 10000) vB2 v0
+        vResolved = Sync.resolve (env 100 10000) vB1 vB2WithEnv
+      in
+      Expect.equal "Value 1 from network" <| Sync.value vResolved
+
+  , test "Resolving the same everything should yield original" <|
+    \_ ->
+      let
+        v0 = syncWithStep "Original value......." 0
+        vB1 = syncWithStep "Value 1 from network" 9
+        vB2 = syncWithStep "Value 2 from network" 9
+        vB1WithEnv = Sync.resolve (env 100 10000) vB1 v0
+        vResolved = Sync.resolve (env 100 10000) vB2 vB1WithEnv
+      in
+      Expect.equal "Value 1 from network" <| Sync.value vResolved
+
   ]
 
 
