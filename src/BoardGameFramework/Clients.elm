@@ -6,7 +6,7 @@
 module BoardGameFramework.Clients exposing
   ( Client, Clients
   -- Build
-  , empty
+  , empty, singleton, insert
   )
 
 
