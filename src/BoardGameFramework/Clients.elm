@@ -6,7 +6,7 @@
 module BoardGameFramework.Clients exposing
   ( Client, Clients
   -- Build
-  , empty, singleton, insert
+  , empty, singleton, insert, update
   )
 
 
@@ -15,6 +15,8 @@ observers, or something else). This is actually just a
 `Dict` from client ID keys to some value for a client, which is
 a record including a field `id` holding the client ID.
 There is also some help for JSON encoding and decoding.
+
+The type `ClientId` comes from the base `BoardGameFramework` module.
 -}
 
 
@@ -57,3 +59,31 @@ insert : Client e -> Clients e -> Clients e
 insert c cs =
   cs
   |> Dict.insert c.id c
+
+
+{-| Update a specific client using a mapping function.
+
+It's possible for for mapping function to produce `Just` value with
+a different `id` from the one given. This would almost certainly be
+an error. But if you did it, then the client with the `id` given will
+be removed, and the value produced by the mapping function will be
+inserted.
+-}
+update : BGF.ClientId -> (Maybe (Client e) -> Maybe (Client e)) -> Clients e -> Clients e
+update id mapper cs =
+  let
+    maybeV2 = mapper (Dict.get id cs)
+  in
+  case maybeV2 of
+    Nothing ->
+      cs
+      |> Dict.remove id
+
+    Just v2 ->
+      if v2.id == id then
+        cs
+        |> insert v2
+      else
+        cs
+        |> Dict.remove id
+        |> insert v2
