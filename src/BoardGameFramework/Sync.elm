@@ -5,14 +5,46 @@
 
 module BoardGameFramework.Sync exposing
   -- Basics
-  ( Sync, zero, assume, value
-  -- Transforming
-  , mapToNext, resolve
+  ( Sync, zero, value
+  -- Modifying
+  , assume, mapToNext, resolve
   -- Encoding and decoding
   , encode, decoder
   -- Utilities
   , envCompare
   )
+
+
+{-| We will want to synchronise some values, such as the state of the
+game, with our peers.
+We will calculate an initial value (step 0) and as the game
+progresses we will calculate later values (step 1, 2, etc).
+But our peers will be doing the same thing, and sometimes there may
+be a clash - such as two players on the same team selecting different
+options at the same time. The way we solve that problem is to always
+send a calculated (assumed) value to our peers via the server,
+and whichever value we receive first from the server (either ours as
+a Receipt, or theirs as a Peer message) is the accepted one.
+
+So the general procedure is:
+create an initial value as our [`zero`](#zero) step,
+calculate each subsequent step as the game progresses,
+and always send any value we've calculated to the server.
+At the same time we receive values from the server,
+and [`resolve`](#resolve) any received value with our current value.
+
+# Basics
+@docs Sync, zero, value
+
+# Modifying
+@docs assume, mapToNext, resolve
+
+# Encoding and decoding
+@docs encode, decoder
+
+# Utilities
+@docs envCompare
+-}
 
 
 import Json.Encode as Enc
@@ -52,8 +84,34 @@ zero val =
     }
 
 
+{-| Get the value from a synchronisation point.
+-}
+value : Sync a -> a
+value (Sync rec) =
+  rec.value
+
+
+-- Modifying
+
+
 {-| Assume a new value as the next step, but recognise that this is yet
-to be confirmed.
+to be accepted.
+
+In a hangman game, if the state is a string, and the next
+state is found by revealing one of its letters
+using some function `reveal : Int -> String -> String`,
+then we might have
+
+    import BoardGameFramework.Sync as Sync exposing (Sync)
+
+    next : Int -> Sync String -> Sync String
+    next i state =
+      let
+        state2 =
+          Sync.value state
+          |> reveal i
+      in
+      Sync.assume state2
 -}
 assume : a -> Sync a -> Sync a
 assume val (Sync rec) =
@@ -64,18 +122,20 @@ assume val (Sync rec) =
     }
 
 
-{-| Get the value from a synchronisation point.
--}
-value : Sync a -> a
-value (Sync rec) =
-  rec.value
-
-
--- Transforming
-
-
 {-| Set the next value with a mapping function. This will be the next step.
-The new value will not yet be verified.
+The new value will not yet be accepted.
+
+In a hangman game, if the state is a string, and the next
+state is found by revealing one of its letters
+using some function `reveal : Int -> String -> String`,
+then we might have
+
+    import BoardGameFramework.Sync as Sync exposing (Sync)
+
+    next : Int -> Sync String -> Sync String
+    next i state =
+      state
+      |> Sync.mapToNext (reveal i)
 -}
 mapToNext : (a -> a) -> Sync a -> Sync a
 mapToNext fn (Sync rec) =
@@ -126,6 +186,20 @@ resolve env (Sync recNew) (Sync recOrig) =
 
 {-| Encode a synced value for sending to another client.
 You need to supply an encoder for the value.
+
+In a game of hangman, where we're trying to find a seven letter word,
+we might create our encoder like this:
+
+
+    import Json.Encode as Encode
+    import BoardGameFramework.Sync as Sync
+
+    word : Sync String
+    word = Sync.zero "-------"
+
+    wordEncoder : Sync String -> Enc.Value
+    wordEncoder =
+      Sync.encode Enc.string
 -}
 encode : (a -> Enc.Value) -> Sync a -> Enc.Value
 encode enc (Sync rec) =
@@ -241,7 +315,11 @@ so is considered as late as possible.
 
     env1 = ...            -- First Welcome envelope received
     env2 = ...            -- First Receipt received after sending something
+    envX = ...            -- Some connection envelope
     envCompare env1 env2  -- LT
+    envCompare env2 env1  -- GT
+    envCompare env1 env1  -- EQ
+    envCompare envX env1  -- GT
 -}
 envCompare : BGF.Envelope b -> BGF.Envelope b -> Order
 envCompare env1 env2 =
