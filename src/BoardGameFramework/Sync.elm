@@ -29,6 +29,9 @@ type Timing =
   | NoTiming
 
 
+{-| Some value which can be synchronised, and resolved against other
+values.
+-}
 type Sync a =
   Sync
     { step : Int
@@ -37,7 +40,9 @@ type Sync a =
     }
 
 
--- Zero a sync point
+{-| Set an initial value with step `0`, which is known not to have come
+from the server.
+-}
 zero : a -> Sync a
 zero val =
   Sync
@@ -47,8 +52,9 @@ zero val =
     }
 
 
--- Assume a new data value as the next step, but recognise that this is yet
--- to be confirmed.
+{-| Assume a new value as the next step, but recognise that this is yet
+to be confirmed.
+-}
 assume : a -> Sync a -> Sync a
 assume val (Sync rec) =
   Sync
@@ -58,7 +64,8 @@ assume val (Sync rec) =
     }
 
 
--- Return just the data value from the synchronisation point
+{-| Get the value from a synchronisation point.
+-}
 value : Sync a -> a
 value (Sync rec) =
   rec.value
@@ -67,8 +74,9 @@ value (Sync rec) =
 -- Transforming
 
 
--- Set the next step of the data value with a mapping function.
--- The new value will not yet be verified.
+{-| Set the next value with a mapping function. This will be the next step.
+The new value will not yet be verified.
+-}
 mapToNext : (a -> a) -> Sync a -> Sync a
 mapToNext fn (Sync rec) =
   Sync
@@ -79,6 +87,15 @@ mapToNext fn (Sync rec) =
 
 
 {-| Resolve which of two values should be considered the correct one.
+The function takes the envelope that contained the new value, the new value,
+and the current value.
+
+    origSyncedValue
+    |> Sync.resolve newEnv newSyncedValue
+
+The result is whichever value is the later step; if they represent the
+same step then the one from the earlier envelope is preferred; if that
+is still the same then the original value is returned.
 -}
 resolve : BGF.Envelope b -> Sync a -> Sync a -> Sync a
 resolve env (Sync recNew) (Sync recOrig) =
@@ -107,8 +124,8 @@ resolve env (Sync recNew) (Sync recOrig) =
 -- Encoding and decoding
 
 
-{-| Encode a synced data value for sending to another client.
-You need to supply an encoder for the data value.
+{-| Encode a synced value for sending to another client.
+You need to supply an encoder for the value.
 -}
 encode : (a -> Enc.Value) -> Sync a -> Enc.Value
 encode enc (Sync rec) =
@@ -129,8 +146,8 @@ encodeTiming t =
       Enc.list Enc.int []
 
 
-{-| Decode a synced data value received from another client
-You need to supply an decoder for the data value.
+{-| Decode a synced value received from another client
+You need to supply an decoder for the value.
 -}
 decoder : (Dec.Decoder a) -> Dec.Decoder (Sync a)
 decoder dec =
@@ -216,11 +233,15 @@ timing env =
       NoTiming
 
 
-{-| Compare the order of two envelopes. A `Connection`
-envelope has no order information, so is considered as late as possible.
-So if one envelope is a `Connection` envelope then the other is considered
-"before" it... unless they're both `Connection` envelopes, in which case
-they're equal.
+{-| Compare the order of two envelopes. An earlier envelope is `LT`
+a later envelope.
+
+A `Connection` envelope has no order information,
+so is considered as late as possible.
+
+    env1 = ...            -- First Welcome envelope received
+    env2 = ...            -- First Receipt received after sending something
+    envCompare env1 env2  -- LT
 -}
 envCompare : BGF.Envelope b -> BGF.Envelope b -> Order
 envCompare env1 env2 =
