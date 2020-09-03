@@ -166,3 +166,23 @@ getTest =
         |> Expect.equal Nothing
       )
   ]
+
+
+sizeTest : Test
+sizeTest =
+  describe "sizeTest"
+  [ test "Empty list should have size 0" <|
+    \_ ->
+      Expect.equal 0 (Clients.size Clients.empty)
+
+  , test "Three-strong list should have size 3" <|
+    \_ ->
+      let
+        clients =
+          Clients.empty
+          |> Clients.insert { id = "123.456", points = 20 }
+          |> Clients.insert { id = "654.321", points = 40 }
+          |> Clients.insert { id = "999.999", points = 40 }
+      in
+      Expect.equal 3 (Clients.size clients)
+  ]
