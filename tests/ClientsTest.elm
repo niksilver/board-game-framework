@@ -186,3 +186,47 @@ sizeTest =
       in
       Expect.equal 3 (Clients.size clients)
   ]
+
+
+fromListTest : Test
+fromListTest =
+  describe "fromListTest"
+  [ test "Converting from a simple non-empty list should be okay" <|
+    \_ ->
+      let
+        list =
+          [ { id = "123.456", points = 20 }
+          , { id = "654.321", points = 40 }
+          , { id = "999.999", points = 40 }
+          ]
+      in
+      list
+      |> Clients.fromList
+      |> Clients.size
+      |> Expect.equal 3
+
+  , test "Converting from empty list should yield an empty Clients" <|
+    \_ ->
+      []
+      |> Clients.fromList
+      |> Clients.size
+      |> Expect.equal 0
+
+  , test "Converting from a duplicated-id list should remove dupes" <|
+    \_ ->
+      let
+        list =
+          [ { id = "123.456", points = 20 }
+          , { id = "654.321", points = 40 }
+          , { id = "654.321", points = 50 }  -- Duplicate
+          , { id = "444.444", points = 60 }
+          , { id = "999.999", points = 70 }
+          , { id = "999.999", points = 80 }  -- Duplicate
+          ]
+      in
+      list
+      |> Clients.fromList
+      |> Clients.size
+      |> Expect.equal 4
+
+  ]

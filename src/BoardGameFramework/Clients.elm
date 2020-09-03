@@ -9,6 +9,8 @@ module BoardGameFramework.Clients exposing
   , empty, singleton, insert, update, remove
   -- Query
   , isEmpty, member, get, size
+  -- Lists and dicts
+  , ids, toList, toDict, fromList
   )
 
 
@@ -127,3 +129,37 @@ get id cs =
 size : Clients e -> Int
 size cs =
   Dict.size cs
+
+
+-- Lists and dicts
+
+{-| Get a list of all the client IDs.
+-}
+ids : Clients e -> List BGF.ClientId
+ids cs =
+  Dict.keys cs
+
+
+{-| Get all the clients as a list.
+-}
+toList : Clients e -> List (Client e)
+toList cs =
+  Dict.values cs
+
+
+{-| Get all the clients a `Dict` mapping from client ID.
+-}
+toDict : Clients e -> Dict BGF.ClientId (Client e)
+toDict cs =
+  cs
+
+
+{-| Turn a `List` of clients into a `Clients e`.
+If the `List` has more than one element with the same `id` then only
+one of those will end up in the output, and which one is not predictable.
+-}
+fromList : List (Client e) -> Clients e
+fromList cls =
+  cls
+  |> List.map (\c -> (c.id, c))
+  |> Dict.fromList
