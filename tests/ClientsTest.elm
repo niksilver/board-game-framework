@@ -90,21 +90,24 @@ updateTest =
       |> Dict.size
       |> Expect.equal 3
 
-  , test "Updating something to have a different id will replace the old" <|
-    \_ ->
-      let
-        fn =
-          always <| Just { id = "999.999", points = 40 }
-        clients2 =
-          Clients.empty
-          |> Clients.insert { id = "123.456", points = 20 }
-          |> Clients.insert { id = "654.321", points = 40 }
-          |> Clients.update "123.456" fn
-      in
-      Expect.all
-      [ \c2 -> Expect.equal True <| Dict.member "999.999" c2
-      , \c2 -> Expect.equal False <| Dict.member "123.456" c2
-      , \c2 -> Expect.equal 2 <| Dict.size c2
-      ]
-      clients2
+  , describe "Updating something to have a different id will replace the old" <|
+    let
+      fn =
+        always <| Just { id = "999.999", points = 40 }
+      clients2 =
+        Clients.empty
+        |> Clients.insert { id = "123.456", points = 20 }
+        |> Clients.insert { id = "654.321", points = 40 }
+        |> Clients.update "123.456" fn
+    in
+    [ test "A" <|
+      \_ -> Expect.equal True <| Dict.member "999.999" clients2
+
+    , test "B" <|
+      \_ -> Expect.equal False <| Dict.member "123.456" clients2
+
+    , test "C" <|
+      \_ -> Expect.equal 2 <| Dict.size clients2
+    ]
+
   ]
