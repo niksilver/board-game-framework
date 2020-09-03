@@ -142,3 +142,27 @@ memberTest =
   , test "Non-member should not be a member" <|
     \_ -> Expect.equal False (Clients.member "xxx.xxx" clients)
   ]
+
+
+getTest : Test
+getTest =
+  describe "getTest" <|
+  let
+    clients =
+      Clients.empty
+      |> Clients.insert { id = "123.456", points = 20 }
+      |> Clients.insert { id = "654.321", points = 40 }
+      |> Clients.insert { id = "999.999", points = 40 }
+  in
+  [ test "Getting a member should be Just it" <|
+    \_ ->
+      ( Clients.get "654.321" clients
+        |> Expect.equal (Just { id = "654.321", points = 40 })
+      )
+
+  , test "Getting a non-member should be Nothing" <|
+    \_ ->
+      ( Clients.get "xxx.xxx" clients
+        |> Expect.equal Nothing
+      )
+  ]

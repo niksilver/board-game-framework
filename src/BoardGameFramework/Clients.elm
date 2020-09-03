@@ -8,7 +8,7 @@ module BoardGameFramework.Clients exposing
   -- Build
   , empty, singleton, insert, update, remove
   -- Query
-  , isEmpty, member
+  , isEmpty, member, get
   )
 
 
@@ -113,3 +113,10 @@ isEmpty cs =
 member : BGF.ClientId -> Clients e -> Bool
 member id cs =
   Dict.member id cs
+
+
+{-| Get a client by its ID.
+-}
+get : BGF.ClientId -> Clients e -> Maybe (Client e)
+get id cs =
+  Dict.get id cs
