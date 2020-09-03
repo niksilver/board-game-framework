@@ -175,18 +175,3 @@ syncWithStep val step =
       Sync.mapToNext identity s1
   in
   List.foldl incStep sync0 (List.repeat step val)
-
-
--- Require all the expectations to be good
-requireAll : List Expectation -> Expectation
-requireAll exps =
-  case exps of
-    head :: tail ->
-      if head == Expect.pass then
-        requireAll tail
-
-      else
-        head
-
-    [] ->
-      Expect.pass
