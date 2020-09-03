@@ -111,3 +111,16 @@ updateTest =
     ]
 
   ]
+
+
+removeTest : Test
+removeTest =
+  test "Removing one should yield one less" <|
+  \_ ->
+    Clients.empty
+    |> Clients.insert { id = "123.456", points = 20 }
+    |> Clients.insert { id = "654.321", points = 40 }
+    |> Clients.insert { id = "999.999", points = 40 }
+    |> Clients.remove "654.321"
+    |> Dict.size
+    |> Expect.equal 2

@@ -6,7 +6,7 @@
 module BoardGameFramework.Clients exposing
   ( Client, Clients
   -- Build
-  , empty, singleton, insert, update
+  , empty, singleton, insert, update, remove
   )
 
 
@@ -87,3 +87,10 @@ update id mapper cs =
         cs
         |> Dict.remove id
         |> insert v2
+
+
+{-| Remove a client from the client list.
+-}
+remove : BGF.ClientId -> Clients e -> Clients e
+remove id cs =
+  Dict.remove id cs
