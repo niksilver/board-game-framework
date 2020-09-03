@@ -16,6 +16,7 @@ emptyTest =
   [ test "empty client list should have zero size" <|
     \_ ->
       Clients.empty
+      |> Clients.toDict
       |> Dict.size
       |> Expect.equal 0
   ]
@@ -27,6 +28,7 @@ singletonTest =
   [ test "singleton client list should have size one" <|
     \_ ->
       Clients.singleton { id = "123.456" }
+      |> Clients.toDict
       |> Dict.size
       |> Expect.equal 1
   ]
@@ -39,6 +41,7 @@ insertTest =
     \_ ->
       Clients.empty
       |> Clients.insert { id = "123.456" }
+      |> Clients.toDict
       |> Dict.size
       |> Expect.equal 1
 
@@ -47,6 +50,7 @@ insertTest =
       Clients.empty
       |> Clients.insert { id = "123.456", points = 20 }
       |> Clients.insert { id = "123.456", points = 40 }
+      |> Clients.toDict
       |> Dict.size
       |> Expect.equal 1
 
@@ -55,6 +59,7 @@ insertTest =
       Clients.empty
       |> Clients.insert { id = "123.456", points = 20 }
       |> Clients.insert { id = "654.321", points = 40 }
+      |> Clients.toDict
       |> Dict.size
       |> Expect.equal 2
   ]
@@ -74,6 +79,7 @@ updateTest =
       |> Clients.insert { id = "654.321", points = 40 }
       |> Clients.insert { id = "999.999", points = 40 }
       |> Clients.update "123.456" fn
+      |> Clients.toDict
       |> Dict.size
       |> Expect.equal 2
 
@@ -87,6 +93,7 @@ updateTest =
       |> Clients.insert { id = "123.456", points = 20 }
       |> Clients.insert { id = "654.321", points = 40 }
       |> Clients.update "999.999" fn
+      |> Clients.toDict
       |> Dict.size
       |> Expect.equal 3
 
@@ -101,13 +108,25 @@ updateTest =
         |> Clients.update "123.456" fn
     in
     [ test "A" <|
-      \_ -> Expect.equal True <| Dict.member "999.999" clients2
+      \_ ->
+        clients2
+        |> Clients.toDict
+        |> Dict.member "999.999"
+        |> Expect.equal True
 
     , test "B" <|
-      \_ -> Expect.equal False <| Dict.member "123.456" clients2
+      \_ ->
+        clients2
+        |> Clients.toDict
+        |> Dict.member "123.456"
+        |> Expect.equal False
 
     , test "C" <|
-      \_ -> Expect.equal 2 <| Dict.size clients2
+      \_ ->
+        clients2
+        |> Clients.toDict
+        |> Dict.size
+        |> Expect.equal 2
     ]
 
   ]
@@ -122,6 +141,7 @@ removeTest =
     |> Clients.insert { id = "654.321", points = 40 }
     |> Clients.insert { id = "999.999", points = 40 }
     |> Clients.remove "654.321"
+    |> Clients.toDict
     |> Dict.size
     |> Expect.equal 2
 
