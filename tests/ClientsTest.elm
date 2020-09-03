@@ -124,3 +124,21 @@ removeTest =
     |> Clients.remove "654.321"
     |> Dict.size
     |> Expect.equal 2
+
+
+memberTest : Test
+memberTest =
+  describe "memberTest" <|
+  let
+    clients =
+      Clients.empty
+      |> Clients.insert { id = "123.456", points = 20 }
+      |> Clients.insert { id = "654.321", points = 40 }
+      |> Clients.insert { id = "999.999", points = 40 }
+  in
+  [ test "Member should be a member" <|
+    \_ -> Expect.equal True (Clients.member "999.999" clients)
+
+  , test "Non-member should not be a member" <|
+    \_ -> Expect.equal False (Clients.member "xxx.xxx" clients)
+  ]

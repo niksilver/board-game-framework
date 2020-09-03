@@ -7,6 +7,8 @@ module BoardGameFramework.Clients exposing
   ( Client, Clients
   -- Build
   , empty, singleton, insert, update, remove
+  -- Query
+  , isEmpty, member
   )
 
 
@@ -94,3 +96,20 @@ update id mapper cs =
 remove : BGF.ClientId -> Clients e -> Clients e
 remove id cs =
   Dict.remove id cs
+
+
+-- Query
+
+
+{-| Is the client list empty?
+-}
+isEmpty : Clients e -> Bool
+isEmpty cs =
+  Dict.isEmpty cs
+
+
+{-| See if a client with a given ID is in the client list.
+-}
+member : BGF.ClientId -> Clients e -> Bool
+member id cs =
+  Dict.member id cs
