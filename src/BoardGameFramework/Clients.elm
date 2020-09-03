@@ -15,10 +15,13 @@ module BoardGameFramework.Clients exposing
 
 
 {-| Functions for managing a list of clients (which may be players,
-observers, or something else). This is actually just a
-`Dict` from client ID keys to some value for a client, which is
-a record including a field `id` holding the client ID.
-There is also some help for JSON encoding and decoding.
+observers, or something else).
+
+Each client is simply a record with an `id` field of type `ClientId`,
+and other fields as desired.
+The client list will never contain more than one
+element with the same `ClientId`.
+The API is based heavily on that of `Dict`.
 
 The type `ClientId` comes from the base `BoardGameFramework` module.
 -}
