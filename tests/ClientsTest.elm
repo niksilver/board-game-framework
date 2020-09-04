@@ -250,3 +250,58 @@ fromListTest =
       |> Expect.equal 4
 
   ]
+
+
+mapTest : Test
+mapTest =
+  describe "mapTest" <|
+  let
+    clients =
+      Clients.empty
+      |> Clients.insert { id = "123.456", points = 20 }
+      |> Clients.insert { id = "654.321", points = 40 }
+      |> Clients.insert { id = "999.999", points = 40 }
+  in
+  [ describe "With a simple map" <|
+    let
+      clientsSimple =
+        Clients.map (\c -> { c | points = 0 }) clients
+    in
+    [ test "Should be of size 3" <|
+      \_ -> Expect.equal 3 (Clients.size clientsSimple)
+
+    , test "Should contain 123.456" <|
+      \_ ->
+        Clients.get "123.456" clientsSimple
+        |> Expect.equal (Just { id = "123.456", points = 0 })
+    ]
+
+  , describe "With a map that reduces everything to one" <|
+    let
+      clientsClash =
+        Clients.map (\c -> { c | id = "xxx.xxx" }) clients
+    in
+    [ test "Should be of size 1" <|
+      \_ -> Expect.equal 1 (Clients.size clientsClash)
+
+    , test "Should contain xxx.xxx" <|
+      \_ ->
+        Clients.get "xxx.xxx" clientsClash
+        |> Maybe.map .id
+        |> Expect.equal (Just "xxx.xxx")
+    ]
+
+  , describe "With a map that changes the type of client" <|
+    let
+      clientsDifferent =
+        Clients.map (\c -> { id = c.id, tally = c.points // 10 }) clients
+    in
+    [ test "Should be of size 3" <|
+      \_ -> Expect.equal 3 (Clients.size clientsDifferent)
+
+    , test "Should contain a new kind of element" <|
+      \_ ->
+        Clients.get "123.456" clientsDifferent
+        |> Expect.equal (Just { id = "123.456", tally = 2 })
+    ]
+  ]

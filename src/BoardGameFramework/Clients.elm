@@ -11,6 +11,8 @@ module BoardGameFramework.Clients exposing
   , isEmpty, member, get, size
   -- Lists and dicts
   , ids, toList, toDict, fromList
+  -- Transform
+  , map
   )
 
 
@@ -173,4 +175,27 @@ fromList cls =
   cls
   |> List.map (\c -> (c.id, c))
   |> Dict.fromList
+  |> Clients
+
+
+-- Transform
+
+
+{-| Apply a function to all clients.
+
+The function could change an `id`. That almost certainly be a bad idea, but
+if it happened then the resulting client list would still have one
+element per `id`.
+-}
+map : (Client e -> Client f) -> Clients e -> Clients f
+map fn (Clients cs) =
+  let
+    insrt k v dict =
+      let
+        v2 = fn v
+      in
+      Dict.insert v2.id v2 dict
+  in
+  cs
+  |> Dict.foldl insrt Dict.empty
   |> Clients
