@@ -5,6 +5,8 @@ import Expect exposing (Expectation)
 import Test exposing (..)
 
 import Dict exposing (Dict)
+import Json.Encode as Enc
+import Json.Decode as Dec
 
 import BoardGameFramework as BGF
 import BoardGameFramework.Clients as Clients exposing (Client, Clients)
@@ -486,3 +488,54 @@ diffTest =
       |> Expect.equal (Just { id = "123.111", player = True })
 
   ]
+
+
+type alias JsonClient =
+  { name : String
+  , player : Bool
+  }
+
+
+jsonTest : Test
+jsonTest =
+  let
+    clients =
+      Clients.empty
+      |> Clients.insert { id = "123.111", name = "Aaa", player = True }
+      |> Clients.insert { id = "123.222", name = "Bbb", player = True }
+      |> Clients.insert { id = "123.333", name = "Ccc", player = False }
+  in
+  test "Decoding should undo encoding" <|
+    \_ ->
+      clients
+      |> encodeDecode
+      |> \result ->
+        case result of
+          Ok val ->
+            Expect.equal val clients
+
+          Err decError ->
+            "Bad decoder result: " ++ (Dec.errorToString decError)
+            |> Expect.fail
+
+
+encodeDecode : Clients JsonClient -> Result Dec.Error (Clients JsonClient)
+encodeDecode cs =
+  let
+    encodeClient c =
+      Enc.object
+      [ ("id", Enc.string c.id)
+      , ("name", Enc.string c.name)
+      , ("player", Enc.bool c.player)
+      ]
+    clientDecoder =
+      Dec.map3
+      (\id name player -> { id = id, name = name, player = player })
+      (Dec.field "id" Dec.string)
+      (Dec.field "name" Dec.string)
+      (Dec.field "player" Dec.bool)
+  in
+  cs
+  |> Clients.encode encodeClient
+  |> Enc.encode 0
+  |> Dec.decodeString (Clients.decoder clientDecoder)

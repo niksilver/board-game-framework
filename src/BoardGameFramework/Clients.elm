@@ -4,6 +4,7 @@
 
 
 module BoardGameFramework.Clients exposing
+  -- Basic types
   ( Client, Clients
   -- Build
   , empty, singleton, insert, update, remove
@@ -15,6 +16,8 @@ module BoardGameFramework.Clients exposing
   , map, fold, filter, partition
   -- Combine
   , union, intersect, diff
+  -- JSON
+  , encode, decoder
   )
 
 
@@ -28,12 +31,38 @@ element with the same `ClientId`.
 The API is based heavily on that of `Dict`.
 
 The type `ClientId` comes from the base `BoardGameFramework` module.
+
+# Basic types
+@docs Client, Clients
+
+#Build
+@docs empty, singleton, insert, update, remove
+
+#Query
+@docs isEmpty, member, get, size, filterSize
+
+#Lists and dicts
+@docs ids, toList, toDict, fromList
+
+#Transform
+@docs map, fold, filter, partition
+
+#Combine
+@docs union, intersect, diff
+
+# JSON
+@docs encode, decoder
 -}
 
 
 import Dict exposing (Dict)
+import Json.Encode as Enc
+import Json.Decode as Dec
 
 import BoardGameFramework as BGF
+
+
+-- Basic types
 
 
 {-| A player, observer, or similar.
@@ -302,3 +331,26 @@ diff : Clients e -> Clients e -> Clients e
 diff (Clients cs1) (Clients cs2) =
   Dict.diff cs1 cs2
   |> Clients
+
+
+-- JSON
+
+
+{-| Encode a client list. You need to provide an encoder for a `Client`.
+Recall that the `id` field is a `ClientId`, which is just an alias for
+`String`.
+-}
+encode : (Client e -> Enc.Value) -> Clients e -> Enc.Value
+encode fn (Clients cs) =
+  Enc.dict identity fn cs
+
+
+{-| A decoder for a client list. You need to provide a decoder for
+a `Client`.
+Recall that the `id` field is a `ClientId`, which is just an alias for
+`String`.
+-}
+decoder : Dec.Decoder (Client e) -> Dec.Decoder (Clients e)
+decoder fn =
+  Dec.dict fn
+  |> Dec.map Clients
