@@ -8,7 +8,7 @@ module BoardGameFramework.Clients exposing
   -- Build
   , empty, singleton, insert, update, remove
   -- Query
-  , isEmpty, member, get, size
+  , isEmpty, member, get, size, filterSize
   -- Lists and dicts
   , ids, toList, toDict, fromList
   -- Transform
@@ -141,6 +141,19 @@ get id (Clients cs) =
 size : Clients e -> Int
 size (Clients cs) =
   Dict.size cs
+
+
+{-| The number of clients that pass a test.
+
+Here's how we might count all those in `TeamA`:
+
+    clients
+    |> filterSize (\c -> c.team == TeamA)
+-}
+filterSize : (Client e -> Bool) -> Clients e -> Int
+filterSize fn cs =
+  filter fn cs
+  |> size
 
 
 -- Lists and dicts
