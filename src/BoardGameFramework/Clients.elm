@@ -14,7 +14,7 @@ module BoardGameFramework.Clients exposing
   -- Transform
   , map, fold, filter, partition
   -- Combine
-  , union
+  , union, intersect
   )
 
 
@@ -284,3 +284,13 @@ union : Clients e -> Clients e -> Clients e
 union (Clients cs1) (Clients cs2) =
   Dict.union cs1 cs2
   |> Clients
+
+
+{-| Find clients with `id`s that are in both client lists.
+The client from the first list will be preserved.
+-}
+intersect : Clients e -> Clients e -> Clients e
+intersect (Clients cs1) (Clients cs2) =
+  Dict.intersect cs1 cs2
+  |> Clients
+

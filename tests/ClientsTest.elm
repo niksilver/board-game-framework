@@ -421,3 +421,38 @@ unionTest =
       |> Expect.equal (Just { id = "123.444", player = False })
 
   ]
+
+
+intersectTest : Test
+intersectTest =
+  describe "intersectTest" <|
+  let
+    clients1 =
+      Clients.empty
+      |> Clients.insert { id = "123.111", player = True }
+      |> Clients.insert { id = "123.222", player = True }
+      |> Clients.insert { id = "123.333", player = True }
+    clients2 =
+      Clients.empty
+      |> Clients.insert { id = "123.222", player = False } -- Duplicate
+      |> Clients.insert { id = "123.333", player = False } -- Duplicate
+      |> Clients.insert { id = "123.444", player = False }
+    clientsBoth =
+      Clients.intersect clients1 clients2
+  in
+  [ test "Count should be correct" <|
+    \_ ->
+      Clients.size clientsBoth
+      |> Expect.equal 2
+
+  , test "First duplicate should be present" <|
+    \_ ->
+      Clients.get "123.222" clientsBoth
+      |> Expect.equal (Just { id = "123.222", player = True })
+
+  , test "Second duplicate should be present" <|
+    \_ ->
+      Clients.get "123.333" clientsBoth
+      |> Expect.equal (Just { id = "123.333", player = True })
+
+  ]
