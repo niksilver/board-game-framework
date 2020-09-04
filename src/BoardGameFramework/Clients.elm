@@ -13,6 +13,8 @@ module BoardGameFramework.Clients exposing
   , ids, toList, toDict, fromList
   -- Transform
   , map, fold, filter, partition
+  -- Combine
+  , union
   )
 
 
@@ -270,3 +272,15 @@ partition fn (Clients cs) =
   cs
   |> Dict.partition fn2
   |> Tuple.mapBoth Clients Clients
+
+
+-- Combine
+
+
+{-| Combine two client lists. If a client with the same `id` appears
+in both lists, then the one from the first list will survive.
+-}
+union : Clients e -> Clients e -> Clients e
+union (Clients cs1) (Clients cs2) =
+  Dict.union cs1 cs2
+  |> Clients

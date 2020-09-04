@@ -376,3 +376,48 @@ partitionTest =
     \_ -> Expect.equal 2 (Clients.size observers)
 
   ]
+
+
+unionTest : Test
+unionTest =
+  describe "unionTest" <|
+  let
+    clients1 =
+      Clients.empty
+      |> Clients.insert { id = "123.111", player = True }
+      |> Clients.insert { id = "123.222", player = True }
+      |> Clients.insert { id = "123.333", player = True }
+    clients2 =
+      Clients.empty
+      |> Clients.insert { id = "123.222", player = False } -- Clash
+      |> Clients.insert { id = "123.333", player = False } -- Clash
+      |> Clients.insert { id = "123.444", player = False }
+    clientsAll =
+      Clients.union clients1 clients2
+  in
+  [ test "Count should be correct" <|
+    \_ ->
+      Clients.size clientsAll
+      |> Expect.equal 4
+
+  , test "First client should be present" <|
+    \_ ->
+      Clients.get "123.111" clientsAll
+      |> Expect.equal (Just { id = "123.111", player = True })
+
+  , test "First of the first clash should be present" <|
+    \_ ->
+      Clients.get "123.222" clientsAll
+      |> Expect.equal (Just { id = "123.222", player = True })
+
+  , test "First of the second clash should be present" <|
+    \_ ->
+      Clients.get "123.333" clientsAll
+      |> Expect.equal (Just { id = "123.333", player = True })
+
+  , test "Last client should be present" <|
+    \_ ->
+      Clients.get "123.444" clientsAll
+      |> Expect.equal (Just { id = "123.444", player = False })
+
+  ]
