@@ -456,3 +456,33 @@ intersectTest =
       |> Expect.equal (Just { id = "123.333", player = True })
 
   ]
+
+
+diffTest : Test
+diffTest =
+  describe "diffTest" <|
+  let
+    clients1 =
+      Clients.empty
+      |> Clients.insert { id = "123.111", player = True } -- Only in first list
+      |> Clients.insert { id = "123.222", player = True }
+      |> Clients.insert { id = "123.333", player = True }
+    clients2 =
+      Clients.empty
+      |> Clients.insert { id = "123.222", player = False }
+      |> Clients.insert { id = "123.333", player = False }
+      |> Clients.insert { id = "123.444", player = False }
+    clientsDiff =
+      Clients.diff clients1 clients2
+  in
+  [ test "Count should be correct" <|
+    \_ ->
+      Clients.size clientsDiff
+      |> Expect.equal 1
+
+  , test "Correct client should be present" <|
+    \_ ->
+      Clients.get "123.111" clientsDiff
+      |> Expect.equal (Just { id = "123.111", player = True })
+
+  ]

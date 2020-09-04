@@ -14,7 +14,7 @@ module BoardGameFramework.Clients exposing
   -- Transform
   , map, fold, filter, partition
   -- Combine
-  , union, intersect
+  , union, intersect, diff
   )
 
 
@@ -294,3 +294,11 @@ intersect (Clients cs1) (Clients cs2) =
   Dict.intersect cs1 cs2
   |> Clients
 
+
+
+{-| Find clients from the first list whose 'id` isn't in the second list.
+-}
+diff : Clients e -> Clients e -> Clients e
+diff (Clients cs1) (Clients cs2) =
+  Dict.diff cs1 cs2
+  |> Clients
