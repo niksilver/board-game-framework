@@ -310,6 +310,7 @@ mapTest =
 foldTest : Test
 foldTest =
   test "foldTest - sum all points" <|
+  \_ ->
     let
       fn c a = c.points + a
       clients =
@@ -318,4 +319,22 @@ foldTest =
         |> Clients.insert { id = "654.321", points = 40 }
         |> Clients.insert { id = "999.999", points = 40 }
     in
-    \_ -> Expect.equal 101 <| Clients.fold fn 1 clients
+    Clients.fold fn 1 clients
+    |> Expect.equal 101
+
+
+filterTest : Test
+filterTest =
+  test "filterTest - count those with a high score" <|
+  \_ ->
+    let
+      clients =
+        Clients.empty
+        |> Clients.insert { id = "123.456", points = 20 }
+        |> Clients.insert { id = "654.321", points = 40 }
+        |> Clients.insert { id = "999.999", points = 100 }
+    in
+    clients
+    |> Clients.filter (\c -> c.points >= 100)
+    |> Clients.size
+    |> Expect.equal 1

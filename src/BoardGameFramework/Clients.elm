@@ -12,7 +12,7 @@ module BoardGameFramework.Clients exposing
   -- Lists and dicts
   , ids, toList, toDict, fromList
   -- Transform
-  , map, fold
+  , map, fold, filter
   )
 
 
@@ -220,3 +220,21 @@ fold fn z (Clients cs) =
       fn v n
   in
   Dict.foldl fn2 z cs
+
+
+{-| Keep only those clients that pass a test.
+
+Here's how we might get all those in `TeamA`:
+
+    clients
+    |> filter (\c -> c.team == TeamA)
+-}
+filter : (Client e -> Bool) -> Clients e -> Clients e
+filter fn (Clients cs) =
+  let
+    fn2 _ v =
+      fn v
+  in
+  cs
+  |> Dict.filter fn2
+  |> Clients
