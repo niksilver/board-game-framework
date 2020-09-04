@@ -354,3 +354,25 @@ filterTest =
     |> Clients.filter (\c -> c.points >= 100)
     |> Clients.size
     |> Expect.equal 1
+
+
+partitionTest : Test
+partitionTest =
+  describe "partitionTest - split players from observers" <|
+  let
+    clients =
+      Clients.empty
+      |> Clients.insert { id = "123.111", player = True }
+      |> Clients.insert { id = "123.222", player = True }
+      |> Clients.insert { id = "123.333", player = True }
+      |> Clients.insert { id = "999.444", player = False }
+      |> Clients.insert { id = "999.555", player = False }
+    (players, observers) = Clients.partition .player clients
+  in
+  [ test "Should be 3 players" <|
+    \_ -> Expect.equal 3 (Clients.size players)
+
+  , test "Should be 2 observers" <|
+    \_ -> Expect.equal 2 (Clients.size observers)
+
+  ]

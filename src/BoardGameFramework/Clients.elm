@@ -12,7 +12,7 @@ module BoardGameFramework.Clients exposing
   -- Lists and dicts
   , ids, toList, toDict, fromList
   -- Transform
-  , map, fold, filter
+  , map, fold, filter, partition
   )
 
 
@@ -251,3 +251,22 @@ filter fn (Clients cs) =
   cs
   |> Dict.filter fn2
   |> Clients
+
+
+{-| Split the client list into two: those who pass a test (first
+element of the pair), and those who don't.
+
+If `player` is a Boolean field distinguishing a participant from an
+observer, then here's how we might split the two:
+
+    partition .player clients
+-}
+partition : (Client e -> Bool) -> Clients e -> (Clients e, Clients e)
+partition fn (Clients cs) =
+  let
+    fn2 _ v =
+      fn v
+  in
+  cs
+  |> Dict.partition fn2
+  |> Tuple.mapBoth Clients Clients
