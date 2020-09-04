@@ -305,3 +305,17 @@ mapTest =
         |> Expect.equal (Just { id = "123.456", tally = 2 })
     ]
   ]
+
+
+foldTest : Test
+foldTest =
+  test "foldTest - sum all points" <|
+    let
+      fn c a = c.points + a
+      clients =
+        Clients.empty
+        |> Clients.insert { id = "123.456", points = 20 }
+        |> Clients.insert { id = "654.321", points = 40 }
+        |> Clients.insert { id = "999.999", points = 40 }
+    in
+    \_ -> Expect.equal 101 <| Clients.fold fn 1 clients

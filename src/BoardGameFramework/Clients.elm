@@ -12,7 +12,7 @@ module BoardGameFramework.Clients exposing
   -- Lists and dicts
   , ids, toList, toDict, fromList
   -- Transform
-  , map
+  , map, fold
   )
 
 
@@ -186,6 +186,11 @@ fromList cls =
 The function could change an `id`. That almost certainly be a bad idea, but
 if it happened then the resulting client list would still have one
 element per `id`.
+
+Here's how we might reset everyone's score to zero:
+
+    clients
+    |> map (\c -> { c | score = 0})
 -}
 map : (Client e -> Client f) -> Clients e -> Clients f
 map fn (Clients cs) =
@@ -199,3 +204,19 @@ map fn (Clients cs) =
   cs
   |> Dict.foldl insrt Dict.empty
   |> Clients
+
+
+{-| Fold over all the clients. Order of processing is not guaranteed.
+
+Here's how to add up everyone's score:
+
+    clients
+    |> fold (\c n -> c.score + n) 0
+-}
+fold : (Client e -> f -> f) -> f -> Clients e -> f
+fold fn z (Clients cs) =
+  let
+    fn2 _ v n =
+      fn v n
+  in
+  Dict.foldl fn2 z cs
