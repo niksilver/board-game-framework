@@ -17,7 +17,7 @@ module BoardGameFramework.Clients exposing
   -- Combine
   , union, intersect, diff
   -- JSON
-  , encode, encode2, decoder
+  , encode, decoder
   )
 
 
@@ -336,28 +336,37 @@ diff (Clients cs1) (Clients cs2) =
 -- JSON
 
 
-{-| Encode a client list. You need to provide an encoder for a `Client`.
-Recall that the `id` field is a `ClientId`, which is just an alias for
-`String`.
+{-| Encode a client list. You need to provide encoders for each field
+(but not the `id` field - that's taken care of).
+
+If we have a client list `cs` with a `name` field and a Boolean
+`player` field, then this is how we might encode it:
+
+    encodeClients : Clients e -> Value
+    encodeClients =
+      encode
+      [ ("name", .name >> Enc.string)
+      , ("player", .player >> Enc.bool)
+      ]
+
+    encodedClients : Value
+    encodedClients =
+      encodeClients cs
 -}
-encode : (Client e -> Enc.Value) -> Clients e -> Enc.Value
-encode fn (Clients cs) =
-  Enc.dict identity fn cs
-
-
-encode2 : List (String, Client e -> Enc.Value) -> Clients e -> Enc.Value
-encode2 trans (Clients cs) =
+encode : List (String, Client e -> Enc.Value) -> Clients e -> Enc.Value
+encode trans (Clients cs) =
   let
-    -- NB: What if "id" is already mapped?
-    transFull = ("id", .id >> Enc.string) :: trans
-    clientPairs : Client e -> List (String, Enc.Value)
+    -- Put the id translation into the list
+    transFull =
+      ("id", .id >> Enc.string) :: trans
+    -- Type : Client e -> List (String, Enc.Value)
     clientPairs c =
       List.map (\(name, fn) -> (name, fn c)) transFull
-    encodeClient_ : Client e -> Enc.Value
-    encodeClient_ c =
+    -- Type : Client e -> Enc.Value
+    encodeClient c =
       Enc.object (clientPairs c)
   in
-  Enc.dict identity encodeClient_ cs
+  Enc.dict identity encodeClient cs
 
 
 {-| A decoder for a client list. You need to provide a decoder for

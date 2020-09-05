@@ -522,14 +522,8 @@ jsonTest =
 encodeDecode : Clients JsonClient -> Result Dec.Error (Clients JsonClient)
 encodeDecode cs =
   let
-    encodeClient_OLD c =
-      Enc.object
-      [ ("id", Enc.string c.id)
-      , ("name", Enc.string c.name)
-      , ("player", Enc.bool c.player)
-      ]
     encodeClients =
-      Clients.encode2
+      Clients.encode
       [ ("name", .name >> Enc.string)
       , ("player", .player >> Enc.bool)
       ]
