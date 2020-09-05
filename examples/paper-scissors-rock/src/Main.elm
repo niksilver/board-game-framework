@@ -194,12 +194,12 @@ openCmd =
 
 sendPlayerListCmd : Sync PlayerList -> Cmd Msg
 sendPlayerListCmd =
-  BGF.send outgoing wrappedSyncPlayerListEncoder
+  BGF.send outgoing wrappedSyncPlayerListEncode
 
 
 sendMyNameCmd : Client -> Cmd Msg
 sendMyNameCmd =
-  BGF.send outgoing wrappedMyNameEncoder
+  BGF.send outgoing wrappedMyNameEncode
 
 
 -- Peer-to-peer messages
@@ -222,21 +222,21 @@ createMsg v =
 -- JSON encoders and decoders
 
 
-clientEncoder : Client -> Enc.Value
-clientEncoder cl =
+clientEncode : Client -> Enc.Value
+clientEncode cl =
   Enc.object
     [ ( "id", Enc.string cl.id )
     , ( "name", Enc.string cl.name )
     ]
 
 
-clientListEncoder : List Client -> Enc.Value
-clientListEncoder cs =
-  Enc.list clientEncoder cs
+clientListEncode : List Client -> Enc.Value
+clientListEncode cs =
+  Enc.list clientEncode cs
 
 
-playerListEncoder : PlayerList -> Enc.Value
-playerListEncoder pl =
+playerListEncode : PlayerList -> Enc.Value
+playerListEncode pl =
   let
     clients =
       case pl of
@@ -250,26 +250,26 @@ playerListEncoder pl =
           [[a, b], os]
   in
   Enc.list
-    clientListEncoder
+    clientListEncode
     clients
 
 
-syncPlayerListEncoder : Sync PlayerList -> Enc.Value
-syncPlayerListEncoder spl =
-  Sync.encoder playerListEncoder spl
+syncPlayerListEncode : Sync PlayerList -> Enc.Value
+syncPlayerListEncode spl =
+  Sync.encode playerListEncode spl
 
 
-wrappedSyncPlayerListEncoder : Sync PlayerList -> Enc.Value
-wrappedSyncPlayerListEncoder pl =
+wrappedSyncPlayerListEncode : Sync PlayerList -> Enc.Value
+wrappedSyncPlayerListEncode pl =
   Enc.object
-    [ ( "players", syncPlayerListEncoder pl)
+    [ ( "players", syncPlayerListEncode pl)
     ]
 
 
-wrappedMyNameEncoder : Client -> Enc.Value
-wrappedMyNameEncoder client =
+wrappedMyNameEncode : Client -> Enc.Value
+wrappedMyNameEncode client =
   Enc.object
-    [ ( "myName", clientEncoder client)
+    [ ( "myName", clientEncode client)
     ]
 
 
@@ -534,7 +534,7 @@ viewGame model =
   let
     ps =
       model.players
-      |> Sync.data
+      |> Sync.value
       |> extract
   in
   [ Html.div []
