@@ -16,7 +16,7 @@ import Json.Decode as Dec
 import Url
 
 import BoardGameFramework as BGF
-import BoardGameFramework.Clients as Clients exposing (Clients)
+import BoardGameFramework.Clients as Clients exposing (Clients, Client)
 import BoardGameFramework.Lobby as Lobby exposing (Lobby)
 import BoardGameFramework.Sync as Sync exposing (Sync)
 
@@ -45,22 +45,21 @@ type alias Model =
   , gameId : Maybe BGF.GameId
   , draftName : String
   , name : Maybe String
-  , clients : Sync ClientList
+  , clients : Sync (Clients Profile)
   }
 
 
--- Any client who has got into the game will have a name
-type alias Client =
+type alias NamedClient =
   { id : BGF.ClientId
   , name : String
   }
 
-
--- A client list is 0, 1 or 2 players plus a number of observers.
-type ClientList =
-  NoPlayers (List Client)
-  | OnePlayer Client (List Client)
-  | TwoPlayers Client Client (List Client)
+-- A profile is a client description without their ID.
+-- Their ID is added when we talk about a Client Profile.
+type alias Profile =
+  { name : String
+  , player : Bool
+  }
 
 
 -- How much progress have we made into the game?
@@ -96,46 +95,32 @@ type Msg =
 
 
 type PeerMsg =
-  MyNameMsg Client
-  | ClientListMsg (Sync ClientList)
+  MyNameMsg NamedClient
+  | ClientListMsg (Sync (Clients Profile))
 
 
--- ClientList functions
+-- Client functions
 
 
-addIfNotPresent : Client -> ClientList -> ClientList
-addIfNotPresent client pos =
+playerCount : Clients Profile -> Int
+playerCount cs =
+  cs
+  |> Clients.filterSize (.player >> not)
+
+
+addIfNotPresent : NamedClient -> Clients Profile -> Clients Profile
+addIfNotPresent namedClient cs =
   let
-    matches c =
-      client.id == c.id
-    isPresent =
-      case pos of
-        NoPlayers obs ->
-          List.any matches obs
-
-        OnePlayer p1 obs ->
-          matches p1
-          || List.any matches obs
-
-        TwoPlayers p1 p2 obs ->
-          matches p1
-          || matches p2
-          || List.any matches obs
+    playerMissing =
+      playerCount cs < 2
+    client =
+      { id = namedClient.id
+      , name = namedClient.name
+      , player = playerMissing
+      }
   in
-  case isPresent of
-    True ->
-      pos
-
-    False ->
-      case pos of
-        NoPlayers obs ->
-          OnePlayer client obs
-
-        OnePlayer p1 obs ->
-          TwoPlayers p1 client obs
-
-        TwoPlayers p1 p2 obs ->
-          TwoPlayers p1 p2 (client :: obs)
+    cs
+    |> Clients.insert client
 
 
 -- Initialisation functions
@@ -152,7 +137,7 @@ init clientId url key =
     , draftName = ""
     , name = Nothing
     , clients =
-        NoPlayers []
+        Clients.empty
         |> Sync.zero
     }
   , cmd
@@ -179,12 +164,12 @@ openCmd =
   BGF.open outgoing server |> Debug.log "openCmd"
 
 
-sendClientListCmd : Sync ClientList -> Cmd Msg
+sendClientListCmd : Sync (Clients Profile) -> Cmd Msg
 sendClientListCmd =
   BGF.send outgoing wrappedSyncClientListEncode
 
 
-sendMyNameCmd : Client -> Cmd Msg
+sendMyNameCmd : NamedClient -> Cmd Msg
 sendMyNameCmd =
   BGF.send outgoing wrappedMyNameEncode
 
@@ -209,132 +194,74 @@ createMsg v =
 -- JSON encoders and decoders
 
 
-clientEncode : Client -> Enc.Value
-clientEncode cl =
+namedClientEncode : NamedClient -> Enc.Value
+namedClientEncode namedClient =
   Enc.object
-    [ ( "id", Enc.string cl.id )
-    , ( "name", Enc.string cl.name )
+    [ ( "id", Enc.string namedClient.id )
+    , ( "name", Enc.string namedClient.name )
     ]
 
 
-clientListEncode : List Client -> Enc.Value
-clientListEncode cs =
-  Enc.list clientEncode cs
+clientListEncode : Clients Profile -> Enc.Value
+clientListEncode =
+  Clients.encode
+  [ ("name", .name >> Enc.string)
+  , ("player", .player >> Enc.bool)
+  ]
 
 
-playerListEncode : ClientList -> Enc.Value
-playerListEncode pl =
-  let
-    clients =
-      case pl of
-        NoPlayers os ->
-          [[], os]
-
-        OnePlayer a os ->
-          [[a], os]
-
-        TwoPlayers a b os ->
-          [[a, b], os]
-  in
-  Enc.list
-    clientListEncode
-    clients
-
-
-syncClientListEncode : Sync ClientList -> Enc.Value
+syncClientListEncode : Sync (Clients Profile) -> Enc.Value
 syncClientListEncode spl =
-  Sync.encode playerListEncode spl
+  Sync.encode clientListEncode spl
 
 
-wrappedSyncClientListEncode : Sync ClientList -> Enc.Value
+wrappedSyncClientListEncode : Sync (Clients Profile) -> Enc.Value
 wrappedSyncClientListEncode pl =
   Enc.object
-    [ ( "players", syncClientListEncode pl)
+    [ ( "clients", syncClientListEncode pl)
     ]
 
 
-wrappedMyNameEncode : Client -> Enc.Value
-wrappedMyNameEncode client =
+wrappedMyNameEncode : NamedClient -> Enc.Value
+wrappedMyNameEncode namedClient =
   Enc.object
-    [ ( "myName", clientEncode client)
+    [ ( "myName", namedClientEncode namedClient)
     ]
 
 
-clientDecoder : Dec.Decoder Client
-clientDecoder =
-  Dec.map2 Client
+namedClientDecoder : Dec.Decoder NamedClient
+namedClientDecoder =
+  Dec.map2 NamedClient
     (Dec.field "id" Dec.string)
     (Dec.field "name" Dec.string)
 
 
-listOfClientsDecoder : Dec.Decoder (List Client)
-listOfClientsDecoder =
-  Dec.list clientDecoder
+clientDecoder =
+  Dec.map3
+  (\id name player -> { id = id, name = name, player = player })
+  (Dec.field "id" Dec.string)
+  (Dec.field "name" Dec.string)
+  (Dec.field "player" Dec.bool)
 
 
-noPlayersDecoder : Dec.Decoder ClientList
-noPlayersDecoder =
-  Dec.map NoPlayers
-    (Dec.index 1 listOfClientsDecoder)
-
-
-onePlayerDecoder : Dec.Decoder ClientList
-onePlayerDecoder =
-  Dec.map2 OnePlayer
-    (Dec.index 0 (Dec.index 0 clientDecoder))
-    (Dec.index 1 listOfClientsDecoder)
-
-
-twoPlayersDecoder : Dec.Decoder ClientList
-twoPlayersDecoder =
-  Dec.map3 TwoPlayers
-    (Dec.index 0 (Dec.index 0 clientDecoder))
-    (Dec.index 0 (Dec.index 1 clientDecoder))
-    (Dec.index 1 listOfClientsDecoder)
-
-
-clientListDecoder : Dec.Decoder ClientList
+clientListDecoder : Dec.Decoder (Clients Profile)
 clientListDecoder =
-  let
-    headLength ps =
-      List.head ps
-      |> Maybe.map List.length
-    nPlayersDecoder ps =
-      case headLength ps of
-        Just 0 ->
-          noPlayersDecoder
-
-        Just 1 ->
-          onePlayerDecoder
-
-        Just 2 ->
-          twoPlayersDecoder
-
-        Just n ->
-          Dec.fail
-          <| "JSON for ClientList has " ++ (String.fromInt n) ++ " players"
-
-        Nothing ->
-          Dec.fail
-          <| "JSON for ClientList does not have a first element"
-  in
-  Dec.list listOfClientsDecoder
-  |> Dec.andThen nPlayersDecoder
+  Clients.decoder clientDecoder
 
 
-syncClientListDecoder : Dec.Decoder (Sync ClientList)
+syncClientListDecoder : Dec.Decoder (Sync (Clients Profile))
 syncClientListDecoder =
   Sync.decoder clientListDecoder
 
 
-wrappedSyncClientListDecoder : Dec.Decoder (Sync ClientList)
+wrappedSyncClientListDecoder : Dec.Decoder (Sync (Clients Profile))
 wrappedSyncClientListDecoder =
-  Dec.field "players" syncClientListDecoder
+  Dec.field "clients" syncClientListDecoder
 
 
-wrappedMyNameDecoder : Dec.Decoder Client
+wrappedMyNameDecoder : Dec.Decoder NamedClient
 wrappedMyNameDecoder =
-  Dec.field "myName" clientDecoder
+  Dec.field "myName" namedClientDecoder
 
 
 peerMsgDecoder : Dec.Decoder PeerMsg
@@ -373,8 +300,12 @@ update msg model =
         -- and our player list
         let
           name = model.draftName
-          me = Client model.myId name
-          clientList = OnePlayer me []
+          me =
+            { id = model.myId
+            , name = name
+            , player = True
+            }
+          clientList = Clients.singleton me
           clients =
             model.clients
             |> Sync.assume clientList
@@ -384,7 +315,7 @@ update msg model =
           , clients = clients
           }
         , Cmd.batch
-          [ sendMyNameCmd me
+          [ sendMyNameCmd (NamedClient me.id me.name)
           , sendClientListCmd clients
           ]
         )
@@ -425,8 +356,8 @@ updateWithEnvelope env model =
     BGF.Peer rec ->
       -- A message from another peer
       case rec.body of
-        MyNameMsg client ->
-          updateWithMyName client model
+        MyNameMsg namedClient ->
+          updateWithMyName namedClient model
 
         ClientListMsg syncClientList ->
           updateWithClientList rec.num syncClientList model
@@ -450,12 +381,12 @@ updateWithEnvelope env model =
       )
 
 
-updateWithMyName : Client -> Model -> (Model, Cmd Msg)
-updateWithMyName client model =
+updateWithMyName : NamedClient -> Model -> (Model, Cmd Msg)
+updateWithMyName namedClient model =
   let
     syncClientList2 =
       model.clients
-      |> Sync.mapToNext (addIfNotPresent client)
+      |> Sync.mapToNext (addIfNotPresent namedClient)
   in
   ( { model
     | clients = syncClientList2
@@ -464,7 +395,7 @@ updateWithMyName client model =
   )
 
 
-updateWithClientList : Int -> Sync ClientList -> Model -> (Model, Cmd Msg)
+updateWithClientList : Int -> Sync (Clients Profile) -> Model -> (Model, Cmd Msg)
 updateWithClientList num spl model =
   (model, Cmd.none |> Debug.log "To be implememented!")
 
@@ -519,47 +450,33 @@ viewNameForm model =
 viewGame : Model -> List (Html Msg)
 viewGame model =
   let
-    cs =
+    (players, observers) =
       model.clients
       |> Sync.value
-      |> extract
+      |> Clients.partition .player
+    playerNames =
+      players
+      |> Clients.toList
+      |> List.map .name
+    observerNames =
+      observers
+      |> Clients.toList
+      |> List.map .name
   in
   [ Html.div []
     [ Html.p []
       [ Html.text "Players: "
-      , if List.length cs.players == 0 then
+      , if Clients.size players == 0 then
           Html.text "None"
         else
-          Html.text <| String.join ", " cs.players
+          Html.text <| String.join ", " playerNames
       ]
     , Html.p []
       [ Html.text "Observers: "
-      , if List.length cs.observers == 0 then
+      , if Clients.size observers == 0 then
           Html.text "None"
         else
-          Html.text <| String.join ", " cs.observers
+          Html.text <| String.join ", " observerNames
       ]
     ]
   ]
-
-
--- Handy functions for viewing the ClientList
-
-
-extract : ClientList -> { players : List String, observers : List String }
-extract players =
-  case players of
-    NoPlayers os ->
-      { players = []
-      , observers = List.map .name os
-      }
-
-    OnePlayer p1 os ->
-      { players = [ p1.name ]
-      , observers = List.map .name os
-      }
-
-    TwoPlayers p1 p2 os ->
-      { players = [ p1.name, p2.name ]
-      , observers = List.map .name os
-      }
