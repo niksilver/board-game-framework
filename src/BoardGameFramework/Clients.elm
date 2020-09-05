@@ -359,14 +359,16 @@ encode trans (Clients cs) =
     -- Put the id translation into the list
     transFull =
       ("id", .id >> Enc.string) :: trans
-    -- Type : Client e -> List (String, Enc.Value)
+
+    clientPairs : Client e -> List (String, Enc.Value)
     clientPairs c =
       List.map (\(name, fn) -> (name, fn c)) transFull
-    -- Type : Client e -> Enc.Value
-    encodeClient c =
+
+    encodeOneClient : Client e -> Enc.Value
+    encodeOneClient c =
       Enc.object (clientPairs c)
   in
-  Enc.dict identity encodeClient cs
+  Enc.dict identity encodeOneClient cs
 
 
 {-| A decoder for a client list. You need to provide a decoder for
