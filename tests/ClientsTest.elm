@@ -527,14 +527,22 @@ encodeDecode cs =
       [ ("name", .name >> Enc.string)
       , ("player", .player >> Enc.bool)
       ]
-    clientDecoder =
+
+    singleClientDecoder : Dec.Decoder (Client JsonClient)
+    singleClientDecoder =
       Dec.map3
       (\id name player -> { id = id, name = name, player = player })
       (Dec.field "id" Dec.string)
       (Dec.field "name" Dec.string)
       (Dec.field "player" Dec.bool)
+
+    -- Just to check the type and make sure our documentation is correct,
+    -- not for this test:
+    clientsDecoder : Dec.Decoder (Clients JsonClient)
+    clientsDecoder =
+      Clients.decoder singleClientDecoder
   in
   cs
   |> encodeClients
   |> Enc.encode 0
-  |> Dec.decodeString (Clients.decoder clientDecoder)
+  |> Dec.decodeString (Clients.decoder singleClientDecoder)

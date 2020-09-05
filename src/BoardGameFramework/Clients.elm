@@ -340,16 +340,18 @@ diff (Clients cs1) (Clients cs2) =
 (but not the `id` field - that's taken care of).
 
 If we have a client list `cs` with a `name` field and a Boolean
-`player` field, then this is how we might encode it:
+`player` field, then this is how we encode it:
 
-    encodeClients : Clients e -> Value
+    import Json.Encode as Enc
+
+    encodeClients : Clients e -> Enc.Value
     encodeClients =
       encode
       [ ("name", .name >> Enc.string)
       , ("player", .player >> Enc.bool)
       ]
 
-    encodedClients : Value
+    encodedClients : Enc.Value
     encodedClients =
       encodeClients cs
 -}
@@ -372,9 +374,25 @@ encode trans (Clients cs) =
 
 
 {-| A decoder for a client list. You need to provide a decoder for
-a `Client`.
+a single `Client`, including its `id` field.
 Recall that the `id` field is a `ClientId`, which is just an alias for
 `String`.
+
+If a `Client` has a `name` field and a Boolean `player` field,
+then this is how we make a decoder for it:
+
+    import Json.Decode as Dec
+
+    singleClientDecoder =
+      Dec.map3
+      (\id name player -> { id = id, name = name, player = player })
+      (Dec.field "id" Dec.string)
+      (Dec.field "name" Dec.string)
+      (Dec.field "player" Dec.bool)
+
+    clientsDecoder =
+      decoder singleClientDecoder
+
 -}
 decoder : Dec.Decoder (Client e) -> Dec.Decoder (Clients e)
 decoder fn =
