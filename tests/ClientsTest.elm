@@ -190,14 +190,14 @@ getTest =
   ]
 
 
-sizeTest : Test
-sizeTest =
-  describe "sizeTest"
-  [ test "Empty list should have size 0" <|
+lengthTest : Test
+lengthTest =
+  describe "lengthTest"
+  [ test "Empty list should have length 0" <|
     \_ ->
-      Expect.equal 0 (Clients.size Clients.empty)
+      Expect.equal 0 (Clients.length Clients.empty)
 
-  , test "Three-strong list should have size 3" <|
+  , test "Three-strong list should have length 3" <|
     \_ ->
       let
         clients =
@@ -206,7 +206,7 @@ sizeTest =
           |> Clients.insert { id = "654.321", points = 40 }
           |> Clients.insert { id = "999.999", points = 40 }
       in
-      Expect.equal 3 (Clients.size clients)
+      Expect.equal 3 (Clients.length clients)
   ]
 
 
@@ -240,14 +240,14 @@ fromListTest =
       in
       list
       |> Clients.fromList
-      |> Clients.size
+      |> Clients.length
       |> Expect.equal 3
 
   , test "Converting from empty list should yield an empty Clients" <|
     \_ ->
       []
       |> Clients.fromList
-      |> Clients.size
+      |> Clients.length
       |> Expect.equal 0
 
   , test "Converting from a duplicated-id list should remove dupes" <|
@@ -264,7 +264,7 @@ fromListTest =
       in
       list
       |> Clients.fromList
-      |> Clients.size
+      |> Clients.length
       |> Expect.equal 4
 
   ]
@@ -286,7 +286,7 @@ mapTest =
         Clients.map (\c -> { c | points = 0 }) clients
     in
     [ test "Should be of size 3" <|
-      \_ -> Expect.equal 3 (Clients.size clientsSimple)
+      \_ -> Expect.equal 3 (Clients.length clientsSimple)
 
     , test "Should contain 123.456" <|
       \_ ->
@@ -300,7 +300,7 @@ mapTest =
         Clients.map (\c -> { c | id = "xxx.xxx" }) clients
     in
     [ test "Should be of size 1" <|
-      \_ -> Expect.equal 1 (Clients.size clientsClash)
+      \_ -> Expect.equal 1 (Clients.length clientsClash)
 
     , test "Should contain xxx.xxx" <|
       \_ ->
@@ -315,7 +315,7 @@ mapTest =
         Clients.map (\c -> { id = c.id, tally = c.points // 10 }) clients
     in
     [ test "Should be of size 3" <|
-      \_ -> Expect.equal 3 (Clients.size clientsDifferent)
+      \_ -> Expect.equal 3 (Clients.length clientsDifferent)
 
     , test "Should contain a new kind of element" <|
       \_ ->
@@ -354,7 +354,7 @@ filterTest =
     in
     clients
     |> Clients.filter (\c -> c.points >= 100)
-    |> Clients.size
+    |> Clients.length
     |> Expect.equal 1
 
 
@@ -372,10 +372,10 @@ partitionTest =
     (players, observers) = Clients.partition .player clients
   in
   [ test "Should be 3 players" <|
-    \_ -> Expect.equal 3 (Clients.size players)
+    \_ -> Expect.equal 3 (Clients.length players)
 
   , test "Should be 2 observers" <|
-    \_ -> Expect.equal 2 (Clients.size observers)
+    \_ -> Expect.equal 2 (Clients.length observers)
 
   ]
 
@@ -399,7 +399,7 @@ unionTest =
   in
   [ test "Count should be correct" <|
     \_ ->
-      Clients.size clientsAll
+      Clients.length clientsAll
       |> Expect.equal 4
 
   , test "First client should be present" <|
@@ -444,7 +444,7 @@ intersectTest =
   in
   [ test "Count should be correct" <|
     \_ ->
-      Clients.size clientsBoth
+      Clients.length clientsBoth
       |> Expect.equal 2
 
   , test "First duplicate should be present" <|
@@ -479,7 +479,7 @@ diffTest =
   in
   [ test "Count should be correct" <|
     \_ ->
-      Clients.size clientsDiff
+      Clients.length clientsDiff
       |> Expect.equal 1
 
   , test "Correct client should be present" <|

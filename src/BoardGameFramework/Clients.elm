@@ -9,9 +9,9 @@ module BoardGameFramework.Clients exposing
   -- Build
   , empty, singleton, insert, update, remove
   -- Query
-  , isEmpty, member, get, size, filterSize
+  , isEmpty, member, get, length, filterSize
   -- Lists and dicts
-  , ids, toList, toDict, fromList
+  , ids, toList, mapToList, toDict, fromList
   -- Transform
   , map, fold, filter, partition
   -- Combine
@@ -28,7 +28,6 @@ Each client is simply a record with an `id` field of type `ClientId`,
 and other fields as desired.
 The client list will never contain more than one
 element with the same `ClientId`.
-The API is based heavily on that of `Dict`.
 
 The type `ClientId` comes from the base `BoardGameFramework` module.
 
@@ -39,7 +38,7 @@ The type `ClientId` comes from the base `BoardGameFramework` module.
 @docs empty, singleton, insert, update, remove
 
 #Query
-@docs isEmpty, member, get, size, filterSize
+@docs isEmpty, member, get, length, filterSize
 
 #Lists and dicts
 @docs ids, toList, toDict, fromList
@@ -169,8 +168,8 @@ get id (Clients cs) =
 
 {-| The number of clients in the list.
 -}
-size : Clients e -> Int
-size (Clients cs) =
+length : Clients e -> Int
+length (Clients cs) =
   Dict.size cs
 
 
@@ -184,7 +183,7 @@ Here's how we might count all those in `TeamA`:
 filterSize : (Client e -> Bool) -> Clients e -> Int
 filterSize fn cs =
   filter fn cs
-  |> size
+  |> length
 
 
 -- Lists and dicts
@@ -201,6 +200,20 @@ ids (Clients cs) =
 toList : Clients e -> List (Client e)
 toList (Clients cs) =
   Dict.values cs
+
+
+{-| Extract a list from all the clients.
+
+If all our clients have a `name` field, then here's how to get a list
+of all client names:
+
+    mapToList .name clients
+-}
+mapToList : (Client e -> a) -> Clients e -> List a
+mapToList fn cs =
+  cs
+  |> toList
+  |> List.map fn
 
 
 {-| Get all the clients a `Dict` mapping from client ID.

@@ -454,29 +454,22 @@ viewGame model =
       model.clients
       |> Sync.value
       |> Clients.partition .player
-    playerNames =
-      players
-      |> Clients.toList
-      |> List.map .name
-    observerNames =
-      observers
-      |> Clients.toList
-      |> List.map .name
+      |> Tuple.mapBoth (Clients.mapToList .name) (Clients.mapToList .name)
   in
   [ Html.div []
     [ Html.p []
       [ Html.text "Players: "
-      , if Clients.size players == 0 then
+      , if List.length players == 0 then
           Html.text "None"
         else
-          Html.text <| String.join ", " playerNames
+          Html.text <| String.join ", " players
       ]
     , Html.p []
       [ Html.text "Observers: "
-      , if Clients.size observers == 0 then
+      , if List.length observers == 0 then
           Html.text "None"
         else
-          Html.text <| String.join ", " observerNames
+          Html.text <| String.join ", " observers
       ]
     ]
   ]
