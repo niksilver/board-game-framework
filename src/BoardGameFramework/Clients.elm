@@ -17,7 +17,7 @@ module BoardGameFramework.Clients exposing
   -- Combine
   , union, intersect, diff
   -- JSON
-  , encode, decoder
+  , encode, encode2, decoder
   )
 
 
@@ -343,6 +343,21 @@ Recall that the `id` field is a `ClientId`, which is just an alias for
 encode : (Client e -> Enc.Value) -> Clients e -> Enc.Value
 encode fn (Clients cs) =
   Enc.dict identity fn cs
+
+
+encode2 : List (String, Client e -> Enc.Value) -> Clients e -> Enc.Value
+encode2 trans (Clients cs) =
+  let
+    -- NB: What if "id" is already mapped?
+    transFull = ("id", .id >> Enc.string) :: trans
+    clientPairs : Client e -> List (String, Enc.Value)
+    clientPairs c =
+      List.map (\(name, fn) -> (name, fn c)) transFull
+    encodeClient_ : Client e -> Enc.Value
+    encodeClient_ c =
+      Enc.object (clientPairs c)
+  in
+  Enc.dict identity encodeClient_ cs
 
 
 {-| A decoder for a client list. You need to provide a decoder for
