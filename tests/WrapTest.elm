@@ -11,82 +11,82 @@ import BoardGameFramework as BGF
 import BoardGameFramework.Wrap as Wrap
 
 
-type PersonInfo =
-  Name String
-  | Age Int
+type Body =
+  DieFace Int
+  | Chips (List Int)
 
 
-nameEncode : String -> Enc.Value
-nameEncode =
-  Enc.string
-
-
-ageEncode : Int -> Enc.Value
-ageEncode =
+dieFaceEncode : Int -> Enc.Value
+dieFaceEncode =
   Enc.int
 
 
-personInfoEncode : PersonInfo -> Enc.Value
-personInfoEncode pi =
+chipsEncode : List Int -> Enc.Value
+chipsEncode =
+  Enc.list Enc.int
+
+
+encodeBody : Body -> Enc.Value
+encodeBody pi =
   case pi of
-    Name name ->
-      Wrap.encode "name" (nameEncode name)
+    DieFace dieFace ->
+      Wrap.encode "dieFace" (dieFaceEncode dieFace)
 
-    Age age ->
-      Wrap.encode "age" (ageEncode age)
-
-
-nameDecoder : Dec.Decoder String
-nameDecoder =
-  Dec.string
+    Chips chips ->
+      Wrap.encode "chips" (chipsEncode chips)
 
 
-ageDecoder : Dec.Decoder Int
-ageDecoder =
+dieFaceDecoder : Dec.Decoder Int
+dieFaceDecoder =
   Dec.int
 
 
-personInfoDecoder : Dec.Decoder PersonInfo
-personInfoDecoder =
+chipsDecoder : Dec.Decoder (List Int)
+chipsDecoder =
+  Dec.list Dec.int
+
+
+bodyDecoder : Dec.Decoder Body
+bodyDecoder =
   Wrap.decoder
-  [ ("name", Dec.map Name nameDecoder)
-  , ("age", Dec.map Age ageDecoder)
+  [ ("dieFace", Dec.map DieFace dieFaceDecoder)
+  , ("chips", Dec.map Chips chipsDecoder)
   ]
 
 
 jsonTest : Test
 jsonTest =
-  describe "Wrapping PersonInfo"
-  [ test "Encode-decode a name should yield the name" <|
+  describe "Wrapping Body"
+  [ test "Encode-decode a die face should yield the die face" <|
     \_ ->
-      Name "Fred Bloggs"
+      DieFace 6
       |> encodeDecode
       |> \result ->
         case result of
           Ok val ->
-            Expect.equal val (Name "Fred Bloggs")
+            Expect.equal val (DieFace 6)
 
           Err decError ->
             "Bad decoder result: " ++ (Dec.errorToString decError)
             |> Expect.fail
 
-  , test "Encode-decode an age should yield the age" <|
+  , test "Encode-decode chips should yield the chips" <|
     \_ ->
-      Age 27
+      Chips [100, 150, 0]
       |> encodeDecode
       |> \result ->
         case result of
           Ok val ->
-            Expect.equal val (Age 27)
+            Expect.equal val (Chips [100, 150, 0])
 
           Err decError ->
             "Bad decoder result: " ++ (Dec.errorToString decError)
             |> Expect.fail
   ]
 
-encodeDecode : PersonInfo -> Result Dec.Error PersonInfo
+encodeDecode : Body -> Result Dec.Error Body
 encodeDecode pi =
   pi
-  |> personInfoEncode
+  |> encodeBody
   |> Enc.encode 0
-  |> Dec.decodeString personInfoDecoder
+  |> Dec.decodeString bodyDecoder
