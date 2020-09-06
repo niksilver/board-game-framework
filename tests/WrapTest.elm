@@ -16,24 +16,16 @@ type Body =
   | Chips (List Int)
 
 
-dieFaceEncode : Int -> Enc.Value
-dieFaceEncode =
+encodeDieFace : Int -> Enc.Value
+encodeDieFace =
   Enc.int
+  >> Wrap.encode "dieFace"
 
 
-chipsEncode : List Int -> Enc.Value
-chipsEncode =
+encodeChips : List Int -> Enc.Value
+encodeChips =
   Enc.list Enc.int
-
-
-encodeBody : Body -> Enc.Value
-encodeBody pi =
-  case pi of
-    DieFace dieFace ->
-      Wrap.encode "dieFace" (dieFaceEncode dieFace)
-
-    Chips chips ->
-      Wrap.encode "chips" (chipsEncode chips)
+  >> Wrap.encode "chips"
 
 
 dieFaceDecoder : Dec.Decoder Int
@@ -59,8 +51,10 @@ jsonTest =
   describe "Wrapping Body"
   [ test "Encode-decode a die face should yield the die face" <|
     \_ ->
-      DieFace 6
-      |> encodeDecode
+      6
+      |> encodeDieFace
+      |> Enc.encode 0
+      |> Dec.decodeString bodyDecoder
       |> \result ->
         case result of
           Ok val ->
@@ -72,8 +66,10 @@ jsonTest =
 
   , test "Encode-decode chips should yield the chips" <|
     \_ ->
-      Chips [100, 150, 0]
-      |> encodeDecode
+      [100, 150, 0]
+      |> encodeChips
+      |> Enc.encode 0
+      |> Dec.decodeString bodyDecoder
       |> \result ->
         case result of
           Ok val ->
@@ -83,10 +79,3 @@ jsonTest =
             "Bad decoder result: " ++ (Dec.errorToString decError)
             |> Expect.fail
   ]
-
-encodeDecode : Body -> Result Dec.Error Body
-encodeDecode pi =
-  pi
-  |> encodeBody
-  |> Enc.encode 0
-  |> Dec.decodeString bodyDecoder

@@ -11,6 +11,8 @@ module BoardGameFramework.Wrap exposing
 import Json.Encode as Enc
 import Json.Decode as Dec
 
+import BoardGameFramework as BGF
+
 
 encode : String -> Enc.Value -> Enc.Value
 encode name enc =
