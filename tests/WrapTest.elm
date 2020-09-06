@@ -48,9 +48,9 @@ ageDecoder =
 
 personInfoDecoder : Dec.Decoder PersonInfo
 personInfoDecoder =
-  Dec.oneOf
-  [ Wrap.decoder "name" (Dec.map Name nameDecoder)
-  , Wrap.decoder "age" (Dec.map Age ageDecoder)
+  Wrap.decoder
+  [ ("name", Dec.map Name nameDecoder)
+  , ("age", Dec.map Age ageDecoder)
   ]
 
 

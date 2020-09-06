@@ -19,6 +19,11 @@ encode name enc =
   ]
 
 
-decoder : String -> Dec.Decoder a -> Dec.Decoder a
-decoder name dec =
-  Dec.field name dec
+decoder : List (String, Dec.Decoder a) -> Dec.Decoder a
+decoder pairs =
+  let
+    fieldList =
+      pairs
+      |> List.map (\(name, dec) -> Dec.field name dec)
+  in
+  Dec.oneOf fieldList
