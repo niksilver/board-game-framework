@@ -17,15 +17,15 @@ type Body =
 
 
 encodeDieFace : Int -> Enc.Value
-encodeDieFace =
-  Enc.int
-  >> Wrap.encode "dieFace"
+encodeDieFace n =
+  Enc.int n
+  |> Wrap.encode "dieFace"
 
 
 encodeChips : List Int -> Enc.Value
-encodeChips =
-  Enc.list Enc.int
-  >> Wrap.encode "chips"
+encodeChips chips =
+  Enc.list Enc.int chips
+  |> Wrap.encode "chips"
 
 
 dieFaceDecoder : Dec.Decoder Int

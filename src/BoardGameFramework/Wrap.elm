@@ -29,3 +29,8 @@ decoder pairs =
       |> List.map (\(name, dec) -> Dec.field name dec)
   in
   Dec.oneOf fieldList
+
+
+--send : (Enc.Value -> Cmd msg) -> (a -> Enc.Value) -> a -> Cmd msg
+--send outPort name enc =
+

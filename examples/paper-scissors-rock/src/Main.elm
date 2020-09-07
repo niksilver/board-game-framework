@@ -19,6 +19,7 @@ import BoardGameFramework as BGF
 import BoardGameFramework.Clients as Clients exposing (Clients, Client)
 import BoardGameFramework.Lobby as Lobby exposing (Lobby)
 import BoardGameFramework.Sync as Sync exposing (Sync)
+import BoardGameFramework.Wrap as Wrap
 
 
 -- Basic setup
@@ -166,12 +167,14 @@ openCmd =
 
 sendClientListCmd : Sync (Clients Profile) -> Cmd Msg
 sendClientListCmd =
-  BGF.send outgoing wrappedSyncClientListEncode
+  (syncClientListEncode >> Wrap.encode "clients")
+  |> BGF.send outgoing
 
 
 sendMyNameCmd : NamedClient -> Cmd Msg
 sendMyNameCmd =
-  BGF.send outgoing wrappedMyNameEncode
+  (namedClientEncode >> Wrap.encode "name")
+  |> BGF.send outgoing
 
 
 -- Peer-to-peer messages
@@ -211,22 +214,8 @@ clientListEncode =
 
 
 syncClientListEncode : Sync (Clients Profile) -> Enc.Value
-syncClientListEncode spl =
-  Sync.encode clientListEncode spl
-
-
-wrappedSyncClientListEncode : Sync (Clients Profile) -> Enc.Value
-wrappedSyncClientListEncode pl =
-  Enc.object
-    [ ( "clients", syncClientListEncode pl)
-    ]
-
-
-wrappedMyNameEncode : NamedClient -> Enc.Value
-wrappedMyNameEncode namedClient =
-  Enc.object
-    [ ( "myName", namedClientEncode namedClient)
-    ]
+syncClientListEncode scl =
+  Sync.encode clientListEncode scl
 
 
 namedClientDecoder : Dec.Decoder NamedClient
@@ -254,21 +243,11 @@ syncClientListDecoder =
   Sync.decoder clientListDecoder
 
 
-wrappedSyncClientListDecoder : Dec.Decoder (Sync (Clients Profile))
-wrappedSyncClientListDecoder =
-  Dec.field "clients" syncClientListDecoder
-
-
-wrappedMyNameDecoder : Dec.Decoder NamedClient
-wrappedMyNameDecoder =
-  Dec.field "myName" namedClientDecoder
-
-
 peerMsgDecoder : Dec.Decoder PeerMsg
 peerMsgDecoder =
-  Dec.oneOf
-  [ Dec.map ClientListMsg wrappedSyncClientListDecoder
-  , Dec.map MyNameMsg wrappedMyNameDecoder
+  Wrap.decoder
+  [ ("clients", Dec.map ClientListMsg syncClientListDecoder)
+  , ("myName", Dec.map MyNameMsg namedClientDecoder)
   ]
 
 
@@ -396,7 +375,7 @@ updateWithMyName namedClient model =
 
 
 updateWithClientList : Int -> Sync (Clients Profile) -> Model -> (Model, Cmd Msg)
-updateWithClientList num spl model =
+updateWithClientList num scl model =
   (model, Cmd.none |> Debug.log "To be implememented!")
 
 
