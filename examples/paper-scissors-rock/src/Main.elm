@@ -167,14 +167,12 @@ openCmd =
 
 sendClientListCmd : Sync (Clients Profile) -> Cmd Msg
 sendClientListCmd =
-  (syncClientListEncode >> Wrap.encode "clients")
-  |> BGF.send outgoing
+  Wrap.send outgoing "clients" syncClientListEncode
 
 
 sendMyNameCmd : NamedClient -> Cmd Msg
 sendMyNameCmd =
-  (namedClientEncode >> Wrap.encode "name")
-  |> BGF.send outgoing
+  Wrap.send outgoing "myName" namedClientEncode
 
 
 -- Peer-to-peer messages

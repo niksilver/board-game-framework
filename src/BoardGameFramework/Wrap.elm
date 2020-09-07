@@ -5,6 +5,7 @@
 
 module BoardGameFramework.Wrap exposing
   ( encode, decoder
+  , send
   )
 
 
@@ -31,6 +32,7 @@ decoder pairs =
   Dec.oneOf fieldList
 
 
---send : (Enc.Value -> Cmd msg) -> (a -> Enc.Value) -> a -> Cmd msg
---send outPort name enc =
-
+send : (Enc.Value -> Cmd msg) -> String -> (a -> Enc.Value) -> a -> Cmd msg
+send outPort name enc =
+  (enc >> encode name)
+  |> BGF.send outPort

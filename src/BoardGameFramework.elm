@@ -547,12 +547,12 @@ requires us defining a JSON encoder for it.
     BGF.send outgoing bodyEncoder body
 -}
 send : (Enc.Value -> Cmd msg) -> (a -> Enc.Value) -> a -> Cmd msg
-send cmder encoder body =
+send cmder enc body =
   let
     encode =
       Enc.object
         [ ("instruction", Enc.string "Send")
-        , ("body", encoder body )
+        , ("body", enc body )
         ]
   in
   cmder encode
