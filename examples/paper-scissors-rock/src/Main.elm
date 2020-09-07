@@ -92,10 +92,10 @@ type Msg =
   ToLobby Lobby.Msg
   | NewDraftName String
   | ConfirmedName
-  | Received (Result BGF.Error (BGF.Envelope PeerMsg))
+  | Received (Result BGF.Error (BGF.Envelope Body))
 
 
-type PeerMsg =
+type Body =
   MyNameMsg NamedClient
   | ClientListMsg (Sync (Clients Profile))
 
@@ -184,12 +184,16 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-  incoming createMsg
+  incoming receive
 
 
-createMsg : Enc.Value -> Msg
-createMsg v =
-  BGF.decode peerMsgDecoder v |> Received
+receive : Enc.Value -> Msg
+receive =
+  Wrap.receive
+  Received
+  [ ("clients", Dec.map ClientListMsg syncClientListDecoder)
+  , ("myName", Dec.map MyNameMsg namedClientDecoder)
+  ]
 
 
 -- JSON encoders and decoders
@@ -239,14 +243,6 @@ clientListDecoder =
 syncClientListDecoder : Dec.Decoder (Sync (Clients Profile))
 syncClientListDecoder =
   Sync.decoder clientListDecoder
-
-
-peerMsgDecoder : Dec.Decoder PeerMsg
-peerMsgDecoder =
-  Wrap.decoder
-  [ ("clients", Dec.map ClientListMsg syncClientListDecoder)
-  , ("myName", Dec.map MyNameMsg namedClientDecoder)
-  ]
 
 
 -- Updating the model
@@ -315,7 +311,7 @@ okName draft =
   && (String.length draft <= 20)
 
 
-updateWithEnvelope : BGF.Envelope PeerMsg -> Model -> (Model, Cmd Msg)
+updateWithEnvelope : BGF.Envelope Body -> Model -> (Model, Cmd Msg)
 updateWithEnvelope env model =
   case env |> Debug.log "Received envelope" of
     BGF.Welcome rec ->

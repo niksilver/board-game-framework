@@ -5,7 +5,7 @@
 
 module BoardGameFramework.Wrap exposing
   ( encode, decoder
-  , send
+  , send, receive
   )
 
 
@@ -36,3 +36,12 @@ send : (Enc.Value -> Cmd msg) -> String -> (a -> Enc.Value) -> a -> Cmd msg
 send outPort name enc =
   (enc >> encode name)
   |> BGF.send outPort
+
+
+receive : (Result BGF.Error (BGF.Envelope body) -> msg) -> List (String, Dec.Decoder body) -> Enc.Value -> msg
+receive tag pairs v =
+  let
+    bodyDecoder = decoder pairs
+  in
+  BGF.decode bodyDecoder v
+  |> tag
