@@ -22,7 +22,7 @@ encode name enc =
   ]
 
 
-decoder : List (String, Dec.Decoder a) -> Dec.Decoder a
+decoder : List (String, Dec.Decoder body) -> Dec.Decoder body
 decoder pairs =
   let
     fieldList =
@@ -32,7 +32,7 @@ decoder pairs =
   Dec.oneOf fieldList
 
 
-send : (Enc.Value -> Cmd msg) -> String -> (a -> Enc.Value) -> a -> Cmd msg
+send : (Enc.Value -> Cmd msg) -> String -> (body -> Enc.Value) -> body -> Cmd msg
 send outPort name enc =
   (enc >> encode name)
   |> BGF.send outPort
