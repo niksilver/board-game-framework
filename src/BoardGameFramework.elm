@@ -4,11 +4,15 @@
 
 
 module BoardGameFramework exposing (
+  -- Game IDs
   GameId, gameId, fromGameId , idGenerator
+  -- Server connection
   , Server, wsServer, wssServer, withPort, Address, withGameId, toUrlString
+  -- Open, send close
   , open, send, close
+  -- Receiving messages
   , ClientId, Envelope(..), Connectivity(..), Error(..)
-  , decode
+  , decode, receive
   )
 
 {-| Types and functions help create remote multiplayer board games
@@ -32,7 +36,7 @@ We receive envelopes: either messages from other clients, or messages from
 the server about leavers and joiners, or messages about connectivity.
 Any game messages sent out are encoded into JSON, so we need to say
 how to decode our application's JSON messages into some suitable Elm type.
-@docs ClientId, Envelope, Connectivity, Error, decode
+@docs ClientId, Envelope, Connectivity, Error, decode, receive
 -}
 
 
@@ -44,6 +48,9 @@ import Result
 import Url exposing (Url)
 
 import Words
+
+
+-- Game IDs
 
 
 {-| A game ID represents a game that multiple players can join.
@@ -124,6 +131,9 @@ idGenerator =
 
     _ ->
       Random.constant (GameId "xxx")
+
+
+-- Server connection
 
 
 {-| A board game server.
@@ -224,6 +234,100 @@ toUrlString (Address addr) =
           ""
   in
   addr.start ++ portStr ++ "/g/" ++ (fromGameId addr.gameId)
+
+
+-- Open, send close
+
+
+{-| Open a connection to server, with a given game ID, via an Elm port.
+
+    import BoardGameFramework as BGF
+
+    port outgoing : Enc.Value -> Cmd msg
+
+    server = BGF.wssServer "bgf.pigsaw.org"
+    gameId = BGF.gameId "notice-handle"
+
+    -- Open a connection to wss://bgf.pigsaw.org/g/notice-handle
+    BGF.open outgoing server gameId
+-}
+open : (Enc.Value -> Cmd msg) -> Server -> GameId -> Cmd msg
+open cmder server gId =
+  let
+    addr = server |> withGameId gId
+    encode =
+      Enc.object
+        [ ("instruction", Enc.string "Open")
+        , ("url", toUrlString addr |> Enc.string)
+        ]
+  in
+  cmder encode
+
+
+{-| Send a message to the other clients.
+
+In this example we'll send a `Body` message to other clients, which
+requires us defining a JSON encoder for it.
+
+    import BoardGameFramework as BGF
+
+    type alias Body =
+      { id : BGF.ClientId
+      , name : String
+      }
+
+    bodyEncoder : Body -> Enc.Value
+    bodyEncoder body =
+      Enc.object
+      [ ("id" , Enc.string body.id)
+      , ("name" , Enc.string body.name)
+      ]
+
+    port outgoing : Enc.Value -> Cmd msg
+
+    body =
+      { id = "123.456"
+      , name = "Tango"
+      }
+
+    -- Send body to the other clients (and we'll get a receipt).
+    BGF.send outgoing bodyEncoder body
+-}
+send : (Enc.Value -> Cmd msg) -> (a -> Enc.Value) -> a -> Cmd msg
+send cmder enc body =
+  let
+    encode =
+      Enc.object
+        [ ("instruction", Enc.string "Send")
+        , ("body", enc body )
+        ]
+  in
+  cmder encode
+
+
+{-| Close the connection to the game server.
+Not strictly necessary in most cases,
+because opening a new connection will automatically close an existing one.
+
+    import BoardGameFramework as BGF
+
+    port outgoing : Enc.Value -> Cmd msg
+
+    -- Close our connection
+    BGF.close outgoing
+-}
+close : (Enc.Value -> Cmd msg) -> Cmd msg
+close cmder =
+  let
+    encode =
+      Enc.object
+        [ ("instruction", Enc.string "Close")
+        ]
+  in
+  cmder encode
+
+
+-- Receiving messages
 
 
 {-| The unique ID of any client.
@@ -492,89 +596,7 @@ decode bodyDecoder v =
     Err desc ->
       Err (Json desc)
 
-{-| Open a connection to server, with a given game ID, via an Elm port.
 
-    import BoardGameFramework as BGF
-
-    port outgoing : Enc.Value -> Cmd msg
-
-    server = BGF.wssServer "bgf.pigsaw.org"
-    gameId = BGF.gameId "notice-handle"
-
-    -- Open a connection to wss://bgf.pigsaw.org/g/notice-handle
-    BGF.open outgoing server gameId
--}
-open : (Enc.Value -> Cmd msg) -> Server -> GameId -> Cmd msg
-open cmder server gId =
-  let
-    addr = server |> withGameId gId
-    encode =
-      Enc.object
-        [ ("instruction", Enc.string "Open")
-        , ("url", toUrlString addr |> Enc.string)
-        ]
-  in
-  cmder encode
-
-
-{-| Send a message to the other clients.
-
-In this example we'll send a `Body` message to other clients, which
-requires us defining a JSON encoder for it.
-
-    import BoardGameFramework as BGF
-
-    type alias Body =
-      { id : BGF.ClientId
-      , name : String
-      }
-
-    bodyEncoder : Body -> Enc.Value
-    bodyEncoder body =
-      Enc.object
-      [ ("id" , Enc.string body.id)
-      , ("name" , Enc.string body.name)
-      ]
-
-    port outgoing : Enc.Value -> Cmd msg
-
-    body =
-      { id = "123.456"
-      , name = "Tango"
-      }
-
-    -- Send body to the other clients (and we'll get a receipt).
-    BGF.send outgoing bodyEncoder body
--}
-send : (Enc.Value -> Cmd msg) -> (a -> Enc.Value) -> a -> Cmd msg
-send cmder enc body =
-  let
-    encode =
-      Enc.object
-        [ ("instruction", Enc.string "Send")
-        , ("body", enc body )
-        ]
-  in
-  cmder encode
-
-
-{-| Close the connection to the game server.
-Not strictly necessary in most cases,
-because opening a new connection will automatically close an existing one.
-
-    import BoardGameFramework as BGF
-
-    port outgoing : Enc.Value -> Cmd msg
-
-    -- Close our connection
-    BGF.close outgoing
--}
-close : (Enc.Value -> Cmd msg) -> Cmd msg
-close cmder =
-  let
-    encode =
-      Enc.object
-        [ ("instruction", Enc.string "Close")
-        ]
-  in
-  cmder encode
+receive : (Result Error (Envelope a) -> msg) -> Dec.Decoder a -> Enc.Value -> msg
+receive tag dec v =
+  decode dec v |> tag
