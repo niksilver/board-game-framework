@@ -1,7 +1,7 @@
 TO DO:
 - Wrap module: Function to send a wrapped command
+- Wrap module: Function to receive a wrapped command
 - Wrap module: Documentation using the WrapTest code.
-- Main module: Add a receive function.
 - Create paper scissors rock game.
 
 DONE:

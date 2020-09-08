@@ -12,7 +12,7 @@ module BoardGameFramework exposing (
   , open, send, close
   -- Receiving messages
   , ClientId, Envelope(..), Connectivity(..), Error(..)
-  , decode, receive
+  , decode
   )
 
 {-| Types and functions help create remote multiplayer board games
@@ -595,8 +595,3 @@ decode bodyDecoder v =
 
     Err desc ->
       Err (Json desc)
-
-
-receive : (Result Error (Envelope a) -> msg) -> Dec.Decoder a -> Enc.Value -> msg
-receive tag dec v =
-  decode dec v |> tag
