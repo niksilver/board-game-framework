@@ -49,7 +49,7 @@ bodyDecoder =
 jsonTest : Test
 jsonTest =
   describe "Wrapping Body"
-  [ test "Encode-decode a die face should yield the die face" <|
+  [ test "Encode-decode a card should yield the card" <|
     \_ ->
       "Tell us a secret"
       |> encodeCard
@@ -78,4 +78,73 @@ jsonTest =
           Err decError ->
             "Bad decoder result: " ++ (Dec.errorToString decError)
             |> Expect.fail
+  ]
+
+
+-- Setup (including dummy functions) and tests for receive
+
+
+type Msg =
+  Received (Result BGF.Error (BGF.Envelope Body))
+
+
+-- Dummy Model
+type Model = DummyModel
+
+
+-- Dummy incoming function. Should be
+-- port incoming : ...
+incoming : (Enc.Value -> msg) -> Sub msg
+incoming _ =
+  Sub.none
+
+
+-- Dummy subscriptions function
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+  incoming receive
+
+
+receive : Enc.Value -> Msg
+receive =
+  Wrap.receive
+  Received
+  [ ("card", Dec.map Card cardDecoder)
+  , ("chips", Dec.map Chips chipsDecoder)
+  ]
+
+
+receiveAlt : Enc.Value -> Msg
+receiveAlt v =
+  BGF.decode bodyDecoder v
+  |> Received
+
+
+receiveTest : Test
+receiveTest =
+  describe "receiveTest"
+  [ test "Receiving a card" <|
+    \_ ->
+      let
+        envValue =
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 29)
+          , ("Time", Enc.int 8765432)
+          , ("Intent", Enc.string "Peer")
+          , ("Body", encodeCard "Tell us a secret" )
+          ]
+      in
+      case receive envValue of
+        Received (Ok env) ->
+          case env of
+            BGF.Peer rec ->
+              Expect.equal rec.body <| Card "Tell us a secret"
+
+            other ->
+              Expect.fail <| "Not a Peer envelope: " ++ (Debug.toString other)
+
+        Received (Err err) ->
+          Expect.fail (Debug.toString err)
   ]
