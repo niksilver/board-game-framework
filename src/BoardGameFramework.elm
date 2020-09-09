@@ -469,7 +469,8 @@ handle that in our usual `update` function.
 -}
 decode : Dec.Decoder a -> Enc.Value -> Result Dec.Error (Envelope a)
 decode bodyDecoder v =
-  let
+  Dec.decodeValue (decoder bodyDecoder) v
+  {--  let
     stringFieldDec field =
       Dec.field field Dec.string
       |> Dec.map (\val -> (field, val))
@@ -581,7 +582,7 @@ decode bodyDecoder v =
       |> Err
 
     Err jsonError ->
-      Err jsonError
+      Err jsonError--}
 
 
 {-| Create a JSON decoder for `Envelope a`, given a decoder for `a`.
@@ -690,6 +691,9 @@ purposeHelpDec bodyDecoder purpose =
       in
       Dec.map4 make toDec fromDec numDec timeDec
 
+    ("Intent", value) ->
+      Dec.fail <| "Unrecognised Intent value: '" ++ value ++ "'"
+
     ("connection", "connected") ->
       Dec.succeed (Connection Connected)
 
@@ -701,6 +705,9 @@ purposeHelpDec bodyDecoder purpose =
 
     ("connection", value) ->
       Dec.fail <| "Unrecognised connection value: '" ++ value ++ "'"
+
+    ("error", desc) ->
+      Dec.succeed (Error desc)
 
     (field, value) ->
       Debug.todo "Not implemented!"
