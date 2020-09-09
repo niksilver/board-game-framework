@@ -306,6 +306,9 @@ timing env =
     BGF.Connection _ ->
       NoTiming
 
+    BGF.Error _ ->
+      NoTiming
+
 
 {-| Compare the order of two envelopes. An earlier envelope is `LT`
 a later envelope.

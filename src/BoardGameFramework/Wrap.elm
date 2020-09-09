@@ -38,7 +38,7 @@ send outPort name enc =
   |> BGF.send outPort
 
 
-receive : (Result BGF.Error (BGF.Envelope body) -> msg) -> List (String, Dec.Decoder body) -> Enc.Value -> msg
+receive : (Result Dec.Error (BGF.Envelope body) -> msg) -> List (String, Dec.Decoder body) -> Enc.Value -> msg
 receive tag pairs v =
   let
     bodyDecoder = decoder pairs

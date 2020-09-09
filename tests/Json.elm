@@ -10,6 +10,18 @@ import Json.Decode as Dec
 import BoardGameFramework exposing (..)
 
 
+-- General function for later use
+
+
+simpleDecoder : Dec.Decoder { colour : String }
+simpleDecoder =
+  Dec.map (\s -> {colour = s}) <|
+    Dec.field "colour" Dec.string
+
+
+-- Decode
+
+
 decodeTest : Test
 decodeTest =
   describe "decode test"
@@ -38,7 +50,7 @@ decodeTest =
             other ->
               Expect.fail <| "Got other result: " ++ (Debug.toString other)
 
-      , testWontParse "To is not a list" <|
+      , testDecodeGivesError "To is not a list" <|
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.int 123)
@@ -47,7 +59,7 @@ decodeTest =
           , ("Intent", Enc.string "Welcome")
           ]
 
-      , testWontParse "To is a list of wrong type" <|
+      , testDecodeGivesError "To is a list of wrong type" <|
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.int [123, 222])
@@ -56,7 +68,7 @@ decodeTest =
           , ("Intent", Enc.string "Welcome")
           ]
 
-      , testWontParse "To is empty list" <|
+      , testDecodeGivesError "To is empty list" <|
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string [])
@@ -65,7 +77,7 @@ decodeTest =
           , ("Intent", Enc.string "Welcome")
           ]
 
-      , testWontParse "To is a list of right type, but too long" <|
+      , testDecodeGivesError "To is a list of right type, but too long" <|
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123", "222"])
@@ -74,7 +86,7 @@ decodeTest =
           , ("Intent", Enc.string "Welcome")
           ]
 
-      , testWontParse "From is a list of wrong type" <|
+      , testDecodeGivesError "From is a list of wrong type" <|
           Enc.object
           [ ("From", Enc.list Enc.int [222, 333])
           , ("To", Enc.list Enc.string ["123", "222"])
@@ -83,7 +95,7 @@ decodeTest =
           , ("Intent", Enc.string "Welcome")
           ]
 
-      , testWontParse "From is wrong type" <|
+      , testDecodeGivesError "From is wrong type" <|
           Enc.object
           [ ("From", Enc.int 1000)
           , ("To", Enc.list Enc.string ["123.456"])
@@ -92,7 +104,7 @@ decodeTest =
           , ("Intent", Enc.string "Welcome")
           ]
 
-      , testWontParse "Num is wrong type" <|
+      , testDecodeGivesError "Num is wrong type" <|
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456"])
@@ -101,7 +113,7 @@ decodeTest =
           , ("Intent", Enc.string "Welcome")
           ]
 
-      , testWontParse "Time is wrong type" <|
+      , testDecodeGivesError "Time is wrong type" <|
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456"])
@@ -138,7 +150,7 @@ decodeTest =
             other ->
               Expect.fail <| "Got other result: " ++ (Debug.toString other)
 
-      , testWontParse "From is more than a singleton" <|
+      , testDecodeGivesError "From is more than a singleton" <|
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
@@ -148,7 +160,7 @@ decodeTest =
           , ("Body", Enc.object [("colour", Enc.string "Red")])
           ]
 
-      , testWontParse "Body shouldn't parse" <|
+      , testDecodeGivesError "Body shouldn't parse" <|
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
@@ -185,7 +197,7 @@ decodeTest =
             other ->
               Expect.fail <| "Got other result: " ++ (Debug.toString other)
 
-      , testWontParse "From is more than a singleton" <|
+      , testDecodeGivesError "From is more than a singleton" <|
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
@@ -195,7 +207,7 @@ decodeTest =
           , ("Body", Enc.object [("colour", Enc.string "Red")])
           ]
 
-      , testWontParse "Body shouldn't parse" <|
+      , testDecodeGivesError "Body shouldn't parse" <|
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
@@ -231,7 +243,7 @@ decodeTest =
             other ->
               Expect.fail <| "Got other result: " ++ (Debug.toString other)
 
-      , testWontParse "From is more than a singleton" <|
+      , testDecodeGivesError "From is more than a singleton" <|
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
@@ -266,7 +278,7 @@ decodeTest =
             other ->
               Expect.fail <| "Got other result: " ++ (Debug.toString other)
 
-      , testWontParse "From is more than a singleton" <|
+      , testDecodeGivesError "From is more than a singleton" <|
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234", "333.345"])
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
@@ -296,13 +308,13 @@ decodeTest =
           |> decode simpleDecoder
           |> Expect.equal (Ok (Connection Disconnected))
 
-      , test "Bad connection (string)" <|
+{--      , test "Bad connection (string)" <|
         \_ ->
           Enc.object [ ("connection", Enc.string "garbage") ]
           |> decode simpleDecoder
-          |> Expect.equal (Err (LowLevel "Unrecognised connection: 'garbage'"))
+          |> Expect.equal (Err (LowLevel "Unrecognised connection: 'garbage'"))--}
 
-      , test "Bad connection (non-string)" <|
+{--      , test "Bad connection (non-string)" <|
         \_ ->
           Enc.object [ ("connection", Enc.int 667) ]
           |> decode simpleDecoder
@@ -311,24 +323,26 @@ decodeTest =
               Err (Json _) ->
                 Expect.pass
               _ ->
-                Expect.fail "Expected JSON error, but got something else"
+                Expect.fail "Expected JSON error, but got something else"--}
 
       ]
 
     , describe "Decode error" <|
-      [ test "Good error" <|
+      [
+        {--        test "Good error" <|
         \_ ->
           Enc.object [ ("error", Enc.string "This is my error") ]
           |> decode simpleDecoder
-          |> Expect.equal (Err (LowLevel "This is my error"))
+          |> Expect.equal (Err (LowLevel "This is my error"))--}
 
-      , testWontParse "Error isn't a string" <|
+      {--,--} testDecodeGivesError "Error isn't a string" <|
           Enc.object [ ("error", Enc.int 333) ]
 
       ]
 
     , describe "Nonsense envelope" <|
-      [ test "Intent not recognised" <|
+      [
+        {--        test "Intent not recognised" <|
         \_ ->
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234"])
@@ -337,9 +351,9 @@ decodeTest =
           , ("Intent", Enc.string "Peculiar")
           ]
           |> decode simpleDecoder
-          |> Expect.equal (Err (LowLevel "Unrecognised Intent: 'Peculiar'"))
+          |> Expect.equal (Err (LowLevel "Unrecognised Intent: 'Peculiar'"))--}
 
-      , test "Not of recognised format" <|
+{--      , test "Not of recognised format" <|
         \_ ->
           Enc.object
           [ ("Frim", Enc.list Enc.string ["222.234"])
@@ -355,15 +369,30 @@ decodeTest =
               Err (LowLevel desc) ->
                 Expect.fail ("Expected JSON error but got low level: " ++ desc)
               Ok _ ->
-                Expect.fail "Expected JSON error but got Ok"
+                Expect.fail "Expected JSON error but got Ok"--}
 
 
-      , testWontParse "Envelope isn't an object" <|
+     {--,--}
+        testDecodeGivesError "Envelope isn't an object" <|
           Enc.int 222
 
       ]
 
     ]
+
+
+testDecodeGivesError : String -> Enc.Value -> Test
+testDecodeGivesError desc json =
+  test desc <|
+  \_ ->
+    case decode simpleDecoder json of
+      Err _ ->
+        Expect.pass
+      Ok env ->
+        Expect.fail <| "Wrongly parsed Ok: " ++ (Debug.toString env)
+
+
+-- Decoder
 
 
 decoderTest : Test
@@ -393,24 +422,300 @@ decoderTest =
               ] data
             other ->
               Expect.fail <| "Got other result: " ++ (Debug.toString other)
+
+      , testDoesNotFitDecoder "To is not a list" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.int 123)
+          , ("Num", Enc.int 28)
+          , ("Time", Enc.int 76487293)
+          , ("Intent", Enc.string "Welcome")
+          ]
+
+      , testDoesNotFitDecoder "To is a list of wrong type" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.int [123, 222])
+          , ("Num", Enc.int 28)
+          , ("Time", Enc.int 76487293)
+          , ("Intent", Enc.string "Welcome")
+          ]
+
+      , testDoesNotFitDecoder "To is empty list" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string [])
+          , ("Num", Enc.int 28)
+          , ("Time", Enc.int 76487293)
+          , ("Intent", Enc.string "Welcome")
+          ]
+
+      , testDoesNotFitDecoder "To is a list of right type, but too long" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123", "222"])
+          , ("Num", Enc.int 28)
+          , ("Time", Enc.int 76487293)
+          , ("Intent", Enc.string "Welcome")
+          ]
+
+      , testDoesNotFitDecoder "From is a list of wrong type" <|
+          Enc.object
+          [ ("From", Enc.list Enc.int [222, 333])
+          , ("To", Enc.list Enc.string ["123", "222"])
+          , ("Num", Enc.int 28)
+          , ("Time", Enc.int 76487293)
+          , ("Intent", Enc.string "Welcome")
+          ]
+
+      , testDoesNotFitDecoder "From is wrong type" <|
+          Enc.object
+          [ ("From", Enc.int 1000)
+          , ("To", Enc.list Enc.string ["123.456"])
+          , ("Num", Enc.int 28)
+          , ("Time", Enc.int 7654321)
+          , ("Intent", Enc.string "Welcome")
+          ]
+
+      , testDoesNotFitDecoder "Num is wrong type" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456"])
+          , ("Num", Enc.string "Twenty eight")
+          , ("Time", Enc.int 76487293)
+          , ("Intent", Enc.string "Welcome")
+          ]
+
+      , testDoesNotFitDecoder "Time is wrong type" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456"])
+          , ("Num", Enc.int 28)
+          , ("Time", Enc.string "7654321")
+          , ("Intent", Enc.string "Welcome")
+          ]
+
+      ]
+
+    , describe "Decoder for Peer" <|
+      [ test "Good Peer" <|
+        let
+          j =
+            Enc.object
+            [ ("From", Enc.list Enc.string ["222.234"])
+            , ("To", Enc.list Enc.string ["123.456", "333.345"])
+            , ("Num", Enc.int 29)
+            , ("Time", Enc.int 8765432)
+            , ("Intent", Enc.string "Peer")
+            , ("Body", Enc.object [("colour", Enc.string "Red")])
+            ]
+        in
+        \_ ->
+          case Dec.decodeValue (decoder simpleDecoder) j of
+            Ok (Peer data) ->
+              Expect.all
+              [ \d -> Expect.equal "222.234" d.from
+              , \d -> Expect.equal ["123.456", "333.345"] d.to
+              , \d -> Expect.equal 29 d.num
+              , \d -> Expect.equal 8765432 d.time
+              , \d -> Expect.equal {colour = "Red"} d.body
+              ] data
+            other ->
+              Expect.fail <| "Got other result: " ++ (Debug.toString other)
+
+      , testDoesNotFitDecoder "From is more than a singleton" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 29)
+          , ("Time", Enc.int 8765432)
+          , ("Intent", Enc.string "Peer")
+          , ("Body", Enc.object [("colour", Enc.string "Red")])
+          ]
+
+      , testDoesNotFitDecoder "Body shouldn't parse" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 29)
+          , ("Time", Enc.int 8765432)
+          , ("Intent", Enc.string "Peer")
+          , ("Body", Enc.object [("Xolor", Enc.string "Red")])
+          ]
+        ]
+
+    , describe "Decoder for Receipt" <|
+      [ test "Good Receipt" <|
+        let
+          j =
+            Enc.object
+            [ ("From", Enc.list Enc.string ["222.234"])
+            , ("To", Enc.list Enc.string ["123.456", "333.345"])
+            , ("Num", Enc.int 30)
+            , ("Time", Enc.int 8765432)
+            , ("Intent", Enc.string "Receipt")
+            , ("Body", Enc.object [("colour", Enc.string "Red")])
+            ]
+        in
+        \_ ->
+          case Dec.decodeValue (decoder simpleDecoder) j of
+            Ok (Receipt data) ->
+              Expect.all
+              [ \d -> Expect.equal "222.234" d.me
+              , \d -> Expect.equal ["123.456", "333.345"] d.others
+              , \d -> Expect.equal 30 d.num
+              , \d -> Expect.equal 8765432 d.time
+              , \d -> Expect.equal {colour = "Red"} d.body
+              ] data
+            other ->
+              Expect.fail <| "Got other result: " ++ (Debug.toString other)
+
+      , testDoesNotFitDecoder "From is more than a singleton" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 30)
+          , ("Time", Enc.int 8765432)
+          , ("Intent", Enc.string "Receipt")
+          , ("Body", Enc.object [("colour", Enc.string "Red")])
+          ]
+
+      , testDoesNotFitDecoder "Body shouldn't parse" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 30)
+          , ("Time", Enc.int 8765432)
+          , ("Intent", Enc.string "Receipt")
+          , ("Body", Enc.object [("Xolor", Enc.string "Red")])
+          ]
+
+      ]
+
+    , describe "Decoder for Joiner" <|
+      [ test "Good Joiner" <|
+        let
+          j =
+            Enc.object
+            [ ("From", Enc.list Enc.string ["222.234"])
+            , ("To", Enc.list Enc.string ["123.456", "333.345"])
+            , ("Num", Enc.int 31)
+            , ("Time", Enc.int 6543210)
+            , ("Intent", Enc.string "Joiner")
+            ]
+        in
+        \_ ->
+          case Dec.decodeValue (decoder simpleDecoder) j of
+            Ok (Joiner data) ->
+              Expect.all
+              [ \d -> Expect.equal "222.234" d.joiner
+              , \d -> Expect.equal ["123.456", "333.345"] d.to
+              , \d -> Expect.equal 31 d.num
+              , \d -> Expect.equal 6543210 d.time
+              ] data
+            other ->
+              Expect.fail <| "Got other result: " ++ (Debug.toString other)
+
+      , testDoesNotFitDecoder "From is more than a singleton" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 31)
+          , ("Time", Enc.int 6543210)
+          , ("Intent", Enc.string "Joiner")
+          ]
+
+       ]
+
+    , describe "Decoder for Leaver" <|
+      [ test "Good Leaver" <|
+        let
+          j =
+            Enc.object
+            [ ("From", Enc.list Enc.string ["222.234"])
+            , ("To", Enc.list Enc.string ["123.456", "333.345"])
+            , ("Num", Enc.int 32)
+            , ("Time", Enc.int 987654)
+            , ("Intent", Enc.string "Leaver")
+            ]
+        in
+        \_ ->
+          case Dec.decodeValue (decoder simpleDecoder) j of
+            Ok (Leaver data) ->
+              Expect.all
+              [ \d -> Expect.equal "222.234" d.leaver
+              , \d -> Expect.equal ["123.456", "333.345"] d.to
+              , \d -> Expect.equal 32 d.num
+              , \d -> Expect.equal 987654 d.time
+              ] data
+            other ->
+              Expect.fail <| "Got other result: " ++ (Debug.toString other)
+
+      , testDoesNotFitDecoder "From is more than a singleton" <|
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 32)
+          , ("Time", Enc.int 987654)
+          , ("Intent", Enc.string "Leaver")
+          ]
+
+       ]
+
+    , describe "Decoder for connection" <|
+      [ test "Good opened" <|
+        \_ ->
+          Enc.object [ ("connection", Enc.string "connected") ]
+          |> Dec.decodeValue (decoder simpleDecoder)
+          |> Expect.equal (Ok (Connection Connected))
+
+      , test "Good connecting" <|
+        \_ ->
+          Enc.object [ ("connection", Enc.string "connecting") ]
+          |> Dec.decodeValue (decoder simpleDecoder)
+          |> Expect.equal (Ok (Connection Connecting))
+
+      , test "Good closed" <|
+        \_ ->
+          Enc.object [ ("connection", Enc.string "disconnected") ]
+          |> Dec.decodeValue (decoder simpleDecoder)
+          |> Expect.equal (Ok (Connection Disconnected))
+
+      , test "Bad connection (string)" <|
+        \_ ->
+          Enc.object [ ("connection", Enc.string "garbage") ]
+          |> Dec.decodeValue (decoder simpleDecoder)
+          |> \result ->
+            case result of
+              Ok _ ->
+                Expect.fail "Incorrectly ok"
+
+              Err (Dec.Failure desc _) ->
+                Expect.equal "Unrecognised connection value: 'garbage'" desc
+
+              Err e ->
+                Expect.fail <| "Wrong kind of error: " ++ (Debug.toString e)
+
+{--      , test "Bad connection (non-string)" <|
+        \_ ->
+          Enc.object [ ("connection", Enc.int 667) ]
+          |> Dec.decodeValue (decode simpleDecoder)
+          |> \res ->
+            case res of
+              Err (Json _) ->
+                Expect.pass
+              _ ->
+                Expect.fail "Expected JSON error, but got something else"--}
       ]
     ]
 
 
-testWontParse : String -> Enc.Value -> Test
-testWontParse desc json =
+testDoesNotFitDecoder : String -> Enc.Value -> Test
+testDoesNotFitDecoder desc json =
   test desc <|
   \_ ->
-    case decode simpleDecoder json of
-      Err (Json _) ->
+    case Dec.decodeValue (decoder simpleDecoder) json of
+      Err _ ->
         Expect.pass
-      Err (LowLevel str) ->
-        Expect.fail <| "Wrongly got low level error: " ++ str
       Ok env ->
         Expect.fail <| "Wrongly parsed Ok: " ++ (Debug.toString env)
-
-
-simpleDecoder : Dec.Decoder { colour : String }
-simpleDecoder =
-  Dec.map (\s -> {colour = s}) <|
-    Dec.field "colour" Dec.string

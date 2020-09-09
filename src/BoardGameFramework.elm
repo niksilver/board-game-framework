@@ -11,7 +11,7 @@ module BoardGameFramework exposing (
   -- Open, send close
   , open, send, close
   -- Receiving messages
-  , ClientId, Envelope(..), Connectivity(..), Error(..)
+  , ClientId, Envelope(..), Connectivity(..)
   , decode, decoder
   )
 
@@ -347,7 +347,8 @@ The envelopes are:
 * A message sent by another client peer;
 * Notice of another client joining;
 * Notice of another client leaving;
-* Change of status with the server connection.
+* Change of status with the server connection;
+* An error reported by the JavaScript library.
 
 The field names have consistent types and meaning:
 * `me`: our client's own client ID.
@@ -368,6 +369,7 @@ type Envelope a =
   | Joiner {joiner: ClientId, to: List ClientId, num: Int, time: Int}
   | Leaver {leaver: ClientId, to: List ClientId, num: Int, time: Int}
   | Connection Connectivity
+  | Error String
 
 
 {-| The current connectivity state, received when it changes.
@@ -388,17 +390,6 @@ type Connectivity =
   Connected
   | Connecting
   | Disconnected
-
-
-{-| An error reading the incoming envelope. If an error bubbles up from
-the JavaScript library, or if the envelope intent is something unexpected,
-that's a `LowLevel` error. If we can't decode
-the JSON with the given decoder, that's a `Json` error, with the
-specific error coming from the `Json.Decode` package.
--}
-type Error =
-  LowLevel String
-  | Json Dec.Error
 
 
 -- Singleton string list decoder.
@@ -476,7 +467,7 @@ an envelope gets decoded as a `Result BGF.Error MyEnvelope; this
 gets wrapped into an application-specific `Received` type; we will
 handle that in our usual `update` function.
 -}
-decode : Dec.Decoder a -> Enc.Value -> Result Error (Envelope a)
+decode : Dec.Decoder a -> Enc.Value -> Result Dec.Error (Envelope a)
 decode bodyDecoder v =
   let
     stringFieldDec field =
@@ -504,7 +495,6 @@ decode bodyDecoder v =
           }
       in
         Result.map4 make toRes fromRes numRes timeRes
-        |> Result.mapError Json
 
     Ok ("Intent", "Peer") ->
       let
@@ -523,7 +513,6 @@ decode bodyDecoder v =
           }
       in
         Result.map5 make toRes fromRes numRes timeRes bodyRes
-        |> Result.mapError Json
 
     Ok ("Intent", "Receipt") ->
       let
@@ -542,7 +531,6 @@ decode bodyDecoder v =
           }
       in
         Result.map5 make meRes othersRes numRes timeRes bodyRes
-        |> Result.mapError Json
 
     Ok ("Intent", "Joiner") ->
       let
@@ -559,7 +547,6 @@ decode bodyDecoder v =
           }
       in
         Result.map4 make toRes fromRes numRes timeRes
-        |> Result.mapError Json
 
     Ok ("Intent", "Leaver") ->
       let
@@ -576,7 +563,6 @@ decode bodyDecoder v =
           }
       in
         Result.map4 make toRes fromRes numRes timeRes
-        |> Result.mapError Json
 
     Ok ("connection", "connected") ->
       Ok (Connection Connected)
@@ -588,13 +574,15 @@ decode bodyDecoder v =
       Ok (Connection Disconnected)
 
     Ok ("error", str) ->
-      Err (LowLevel str)
+      Ok (Error str)
 
     Ok (field, val) ->
-      Err (LowLevel <| "Unrecognised " ++ field ++ ": '" ++ val ++ "'")
+      Dec.Failure ("Unrecognised value: '" ++ val ++ "'") v
+      |> Dec.Field field
+      |> Err
 
-    Err desc ->
-      Err (Json desc)
+    Err jsonError ->
+      Err jsonError
 
 
 decoder : Dec.Decoder a -> Dec.Decoder (Envelope a)
@@ -631,5 +619,85 @@ purposeHelpDec bodyDecoder purpose =
       in
       Dec.map4 make toDec fromDec numDec timeDec
 
-    other ->
+    ("Intent", "Peer") ->
+      let
+        fromDec = Dec.field "From" singletonStringDecoder
+        toDec = Dec.field "To" (Dec.list Dec.string)
+        numDec = Dec.field "Num" Dec.int
+        timeDec = Dec.field "Time" Dec.int
+        bodyDec = Dec.field "Body" bodyDecoder
+        make to from num time body =
+          Peer
+          { from = from
+          , to = to
+          , num = num
+          , time = time
+          , body = body
+          }
+      in
+      Dec.map5 make toDec fromDec numDec timeDec bodyDec
+
+    ("Intent", "Receipt") ->
+      let
+        meDec = Dec.field "From" singletonStringDecoder
+        othersDec = Dec.field "To" (Dec.list Dec.string)
+        numDec = Dec.field "Num" Dec.int
+        timeDec = Dec.field "Time" Dec.int
+        bodyDec = Dec.field "Body" bodyDecoder
+        make me others num time body =
+          Receipt
+          { me = me
+          , others = others
+          , num = num
+          , time = time
+          , body = body
+          }
+      in
+      Dec.map5 make meDec othersDec numDec timeDec bodyDec
+
+    ("Intent", "Joiner") ->
+      let
+        fromDec = Dec.field "From" singletonStringDecoder
+        toDec = Dec.field "To" (Dec.list Dec.string)
+        numDec = Dec.field "Num" Dec.int
+        timeDec = Dec.field "Time" Dec.int
+        make to from num time =
+          Joiner
+          { joiner = from
+          , to = to
+          , num = num
+          , time = time
+          }
+      in
+      Dec.map4 make toDec fromDec numDec timeDec
+
+    ("Intent", "Leaver") ->
+      let
+        fromDec = Dec.field "From" singletonStringDecoder
+        toDec = Dec.field "To" (Dec.list Dec.string)
+        numDec = Dec.field "Num" Dec.int
+        timeDec = Dec.field "Time" Dec.int
+        make to from num time =
+          Leaver
+          { leaver = from
+          , to = to
+          , num = num
+          , time = time
+          }
+      in
+      Dec.map4 make toDec fromDec numDec timeDec
+
+    ("connection", "connected") ->
+      Dec.succeed (Connection Connected)
+
+    ("connection", "connecting") ->
+      Dec.succeed (Connection Connecting)
+
+    ("connection", "disconnected") ->
+      Dec.succeed (Connection Disconnected)
+
+    ("connection", value) ->
+      Dec.fail <| "Unrecognised connection value: '" ++ value ++ "'"
+
+    (field, value) ->
       Debug.todo "Not implemented!"

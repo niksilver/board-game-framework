@@ -85,7 +85,7 @@ jsonTest =
 
 
 type Msg =
-  Received (Result BGF.Error (BGF.Envelope Body))
+  Received (Result Dec.Error (BGF.Envelope Body))
 
 
 -- Dummy Model
