@@ -147,4 +147,31 @@ receiveTest =
 
         Received (Err err) ->
           Expect.fail (Debug.toString err)
+
+  , test "Receiving chips" <|
+    \_ ->
+      let
+        envValue =
+          Enc.object
+          [ ("From", Enc.list Enc.string ["222.234"])
+          , ("To", Enc.list Enc.string ["123.456", "333.345"])
+          , ("Num", Enc.int 29)
+          , ("Time", Enc.int 8765432)
+          , ("Intent", Enc.string "Peer")
+          , ("Body", encodeChips [100, 0, 150] )
+          ]
+      in
+      case receive envValue of
+        Received (Ok env) ->
+          case env of
+            BGF.Peer rec ->
+              Expect.equal rec.body <| Chips [100, 0, 150]
+
+            other ->
+              Expect.fail <| "Not a Peer envelope: " ++ (Debug.toString other)
+
+        Received (Err err) ->
+          Expect.fail (Debug.toString err)
+
+
   ]
