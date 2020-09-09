@@ -308,41 +308,32 @@ decodeTest =
           |> decode simpleDecoder
           |> Expect.equal (Ok (Connection Disconnected))
 
-{--      , test "Bad connection (string)" <|
+      , test "Bad connection (string)" <|
         \_ ->
           Enc.object [ ("connection", Enc.string "garbage") ]
           |> decode simpleDecoder
-          |> Expect.equal (Err (LowLevel "Unrecognised connection: 'garbage'"))--}
+          |> expectErrorString "Unrecognised connection value: 'garbage'"
 
-{--      , test "Bad connection (non-string)" <|
-        \_ ->
+      , testDecodeGivesError "Bad connection (non-string)" <|
           Enc.object [ ("connection", Enc.int 667) ]
-          |> decode simpleDecoder
-          |> \res ->
-            case res of
-              Err (Json _) ->
-                Expect.pass
-              _ ->
-                Expect.fail "Expected JSON error, but got something else"--}
 
       ]
 
     , describe "Decode error" <|
       [
-        {--        test "Good error" <|
+        test "Good error" <|
         \_ ->
           Enc.object [ ("error", Enc.string "This is my error") ]
           |> decode simpleDecoder
-          |> Expect.equal (Err (LowLevel "This is my error"))--}
+          |> Expect.equal (Ok (Error "This is my error"))
 
-      {--,--} testDecodeGivesError "Error isn't a string" <|
+      , testDecodeGivesError "Error isn't a string" <|
           Enc.object [ ("error", Enc.int 333) ]
 
       ]
 
     , describe "Nonsense envelope" <|
-      [
-        {--        test "Intent not recognised" <|
+      [ test "Intent not recognised" <|
         \_ ->
           Enc.object
           [ ("From", Enc.list Enc.string ["222.234"])
@@ -351,29 +342,17 @@ decodeTest =
           , ("Intent", Enc.string "Peculiar")
           ]
           |> decode simpleDecoder
-          |> Expect.equal (Err (LowLevel "Unrecognised Intent: 'Peculiar'"))--}
+          |> expectErrorString "Unrecognised Intent value: 'Peculiar'"
 
-{--      , test "Not of recognised format" <|
-        \_ ->
+      , testDecodeGivesError "Not of recognised format" <|
           Enc.object
           [ ("Frim", Enc.list Enc.string ["222.234"])
           , ("Tx", Enc.list Enc.string ["123.456"])
           , ("Tome", Enc.int 987654)
           , ("Ontint", Enc.string "Peculiar")
           ]
-          |> decode simpleDecoder
-          |> \res ->
-            case res of
-              Err (Json _) ->
-                Expect.pass
-              Err (LowLevel desc) ->
-                Expect.fail ("Expected JSON error but got low level: " ++ desc)
-              Ok _ ->
-                Expect.fail "Expected JSON error but got Ok"--}
 
-
-     {--,--}
-        testDecodeGivesError "Envelope isn't an object" <|
+      , testDecodeGivesError "Envelope isn't an object" <|
           Enc.int 222
 
       ]
@@ -696,16 +675,9 @@ decoderTest =
               Err e ->
                 Expect.fail <| "Wrong kind of error: " ++ (Debug.toString e)
 
-{--      , test "Bad connection (non-string)" <|
-        \_ ->
+      , testDecodeGivesError "Bad connection (non-string)" <|
           Enc.object [ ("connection", Enc.int 667) ]
-          |> Dec.decodeValue (decode simpleDecoder)
-          |> \res ->
-            case res of
-              Err (Json _) ->
-                Expect.pass
-              _ ->
-                Expect.fail "Expected JSON error, but got something else"--}
+
       ]
     ]
 
@@ -719,3 +691,16 @@ testDoesNotFitDecoder desc json =
         Expect.pass
       Ok env ->
         Expect.fail <| "Wrongly parsed Ok: " ++ (Debug.toString env)
+
+
+expectErrorString : String -> Result Dec.Error (Envelope a) -> Expect.Expectation
+expectErrorString str result =
+  case result of
+    Ok _ ->
+      Expect.fail "Incorrectly ok"
+
+    Err (Dec.Failure desc _) ->
+      Expect.equal str desc
+
+    Err e ->
+      Expect.fail <| "Wrong kind of error: " ++ (Debug.toString e)

@@ -577,8 +577,7 @@ decode bodyDecoder v =
       Ok (Error str)
 
     Ok (field, val) ->
-      Dec.Failure ("Unrecognised value: '" ++ val ++ "'") v
-      |> Dec.Field field
+      Dec.Failure ("Unrecognised " ++ field ++ " value: '" ++ val ++ "'") v
       |> Err
 
     Err jsonError ->
