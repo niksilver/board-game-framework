@@ -12,14 +12,14 @@ import BoardGameFramework.Wrap as Wrap
 
 
 type Body =
-  DieFace Int
+  Card String
   | Chips (List Int)
 
 
-encodeDieFace : Int -> Enc.Value
-encodeDieFace n =
-  Enc.int n
-  |> Wrap.encode "dieFace"
+encodeCard : String -> Enc.Value
+encodeCard text =
+  Enc.string text
+  |> Wrap.encode "card"
 
 
 encodeChips : List Int -> Enc.Value
@@ -28,9 +28,9 @@ encodeChips chips =
   |> Wrap.encode "chips"
 
 
-dieFaceDecoder : Dec.Decoder Int
-dieFaceDecoder =
-  Dec.int
+cardDecoder : Dec.Decoder String
+cardDecoder =
+  Dec.string
 
 
 chipsDecoder : Dec.Decoder (List Int)
@@ -41,7 +41,7 @@ chipsDecoder =
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
   Wrap.decoder
-  [ ("dieFace", Dec.map DieFace dieFaceDecoder)
+  [ ("card", Dec.map Card cardDecoder)
   , ("chips", Dec.map Chips chipsDecoder)
   ]
 
@@ -51,14 +51,14 @@ jsonTest =
   describe "Wrapping Body"
   [ test "Encode-decode a die face should yield the die face" <|
     \_ ->
-      6
-      |> encodeDieFace
+      "Tell us a secret"
+      |> encodeCard
       |> Enc.encode 0
       |> Dec.decodeString bodyDecoder
       |> \result ->
         case result of
           Ok val ->
-            Expect.equal val (DieFace 6)
+            Expect.equal val (Card "Tell us a secret")
 
           Err decError ->
             "Bad decoder result: " ++ (Dec.errorToString decError)
