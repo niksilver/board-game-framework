@@ -691,9 +691,6 @@ purposeHelpDec bodyDecoder purpose =
       in
       Dec.map4 make toDec fromDec numDec timeDec
 
-    ("Intent", value) ->
-      Dec.fail <| "Unrecognised Intent value: '" ++ value ++ "'"
-
     ("connection", "connected") ->
       Dec.succeed (Connection Connected)
 
@@ -703,11 +700,8 @@ purposeHelpDec bodyDecoder purpose =
     ("connection", "disconnected") ->
       Dec.succeed (Connection Disconnected)
 
-    ("connection", value) ->
-      Dec.fail <| "Unrecognised connection value: '" ++ value ++ "'"
-
     ("error", desc) ->
       Dec.succeed (Error desc)
 
     (field, value) ->
-      Debug.todo "Not implemented!"
+      Dec.fail <| "Unrecognised " ++ field ++ " value: '" ++ value ++ "'"
