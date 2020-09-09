@@ -12,7 +12,7 @@ module BoardGameFramework exposing (
   , open, send, close
   -- Receiving messages
   , ClientId, Envelope(..), Connectivity(..), Error(..)
-  , decode
+  , decode, decoder
   )
 
 {-| Types and functions help create remote multiplayer board games
@@ -595,3 +595,41 @@ decode bodyDecoder v =
 
     Err desc ->
       Err (Json desc)
+
+
+decoder : Dec.Decoder a -> Dec.Decoder (Envelope a)
+decoder bodyDecoder =
+  let
+    stringFieldDec field =
+      Dec.field field Dec.string
+      |> Dec.map (\val -> (field, val))
+    intentDec = stringFieldDec "Intent"
+    connectionDec = stringFieldDec "connection"
+    errorDec = stringFieldDec "error"
+    purposeDec = Dec.oneOf [intentDec, connectionDec, errorDec]
+  in
+    purposeDec
+    |> Dec.andThen (purposeHelpDec bodyDecoder)
+
+
+purposeHelpDec : Dec.Decoder a -> (String, String) -> Dec.Decoder (Envelope a)
+purposeHelpDec bodyDecoder purpose =
+  case purpose of
+    ("Intent", "Welcome") ->
+      let
+        toDec = Dec.field "To" singletonStringDecoder
+        fromDec = Dec.field "From" (Dec.list Dec.string)
+        numDec = Dec.field "Num" Dec.int
+        timeDec = Dec.field "Time" Dec.int
+        make to from num time =
+          Welcome
+          { me = to
+          , others = from
+          , num = num
+          , time = time
+          }
+      in
+      Dec.map4 make toDec fromDec numDec timeDec
+
+    other ->
+      Debug.todo "Not implemented!"

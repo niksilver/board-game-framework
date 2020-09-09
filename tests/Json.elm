@@ -366,6 +366,37 @@ decodeTest =
     ]
 
 
+decoderTest : Test
+decoderTest =
+  describe "decoder test"
+
+    [ describe "Decoder for Welcome" <|
+      [ test "Good Welcome" <|
+        let
+          j =
+            Enc.object
+            [ ("From", Enc.list Enc.string ["222.234", "333.345"])
+            , ("To", Enc.list Enc.string ["123.456"])
+            , ("Num", Enc.int 28)
+            , ("Time", Enc.int 7654321)
+            , ("Intent", Enc.string "Welcome")
+            ]
+        in
+        \_ ->
+          case Dec.decodeValue (decoder simpleDecoder) j of
+            Ok (Welcome data) ->
+              Expect.all
+              [ \d -> Expect.equal "123.456" d.me
+              , \d -> Expect.equal ["222.234", "333.345"] d.others
+              , \d -> Expect.equal 28 d.num
+              , \d -> Expect.equal 7654321 d.time
+              ] data
+            other ->
+              Expect.fail <| "Got other result: " ++ (Debug.toString other)
+      ]
+    ]
+
+
 testWontParse : String -> Enc.Value -> Test
 testWontParse desc json =
   test desc <|
