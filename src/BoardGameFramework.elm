@@ -584,6 +584,9 @@ decode bodyDecoder v =
       Err jsonError
 
 
+{-| Create a JSON decoder for `Envelope a`, given a decoder for `a`.
+See [`decode`](#decode) for examples.
+-}
 decoder : Dec.Decoder a -> Dec.Decoder (Envelope a)
 decoder bodyDecoder =
   let
@@ -599,6 +602,7 @@ decoder bodyDecoder =
     |> Dec.andThen (purposeHelpDec bodyDecoder)
 
 
+-- Helper for the above
 purposeHelpDec : Dec.Decoder a -> (String, String) -> Dec.Decoder (Envelope a)
 purposeHelpDec bodyDecoder purpose =
   case purpose of
