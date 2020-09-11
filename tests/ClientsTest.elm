@@ -210,9 +210,9 @@ lengthTest =
   ]
 
 
-filterSizeTest : Test
-filterSizeTest =
-  test "filterSizeTest - count those with a high score" <|
+filterLengthTest : Test
+filterLengthTest =
+  test "filterLengthTest - count those with a high score" <|
   \_ ->
     let
       clients =
@@ -222,7 +222,7 @@ filterSizeTest =
         |> Clients.insert { id = "999.999", points = 100 }
     in
     clients
-    |> Clients.filterSize (\c -> c.points >= 100)
+    |> Clients.filterLength (\c -> c.points >= 100)
     |> Expect.equal 1
 
 

@@ -92,8 +92,16 @@ type Msg =
 type Model = DummyModel
 
 
--- Dummy incoming function. Should be
+-- Dummy port functions. Should be
+-- port outgoing : ...
 -- port incoming : ...
+
+
+outgoing : Enc.Value -> Cmd msg
+outgoing _ =
+  Cmd.none
+
+
 incoming : (Enc.Value -> msg) -> Sub msg
 incoming _ =
   Sub.none
@@ -102,11 +110,23 @@ incoming _ =
 -- Dummy subscriptions function
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-  incoming receive
+  incoming myReceive
 
 
-receive : Enc.Value -> Msg
-receive =
+-- Dummy send examples (just to make sure they compile)
+sendCardCmd : String -> Cmd Msg
+sendCardCmd =
+  Wrap.send outgoing "card" encodeCard
+
+
+sendChipsCmd : List Int -> Cmd Msg
+sendChipsCmd =
+  Wrap.send outgoing "chips" encodeChips
+
+
+
+myReceive : Enc.Value -> Msg
+myReceive =
   Wrap.receive
   Received
   [ ("card", Dec.map Card cardDecoder)
@@ -114,8 +134,8 @@ receive =
   ]
 
 
-receiveAlt : Enc.Value -> Msg
-receiveAlt v =
+myReceiveAlt : Enc.Value -> Msg
+myReceiveAlt v =
   BGF.decode bodyDecoder v
   |> Received
 
@@ -136,7 +156,7 @@ receiveTest =
           , ("Body", encodeCard "Tell us a secret" )
           ]
       in
-      case receive envValue of
+      case myReceive envValue of
         Received (Ok env) ->
           case env of
             BGF.Peer rec ->
@@ -161,7 +181,7 @@ receiveTest =
           , ("Body", encodeChips [100, 0, 150] )
           ]
       in
-      case receive envValue of
+      case myReceive envValue of
         Received (Ok env) ->
           case env of
             BGF.Peer rec ->
@@ -193,7 +213,7 @@ receiveAltTest =
           , ("Body", encodeCard "Tell us a secret" )
           ]
       in
-      case receiveAlt envValue of
+      case myReceiveAlt envValue of
         Received (Ok env) ->
           case env of
             BGF.Peer rec ->
@@ -218,7 +238,7 @@ receiveAltTest =
           , ("Body", encodeChips [100, 0, 150] )
           ]
       in
-      case receiveAlt envValue of
+      case myReceiveAlt envValue of
         Received (Ok env) ->
           case env of
             BGF.Peer rec ->

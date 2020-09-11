@@ -15,6 +15,7 @@ module BoardGameFramework exposing (
   , decode, decoder
   )
 
+
 {-| Types and functions help create remote multiplayer board games
 using the related framework. See
 [the detailed documentation and example
@@ -36,7 +37,7 @@ We receive envelopes: either messages from other clients, or messages from
 the server about leavers and joiners, or messages about connectivity.
 Any game messages sent out are encoded into JSON, so we need to say
 how to decode our application's JSON messages into some suitable Elm type.
-@docs ClientId, Envelope, Connectivity, Error, decode, receive
+@docs ClientId, Envelope, Connectivity, decode, decoder
 -}
 
 
@@ -246,10 +247,14 @@ toUrlString (Address addr) =
     port outgoing : Enc.Value -> Cmd msg
 
     server = BGF.wssServer "bgf.pigsaw.org"
-    gameId = BGF.gameId "notice-handle"
+    gameIdResult = BGF.gameId "notice-handle"
 
     -- Open a connection to wss://bgf.pigsaw.org/g/notice-handle
-    BGF.open outgoing server gameId
+    case gameIdResult of
+      Ok gameId ->
+        BGF.open outgoing server gameId
+      Err _ ->
+        -- Won't get here
 -}
 open : (Enc.Value -> Cmd msg) -> Server -> GameId -> Cmd msg
 open cmder server gId =

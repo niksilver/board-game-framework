@@ -29,7 +29,7 @@ a Receipt, or theirs as a Peer message) is the accepted one.
 So the general procedure is:
 create an initial value as our [`zero`](#zero) step,
 calculate each subsequent step as the game progresses,
-and always send any value we've calculated to the server.
+and always send any value we've calculated to our peers (via the server).
 At the same time we receive values from the server,
 and [`resolve`](#resolve) any received value with our current value.
 

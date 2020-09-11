@@ -14,13 +14,11 @@ module BoardGameFramework.Lobby exposing (
   -- Viewing
   , view
   -- Only expose this for testing
-  , fakeLobby
+  --, fakeLobby
   )
 
 
-{-| The lobby - selecting the game ID and handling URL changes.
-
-The lobby is the first screen of any game, and allows the user to select
+{-| The lobby is the first screen of any game, and allows the user to select
 the game ID. It will also randomly generate a game ID on first loading.
 But the game ID can also be selected by changing the URL,
 so this module also handles changes through that route.
@@ -29,24 +27,31 @@ If a player needs to provide further information before entering a
 game (perhaps a name, a team, a role, etc) then that should
 be captured on a subsequent screen.
 
-`Lobby` is designed assuming that a game will always have a lobby,
-and `Maybe` have a playing state of type `s`.
-(It won't have a playing state
-if the player has not left the lobby with a valid game ID.)
-Therefore after confirming a new game ID from the lobby
-the [`update`](#update) function will also return
-an initial playing state (of type `s`).
-The way this initial playing state is created is defined in the
-`init` field of the lobby's [`Config`](#Config).
+The [`update`](#update) function updates the lobby, including the player
+typing a game ID and the player successfully leaving the lobby with
+a valid game ID.
+Therefore it will also return a `Maybe s`,
+which is the initial state of whatever follows the lobby - for example,
+the initial state of the game.
+This will be `Nothing` if the player is still in the lobby, and `Just s`
+when they successfully leave.
+The `init` field of the lobby's [`Config`](#Config) defines
+how to create this initial state `s`.
+
+See the [simple lobby example](https://github.com/niksilver/board-game-framework/tree/master/examples/lobby-simple)
+for how this all fits together in practice.
 
 # Defining
 @docs Lobby, Config, Msg, lobby
+
+# Messages
+@docs urlRequested, urlChanged, newDraft, confirm
 
 # Updating
 @docs update
 
 # Querying
-@docs url, urlString, draftGameId, okGameId
+@docs url, urlString, draft, okDraft
 
 # Viewing
 @docs view
@@ -88,9 +93,11 @@ type Key =
 
 
 {-| How the lobby interoperates with the main app. We need:
-* A way to generate an initial game state, given a game ID;
-* A function to generate the `Open` command to the server, given a game ID;
-* How to wrap a lobby msg into an application-specific message (which
+* A way to generate an initial game state (or whatever follows the
+  lobby), given a game ID;
+* A function to generate the [`open`](../BoardGameFramework#open)
+  command to the server, given a game ID;
+* How to wrap a lobby `msg` into an application-specific message (which
   we can catch at the top level of our application and then pass into the
   lobby).
 -}
@@ -104,7 +111,33 @@ type alias Config msg s =
 -- Messages
 
 
-{-| A message to update the model of the lobby.
+{-| A message to update the model of the lobby. We will capture this
+in our main application and pass it into [`update`](#update).
+For example:
+
+    import BoardGameFramework.Lobby as Lobby
+
+    type Msg =
+      ToLobby Lobby.Msg
+      | ...
+
+    type GameState = ...
+
+    lobbyConfig : Lobby.Config Msg GameState
+    lobbyConfig =
+      { init = ...
+      , openCmd = ...
+      , msgWrapper = ToLobby
+      }
+
+    update : Msg -> Model -> (Model, Cmd Msg)
+    update msg model =
+      case msg of
+        ToLobby subMsg ->
+          let
+            (lobby, maybeGameState, cmd) = Lobby.update subMsg model.lobby
+          in
+          ...
 -}
 type Msg =
   UrlRequested Browser.UrlRequest
@@ -124,7 +157,6 @@ internal links are ignored.
       ToLobby Lobby.Msg
       | ...
 
-    main : Program BGF.ClientId Model Msg
     main =
       Browser.application
       { init = init
@@ -162,7 +194,8 @@ newDraft msgWrapper draft_ =
   msgWrapper <| NewDraft draft_
 
 
-{-| Confirm that we should try to use the draft gameID as the actual game ID -
+{-| Confirm that we should try to use the draft
+game ID as the actual game ID -
 for example, when the user has clicked a Go button after typing in a game
 ID. There is no need to check if the game ID is valid.
 
@@ -341,7 +374,8 @@ setFragment url_ fragment =
 
 
 {-| Get the URL, which the `Lobby` is holding. This may be the URL of
-the game lobby or the actual game.
+the game lobby (if we're still in the lobby) or of
+the actual game (if we've successfully left the lobby).
 -}
 url : Lobby msg s -> Url.Url
 url (Lobby lob) =
@@ -366,7 +400,7 @@ draft (Lobby lob) =
   lob.draftGameId
 
 
-{-| See if the (possibly incomplete) game ID is a valid game ID.
+{-| See if what the player has typed into the lobby is a valid game ID.
 Useful for knowing if we should enable or disable a Go button in the UI,
 but it isn't necessary if you're using the
 [`view`](#view) function.

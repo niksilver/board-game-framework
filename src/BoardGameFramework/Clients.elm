@@ -9,7 +9,7 @@ module BoardGameFramework.Clients exposing
   -- Build
   , empty, singleton, insert, update, remove
   -- Query
-  , isEmpty, member, get, length, filterSize
+  , isEmpty, member, get, length, filterLength
   -- Lists and dicts
   , ids, toList, mapToList, toDict, fromList
   -- Transform
@@ -25,28 +25,29 @@ module BoardGameFramework.Clients exposing
 observers, or something else).
 
 Each client is simply a record with an `id` field of type `ClientId`,
-and other fields as desired.
+plus other fields as desired.
 The client list will never contain more than one
 element with the same `ClientId`.
 
-The type `ClientId` comes from the base `BoardGameFramework` module.
+The type `ClientId` is just an alias for `String`, and comes from the base
+[`BoardGameFramework`](../BoardGameFramework) module.
 
 # Basic types
 @docs Client, Clients
 
-#Build
+# Build
 @docs empty, singleton, insert, update, remove
 
-#Query
-@docs isEmpty, member, get, length, filterSize
+# Query
+@docs isEmpty, member, get, length, filterLength
 
-#Lists and dicts
-@docs ids, toList, toDict, fromList
+# Lists and dicts
+@docs ids, toList, mapToList, toDict, fromList
 
-#Transform
+# Transform
 @docs map, fold, filter, partition
 
-#Combine
+# Combine
 @docs union, intersect, diff
 
 # JSON
@@ -105,7 +106,7 @@ insert c (Clients cs) =
 
 {-| Update a specific client using a mapping function.
 
-It's possible for for mapping function to produce `Just` value with
+It's possible for the mapping function to produce a value with
 a different `id` from the one given. This would almost certainly be
 an error. But if you did it, then the client with the `id` given will
 be removed, and the value produced by the mapping function will be
@@ -177,11 +178,10 @@ length (Clients cs) =
 
 Here's how we might count all those in `TeamA`:
 
-    clients
-    |> filterSize (\c -> c.team == TeamA)
+    filterLength (\c -> c.team == TeamA) clients
 -}
-filterSize : (Client e -> Bool) -> Clients e -> Int
-filterSize fn cs =
+filterLength : (Client e -> Bool) -> Clients e -> Int
+filterLength fn cs =
   filter fn cs
   |> length
 
@@ -216,7 +216,7 @@ mapToList fn cs =
   |> List.map fn
 
 
-{-| Get all the clients a `Dict` mapping from client ID.
+{-| Get all the clients as a `Dict` mapping from client ID.
 -}
 toDict : Clients e -> Dict BGF.ClientId (Client e)
 toDict (Clients cs) =
@@ -240,14 +240,14 @@ fromList cls =
 
 {-| Apply a function to all clients.
 
-The function could change an `id`. That almost certainly be a bad idea, but
+The function could change an `id`.
+That would almost certainly be a bad idea, but
 if it happened then the resulting client list would still have one
 element per `id`.
 
 Here's how we might reset everyone's score to zero:
 
-    clients
-    |> map (\c -> { c | score = 0})
+    map (\c -> { c | score = 0}) clients
 -}
 map : (Client e -> Client f) -> Clients e -> Clients f
 map fn (Clients cs) =
@@ -267,10 +267,9 @@ map fn (Clients cs) =
 
 Here's how to add up everyone's score:
 
-    clients
-    |> fold (\c n -> c.score + n) 0
+    fold (\c n -> c.score + n) 0 clients
 -}
-fold : (Client e -> f -> f) -> f -> Clients e -> f
+fold : (Client e -> a -> a) -> a -> Clients e -> a
 fold fn z (Clients cs) =
   let
     fn2 _ v n =
@@ -283,8 +282,7 @@ fold fn z (Clients cs) =
 
 Here's how we might get all those in `TeamA`:
 
-    clients
-    |> filter (\c -> c.team == TeamA)
+    filter (\c -> c.team == TeamA) clients
 -}
 filter : (Client e -> Bool) -> Clients e -> Clients e
 filter fn (Clients cs) =
@@ -338,7 +336,7 @@ intersect (Clients cs1) (Clients cs2) =
 
 
 
-{-| Find clients from the first list whose 'id` isn't in the second list.
+{-| Find clients from the first list whose `id` isn't in the second list.
 -}
 diff : Clients e -> Clients e -> Clients e
 diff (Clients cs1) (Clients cs2) =
