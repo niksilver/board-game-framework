@@ -524,7 +524,7 @@ updateWithEnvelope env state =
       , Cmd.none
       )
 
-    BGF.Error conn ->
+    BGF.Error _ ->
       -- We'll ignore errors
       ( state
       , Cmd.none

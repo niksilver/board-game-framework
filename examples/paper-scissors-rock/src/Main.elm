@@ -92,7 +92,7 @@ type Msg =
   ToLobby Lobby.Msg
   | NewDraftName String
   | ConfirmedName
-  | Received (Result BGF.Error (BGF.Envelope Body))
+  | Received (Result Dec.Error (BGF.Envelope Body))
 
 
 type Body =
@@ -349,6 +349,12 @@ updateWithEnvelope env model =
 
     BGF.Connection conn ->
       -- Ignore a connection change
+      ( model
+      , Cmd.none
+      )
+
+    BGF.Error _ ->
+      -- Ignore an error
       ( model
       , Cmd.none
       )
