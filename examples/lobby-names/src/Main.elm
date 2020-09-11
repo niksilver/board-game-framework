@@ -45,7 +45,7 @@ type alias Model =
   , myId : BGF.ClientId
   , gameId : Maybe BGF.GameId
   , players : Dict BGF.ClientId String
-  , error : Maybe BGF.Error
+  , error : Maybe String
   , connectivity : BGF.Connectivity
   }
 
@@ -131,7 +131,7 @@ type Msg =
   | JoinClick
   | DraftMyNameChange String
   | ConfirmNameClick
-  | Received (Result BGF.Error Envelope)
+  | Received (Result Dec.Error Envelope)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -223,9 +223,12 @@ update msg model =
           { model | error = Nothing }
           |> updateWithEnvelope env
 
-        Err desc ->
+        Err details ->
           ( { model
-            | error = Just desc
+            | error =
+                details
+                |> Dec.errorToString
+                |> Just
             }
           , Cmd.none
           )
@@ -283,6 +286,13 @@ updateWithEnvelope env model =
       -- The connection state has changed
       ( { model
         | connectivity = conn
+        }
+      , Cmd.none
+      )
+
+    BGF.Error desc ->
+      ( { model
+        | error = Just desc
         }
       , Cmd.none
       )
@@ -526,17 +536,11 @@ nicePlayerName myId id name =
 viewError : Model -> El.Element Msg
 viewError model =
   case model.error of
-    Just (BGF.LowLevel desc) ->
-        UI.amberLight ("Low level error: " ++ desc)
-
-    Just (BGF.Json err) ->
-      let
-        desc = Dec.errorToString err
-      in
-      if String.length desc > 20 then
-        UI.amberLight ("JSON error: " ++ (String.left 20 desc) ++ "...")
+    Just desc ->
+      if String.length desc > 30 then
+        UI.amberLight ((String.left 30 desc) ++ "...")
       else
-        UI.amberLight ("JSON error: " ++ desc)
+        UI.amberLight desc
 
     Nothing ->
       El.none
