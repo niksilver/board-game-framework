@@ -74,7 +74,7 @@ type Msg =
   ToLobby Lobby.Msg
   | Resized Int
   | CellClicked Int
-  | Received (Result BGF.Error (BGF.Envelope Body))
+  | Received (Result Dec.Error (BGF.Envelope Body))
   | ClickedPlayAgain
   | ShowRefX (Images.Ref, String)
 
@@ -521,7 +521,14 @@ updateWithEnvelope env state =
 
     BGF.Connection conn ->
       ( { state | connectivity = conn }
-      , Cmd.none)
+      , Cmd.none
+      )
+
+    BGF.Error conn ->
+      -- We'll ignore errors
+      ( state
+      , Cmd.none
+      )
 
 
 -- We will only update the playing state with the given board if it
