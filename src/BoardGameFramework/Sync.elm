@@ -82,6 +82,12 @@ type Sync a =
 
 {-| Set an initial value with step `0`, which is known not to have come
 via the server.
+
+In a game of hangman, where we're trying to find a seven letter word,
+we might set the initial value like this:
+
+    initialWord : Sync String
+    initialWord = Sync.zero "-------"
 -}
 zero : a -> Sync a
 zero val =
@@ -103,23 +109,7 @@ value (Sync rec) =
 
 
 {-| Set a new value as the next step, but recognise that it's
-and not yet verified.
-
-In a hangman game, if the state is a string, and the next
-state is found by revealing one of its letters
-using some function `reveal : Int -> String -> String`,
-then we might have
-
-    import BoardGameFramework.Sync as Sync exposing (Sync)
-
-    next : Int -> Sync String -> Sync String
-    next i state =
-      let
-        state2 =
-          Sync.value state
-          |> reveal i
-      in
-      Sync.set state2
+not yet verified.
 -}
 set : a -> Sync a -> Sync a
 set val (Sync rec) =
@@ -130,8 +120,8 @@ set val (Sync rec) =
     }
 
 
-{-| Set the next value with a mapping function. This will be the next step.
-The new value will not yet be accepted.
+{-| Set the next value as the next step, using a mapping function.
+The new value is not yet verified.
 
 In a hangman game, if the state is a string, and the next
 state is found by revealing one of its letters
@@ -142,8 +132,7 @@ then we might have
 
     next : Int -> Sync String -> Sync String
     next i state =
-      state
-      |> Sync.mapToNext (reveal i)
+      Sync.mapToNext (reveal i) state
 -}
 mapToNext : (a -> a) -> Sync a -> Sync a
 mapToNext fn (Sync rec) =
@@ -158,8 +147,7 @@ mapToNext fn (Sync rec) =
 The function takes the envelope that contained the new value, the new value,
 and the current value.
 
-    origSyncedValue
-    |> Sync.resolve newEnv newSyncedValue
+    Sync.resolve newEnv newSyncedValue origSyncedValue
 
 The result is whichever value is the later step; if they represent the
 same step then the one from the earlier envelope is preferred; if that
@@ -192,21 +180,18 @@ resolve env (Sync recNew) (Sync recOrig) =
 -- Encoding and decoding
 
 
-{-| Encode a synced value for sending to another client.
+{-| Encode a synced value for sending to other clients.
 You need to supply an encoder for the value.
 
-In a game of hangman, where we're trying to find a seven letter word,
-we might create our encoder like this:
+In a game of hangman, where we're trying to find a word (a `String`),
+and we want to synchronise that,
+we might create our encode function like this:
 
-
-    import Json.Encode as Encode
+    import Json.Encode as Enc
     import BoardGameFramework.Sync as Sync
 
-    word : Sync String
-    word = Sync.zero "-------"
-
-    wordEncoder : Sync String -> Enc.Value
-    wordEncoder =
+    encodeWord : Sync String -> Enc.Value
+    encodeWord =
       Sync.encode Enc.string
 -}
 encode : (a -> Enc.Value) -> Sync a -> Enc.Value
@@ -228,8 +213,19 @@ encodeTiming t =
       Enc.list Enc.int []
 
 
-{-| Decode a synced value received from another client
+{-| Create a decoder for a synced value received from another client.
 You need to supply an decoder for the value.
+
+In a game of hangman, where we're trying to find a word (a `String`),
+and we want to synchronise that,
+we might create our decoder like this:
+
+    import Json.Decode as Dec
+    import BoardGameFramework.Sync as Sync
+
+    wordDecoder : Dec.Decoder (Sync String)
+    wordDecoder =
+      Sync.decoder Dec.string
 -}
 decoder : (Dec.Decoder a) -> Dec.Decoder (Sync a)
 decoder dec =
@@ -321,12 +317,12 @@ timing env =
 {-| Compare the order of two envelopes. An earlier envelope is `LT`
 a later envelope.
 
-A `Connection` envelope has no order information,
-so is considered as late as possible.
+`Connection` and `Error` envelopes have no order information,
+so these are considered as late as possible.
 
     env1 = ...            -- First Welcome envelope received
-    env2 = ...            -- First Receipt received after sending something
-    envX = ...            -- Some connection envelope
+    env2 = ...            -- Some Receipt received after sending something
+    envX = ...            -- Some Connection envelope
     envCompare env1 env2  -- LT
     envCompare env2 env1  -- GT
     envCompare env1 env1  -- EQ
