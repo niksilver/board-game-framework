@@ -281,7 +281,7 @@ update msg model =
           clientList = Clients.singleton me
           clients =
             model.clients
-            |> Sync.assume clientList
+            |> Sync.set clientList
         in
         ( { model
           | name = Just name

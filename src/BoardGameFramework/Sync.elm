@@ -7,7 +7,7 @@ module BoardGameFramework.Sync exposing
   -- Basics
   ( Sync, zero, value
   -- Modifying
-  , assume, mapToNext, resolve
+  , set, mapToNext, resolve
   -- Encoding and decoding
   , encode, decoder
   -- Utilities
@@ -15,29 +15,36 @@ module BoardGameFramework.Sync exposing
   )
 
 
-{-| We will want to synchronise some values, such as the state of the
-game, with our peers.
-We will calculate an initial value (step 0) and as the game
-progresses we will calculate later values (step 1, 2, etc).
-But our peers will be doing the same thing, and sometimes there may
-be a clash - such as two players on the same team selecting different
-options at the same time. The way we solve that problem is to always
-send a calculated (assumed) value to our peers via the server,
-and whichever value we receive first from the server (either ours as
-a Receipt, or theirs as a Peer message) is the accepted one.
+{-| Sometimes we don't just want to send values between peers, but
+we also want to synchronise them.
+
+The problem: Suppose we send the state of the board as a value
+between peers, and our game allows any client to make a move
+to update the board. What happens when two clients make different
+moves simultaneously.
+
+The solution:
+When we set our initial value (e.g. the initial state of the game)
+we count that as "step 0". Each subsequent change is step 1, step 2,
+etc. But whenever we set our own value we must recognised that it's
+not yet verified. We must also send it to our peers via the server.
+They will be doing the same thing. Whenever we receive a value
+(either ours as a Receipt, or theirs as a Peer message) we must
+resolve it against what we currently hold. Whichever value came
+through first from the server is the accepted value for that step.
 
 So the general procedure is:
 create an initial value as our [`zero`](#zero) step,
 calculate each subsequent step as the game progresses,
-and always send any value we've calculated to our peers (via the server).
-At the same time we receive values from the server,
+and always send any value we've calculated to our peers.
+At the same time we receive values,
 and [`resolve`](#resolve) any received value with our current value.
 
 # Basics
 @docs Sync, zero, value
 
 # Modifying
-@docs assume, mapToNext, resolve
+@docs set, mapToNext, resolve
 
 # Encoding and decoding
 @docs encode, decoder
@@ -62,7 +69,8 @@ type Timing =
 
 
 {-| Some value which can be synchronised, and resolved against other
-values.
+values. The data structure carries not only the value itself, but
+also where it originated, so it can be resolved against other values.
 -}
 type Sync a =
   Sync
@@ -73,7 +81,7 @@ type Sync a =
 
 
 {-| Set an initial value with step `0`, which is known not to have come
-from the server.
+via the server.
 -}
 zero : a -> Sync a
 zero val =
@@ -84,7 +92,7 @@ zero val =
     }
 
 
-{-| Get the value from a synchronisation point.
+{-| Get the value carried.
 -}
 value : Sync a -> a
 value (Sync rec) =
@@ -94,8 +102,8 @@ value (Sync rec) =
 -- Modifying
 
 
-{-| Assume a new value as the next step, but recognise that this is yet
-to be accepted.
+{-| Set a new value as the next step, but recognise that it's
+and not yet verified.
 
 In a hangman game, if the state is a string, and the next
 state is found by revealing one of its letters
@@ -111,10 +119,10 @@ then we might have
           Sync.value state
           |> reveal i
       in
-      Sync.assume state2
+      Sync.set state2
 -}
-assume : a -> Sync a -> Sync a
-assume val (Sync rec) =
+set : a -> Sync a -> Sync a
+set val (Sync rec) =
   Sync
     { step = rec.step + 1
     , timing = NoTiming
