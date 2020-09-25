@@ -106,7 +106,7 @@ type Body =
 playerCount : Clients Profile -> Int
 playerCount cs =
   cs
-  |> Clients.filterLength (.player >> not)
+  |> Clients.filterLength .player
 
 
 addIfNotPresent : NamedClient -> Clients Profile -> Clients Profile
