@@ -333,7 +333,7 @@ updateWithEnvelope env model =
           updateWithMyName namedClient model
 
         ClientListMsg syncClientList ->
-          updateWithClientList rec.num syncClientList model
+          updateWithClientList env syncClientList model
 
     BGF.Joiner rec ->
       -- Ignore a joiner
@@ -374,9 +374,15 @@ updateWithMyName namedClient model =
   )
 
 
-updateWithClientList : Int -> Sync (Clients Profile) -> Model -> (Model, Cmd Msg)
-updateWithClientList num scl model =
-  (model, Cmd.none |> Debug.log "To be implememented!")
+updateWithClientList : BGF.Envelope Body -> Sync (Clients Profile) -> Model -> (Model, Cmd Msg)
+updateWithClientList env scl model =
+  ( { model
+    | clients =
+        model.clients
+        |> Sync.resolve env scl
+    }
+  , Cmd.none |> Debug.log "To be implememented!"
+  )
 
 
 -- View
