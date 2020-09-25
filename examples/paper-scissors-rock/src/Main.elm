@@ -109,15 +109,20 @@ playerCount cs =
   |> Clients.filterLength .player
 
 
-addIfNotPresent : NamedClient -> Clients Profile -> Clients Profile
-addIfNotPresent namedClient cs =
+addClient : NamedClient -> Clients Profile -> Clients Profile
+addClient namedClient cs =
   let
-    playerMissing =
+    isPlayer =
+      Clients.get namedClient.id cs
+      |> Maybe.map .player
+      |> Maybe.withDefault False
+    playerNeeded =
       playerCount cs < 2
     client =
       { id = namedClient.id
       , name = namedClient.name
-      , player = playerMissing
+      , player =
+          isPlayer || playerNeeded
       }
   in
     cs
@@ -166,13 +171,13 @@ openCmd =
 
 
 sendClientListCmd : Sync (Clients Profile) -> Cmd Msg
-sendClientListCmd =
-  Wrap.send outgoing "clients" syncClientListEncode
+sendClientListCmd clients =
+  Wrap.send outgoing "clients" syncClientListEncode (clients |> Debug.log "Sending")
 
 
 sendMyNameCmd : NamedClient -> Cmd Msg
-sendMyNameCmd =
-  Wrap.send outgoing "myName" namedClientEncode
+sendMyNameCmd namedClient =
+  Wrap.send outgoing "myName" namedClientEncode (namedClient |> Debug.log "Sending")
 
 
 -- Peer-to-peer messages
@@ -276,16 +281,14 @@ update msg model =
           me =
             { id = model.myId
             , name = name
-            , player = True
             }
-          clientList = Clients.singleton me
           clients =
             model.clients
-            |> Sync.set clientList
+            |> Sync.mapToNext (addClient me)
         in
         ( { model
           | name = Just name
-          , clients = clients
+          , clients = clients |> Debug.log "ConfirmedName clients"
           }
         , Cmd.batch
           [ sendMyNameCmd (NamedClient me.id me.name)
@@ -315,7 +318,7 @@ updateWithEnvelope : BGF.Envelope Body -> Model -> (Model, Cmd Msg)
 updateWithEnvelope env model =
   case env |> Debug.log "Received envelope" of
     BGF.Welcome rec ->
-      -- We've joined the game, but no action required
+      -- We've joined the game, but no action required.
       ( model
       , Cmd.none
       )
@@ -330,21 +333,28 @@ updateWithEnvelope env model =
       -- A message from another peer
       case rec.body of
         MyNameMsg namedClient ->
-          updateWithMyName namedClient model
+          updateWithNamedClient namedClient model
 
         ClientListMsg syncClientList ->
           updateWithClientList env syncClientList model
 
     BGF.Joiner rec ->
-      -- Ignore a joiner
+      -- Ignore a joiner. We'll do something later when they send their name.
       ( model
       , Cmd.none
       )
 
     BGF.Leaver rec ->
-      -- Ignore a joiner
-      ( model
-      , Cmd.none
+      -- Remove a leaver from the clients list and send the new list
+      let
+        clients =
+          model.clients
+          |> Sync.mapToNext (Clients.remove rec.leaver)
+      in
+      ( { model
+        | clients = clients |> Debug.log "Leaver clients"
+        }
+      , sendClientListCmd clients
       )
 
     BGF.Connection conn ->
@@ -360,15 +370,15 @@ updateWithEnvelope env model =
       )
 
 
-updateWithMyName : NamedClient -> Model -> (Model, Cmd Msg)
-updateWithMyName namedClient model =
+updateWithNamedClient : NamedClient -> Model -> (Model, Cmd Msg)
+updateWithNamedClient namedClient model =
   let
     syncClientList2 =
       model.clients
-      |> Sync.mapToNext (addIfNotPresent namedClient)
+      |> Sync.mapToNext (addClient namedClient)
   in
   ( { model
-    | clients = syncClientList2
+    | clients = syncClientList2 |> Debug.log "updateWithNamedClient clients"
     }
   , sendClientListCmd model.clients
   )
@@ -379,7 +389,7 @@ updateWithClientList env scl model =
   ( { model
     | clients =
         model.clients
-        |> Sync.resolve env scl
+        |> Sync.resolve env scl |> Debug.log "updateWithClientList clients"
     }
   , Cmd.none |> Debug.log "To be implememented!"
   )
