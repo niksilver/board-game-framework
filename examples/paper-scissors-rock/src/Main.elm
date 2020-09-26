@@ -170,6 +170,13 @@ openCmd =
   BGF.open outgoing server |> Debug.log "openCmd"
 
 
+-- Peer-to-peer messages
+
+
+port outgoing : Enc.Value -> Cmd msg
+port incoming : (Enc.Value -> msg) -> Sub msg
+
+
 sendClientListCmd : Sync (Clients Profile) -> Cmd Msg
 sendClientListCmd clients =
   Wrap.send outgoing "clients" syncClientListEncode (clients |> Debug.log "Sending")
@@ -178,13 +185,6 @@ sendClientListCmd clients =
 sendMyNameCmd : NamedClient -> Cmd Msg
 sendMyNameCmd namedClient =
   Wrap.send outgoing "myName" namedClientEncode (namedClient |> Debug.log "Sending")
-
-
--- Peer-to-peer messages
-
-
-port outgoing : Enc.Value -> Cmd msg
-port incoming : (Enc.Value -> msg) -> Sub msg
 
 
 subscriptions : Model -> Sub Msg
@@ -324,19 +324,10 @@ updateWithEnvelope env model =
       )
 
     BGF.Receipt rec ->
-      -- Our own message
-      ( model
-      , Cmd.none
-      )
+      updateWithBody env rec.body model
 
     BGF.Peer rec ->
-      -- A message from another peer
-      case rec.body of
-        MyNameMsg namedClient ->
-          updateWithNamedClient namedClient model
-
-        ClientListMsg syncClientList ->
-          updateWithClientList env syncClientList model
+      updateWithBody env rec.body model
 
     BGF.Joiner rec ->
       -- Ignore a joiner. We'll do something later when they send their name.
@@ -368,6 +359,19 @@ updateWithEnvelope env model =
       ( model
       , Cmd.none
       )
+
+
+-- Respond the same to a Receipt or Peer envelope
+updateWithBody : BGF.Envelope Body -> Body -> Model -> (Model, Cmd Msg)
+updateWithBody env body model =
+  -- A message from another peer
+  case body of
+    MyNameMsg namedClient ->
+      updateWithNamedClient namedClient model
+
+    ClientListMsg syncClientList ->
+      updateWithClientList env syncClientList model
+
 
 
 updateWithNamedClient : NamedClient -> Model -> (Model, Cmd Msg)
