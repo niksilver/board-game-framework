@@ -167,7 +167,7 @@ server = BGF.wssServer "bgf.pigsaw.org"
 
 openCmd : BGF.GameId -> Cmd Msg
 openCmd =
-  BGF.open outgoing server |> Debug.log "openCmd"
+  BGF.open outgoing server
 
 
 -- Peer-to-peer messages
@@ -178,13 +178,13 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 
 
 sendClientListCmd : Sync (Clients Profile) -> Cmd Msg
-sendClientListCmd clients =
-  Wrap.send outgoing "clients" syncClientListEncode (clients |> Debug.log "Sending")
+sendClientListCmd =
+  Wrap.send outgoing "clients" syncClientListEncode
 
 
 sendMyNameCmd : NamedClient -> Cmd Msg
-sendMyNameCmd namedClient =
-  Wrap.send outgoing "myName" namedClientEncode (namedClient |> Debug.log "Sending")
+sendMyNameCmd =
+  Wrap.send outgoing "myName" namedClientEncode
 
 
 subscriptions : Model -> Sub Msg
@@ -264,7 +264,7 @@ update msg model =
         | lobby = lobby
         , gameId = maybeGameId |> Debug.log "maybeGameId"
         }
-      , cmd |> Debug.log "Lobby cmd"
+      , cmd
       )
 
     NewDraftName draft ->
@@ -288,7 +288,7 @@ update msg model =
         in
         ( { model
           | name = Just name
-          , clients = clients |> Debug.log "ConfirmedName clients"
+          , clients = clients |> Debug.log "ConfirmedName: New client list"
           }
         , Cmd.batch
           [ sendMyNameCmd (NamedClient me.id me.name)
@@ -299,7 +299,7 @@ update msg model =
         (model, Cmd.none)
 
     Received envRes ->
-      case envRes |> Debug.log "envRes" of
+      case envRes of
         Ok env ->
           updateWithEnvelope env model
 
@@ -343,7 +343,7 @@ updateWithEnvelope env model =
           |> Sync.mapToNext (Clients.remove rec.leaver)
       in
       ( { model
-        | clients = clients |> Debug.log "Leaver clients"
+        | clients = clients
         }
       , sendClientListCmd clients
       )
@@ -382,9 +382,10 @@ updateWithNamedClient namedClient model =
       |> Sync.mapToNext (addClient namedClient)
   in
   ( { model
-    | clients = syncClientList2 |> Debug.log "updateWithNamedClient clients"
+    | clients = syncClientList2 |> Debug.log "updateWithNamedClient: New client list"
     }
-  , sendClientListCmd model.clients
+  -- Send the newly-calculated client list
+  , sendClientListCmd syncClientList2
   )
 
 
@@ -393,9 +394,10 @@ updateWithClientList env scl model =
   ( { model
     | clients =
         model.clients
-        |> Sync.resolve env scl |> Debug.log "updateWithClientList clients"
+        |> Sync.resolve env scl |> Debug.log "updateWithClientList: New client list"
     }
-  , Cmd.none |> Debug.log "To be implememented!"
+  -- Don't send out the client list we've just received
+  , Cmd.none
   )
 
 
