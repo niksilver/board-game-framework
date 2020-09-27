@@ -42,12 +42,23 @@ main =
 
 type alias Model =
   { myId : BGF.ClientId
-  , lobby : Lobby Msg BGF.GameId
-  , gameId : Maybe BGF.GameId
-  , draftName : String
-  , name : Maybe String
-  , clients : Sync (Clients Profile)
+  , lobby : Lobby Msg Progress
+  , progress : Progress
   }
+
+
+-- How much progress have we made into the game?
+type Progress =
+  InLobby
+  | ChoosingName
+    { gameId : BGF.GameId
+    , draftName : String
+    }
+  | Playing
+    { gameId : BGF.GameId
+    , name : String
+    , clients : Sync (Clients Profile)
+    }
 
 
 type alias NamedClient =
@@ -61,28 +72,6 @@ type alias Profile =
   { name : String
   , player : Bool
   }
-
-
--- How much progress have we made into the game?
-type Progress =
-  InLobby
-  | ChoosingName
-  | InGame
-
-
-progress : Model -> Progress
-progress model =
-  case model.gameId of
-    Nothing ->
-      InLobby
-
-    Just gameId ->
-      case model.name of
-        Nothing ->
-          ChoosingName
-
-        Just name ->
-          InGame
 
 
 -- Message types
@@ -135,14 +124,13 @@ addClient namedClient cs =
 init : BGF.ClientId -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init clientId url key =
   let
-    (lobby, maybeGameId, cmd) = Lobby.lobby lobbyConfig url key
+    (lobby, maybeProgress, cmd) = Lobby.lobby lobbyConfig url key
   in
   ( { myId = clientId
     , lobby = lobby
-    , gameId = maybeGameId
-    , draftName = ""
-    , name = Nothing
-    , clients = initClients
+    , progress =
+        maybeProgress
+        |> Maybe.withDefault InLobby
     }
   , cmd
   )
@@ -154,11 +142,19 @@ initClients =
   |> Sync.zero
 
 
-lobbyConfig : Lobby.Config Msg BGF.GameId
+lobbyConfig : Lobby.Config Msg Progress
 lobbyConfig =
-  { init = identity
+  { init = lobbyProgress
   , openCmd = openCmd
   , msgWrapper = ToLobby
+  }
+
+
+lobbyProgress : BGF.GameId -> Progress
+lobbyProgress gameId =
+  ChoosingName
+  { gameId = gameId
+  , draftName = ""
   }
 
 
@@ -262,53 +258,75 @@ update msg model =
   case msg of
     ToLobby subMsg ->
       let
-        (lobby, maybeGameId, cmd) = Lobby.update subMsg model.lobby
-        clients =
-          case maybeGameId of
-            Just _ ->
-              initClients
-
-            Nothing ->
-              model.clients
+        (lobby, maybeProgress, cmd) = Lobby.update subMsg model.lobby
       in
-      ( { model
-        | lobby = lobby
-        , gameId = maybeGameId |> Debug.log "maybeGameId"
-        , clients = clients
-        }
-      , cmd
-      )
+      case maybeProgress of
+        Nothing ->
+          ( { model
+            | lobby = lobby
+            }
+          , cmd
+          )
+
+        Just progress ->
+          ( { model
+            | lobby = lobby
+            , progress = progress
+            }
+          , cmd
+          )
 
     NewDraftName draft ->
-      ( { model | draftName = draft }
-      , Cmd.none
-      )
+      case model.progress of
+        ChoosingName state ->
+          let
+            progress =
+              ChoosingName { state | draftName = draft}
+          in
+          ( { model
+            | progress = progress
+            }
+          , Cmd.none
+          )
+
+        _ ->
+          (model, Cmd.none)
 
     ConfirmedName ->
-      if okName model.draftName then
-        -- With a good name we can send our name to any other clients
-        -- and our player list
-        let
-          name = model.draftName
-          me =
-            { id = model.myId
-            , name = name
-            }
-          clients =
-            model.clients
-            |> Sync.mapToNext (addClient me)
-        in
-        ( { model
-          | name = Just name
-          , clients = clients |> Debug.log "ConfirmedName: New client list"
-          }
-        , Cmd.batch
-          [ sendMyNameCmd (NamedClient me.id me.name)
-          , sendClientListCmd clients
-          ]
-        )
-      else
-        (model, Cmd.none)
+      case model.progress of
+        ChoosingName state ->
+          if okName state.draftName then
+            -- With a good name we can send our name to any other clients
+            -- and our player list
+            let
+              name = state.draftName
+              me =
+                { id = model.myId
+                , name = name
+                }
+              clients =
+                initClients
+                |> Sync.mapToNext (addClient me)
+              progress =
+                Playing
+                { gameId = state.gameId
+                , name = name
+                , clients = clients
+                }
+            in
+            ( { model
+              | progress = progress
+              }
+            , Cmd.batch
+              [ sendMyNameCmd (NamedClient me.id me.name)
+              , sendClientListCmd clients
+              ]
+            )
+          else
+            (model, Cmd.none)
+
+        _ ->
+          (model, Cmd.none)
 
     Received envRes ->
       case envRes of
@@ -349,16 +367,21 @@ updateWithEnvelope env model =
 
     BGF.Leaver rec ->
       -- Remove a leaver from the clients list and send the new list
-      let
-        clients =
-          model.clients
-          |> Sync.mapToNext (Clients.remove rec.leaver)
-      in
-      ( { model
-        | clients = clients
-        }
-      , sendClientListCmd clients
-      )
+      case model.progress of
+        Playing state ->
+          let
+            clients =
+              state.clients
+              |> Sync.mapToNext (Clients.remove rec.leaver)
+          in
+          ( { model
+            | progress = Playing { state | clients = clients }
+            }
+          , sendClientListCmd clients
+          )
+
+        _ ->
+          (model, Cmd.none)
 
     BGF.Connection conn ->
       -- Ignore a connection change
@@ -388,29 +411,44 @@ updateWithBody env body model =
 
 updateWithNamedClient : NamedClient -> Model -> (Model, Cmd Msg)
 updateWithNamedClient namedClient model =
-  let
-    syncClientList2 =
-      model.clients
-      |> Sync.mapToNext (addClient namedClient)
-  in
-  ( { model
-    | clients = syncClientList2 |> Debug.log "updateWithNamedClient: New client list"
-    }
-  -- Send the newly-calculated client list
-  , sendClientListCmd syncClientList2
-  )
+  case model.progress of
+    Playing state ->
+      let
+        syncClientList2 =
+          state.clients
+          |> Sync.mapToNext (addClient namedClient)
+      in
+      ( { model
+        | progress =
+            Playing { state | clients = syncClientList2 |> Debug.log "updateWithNamedClient: New client list" }
+        }
+      -- Send the newly-calculated client list
+      , sendClientListCmd syncClientList2
+      )
+
+    _ ->
+      (model, Cmd.none)
 
 
 updateWithClientList : BGF.Envelope Body -> Sync (Clients Profile) -> Model -> (Model, Cmd Msg)
 updateWithClientList env scl model =
-  ( { model
-    | clients =
-        model.clients
-        |> Sync.resolve env scl |> Debug.log "updateWithClientList: New client list"
-    }
-  -- Don't send out the client list we've just received
-  , Cmd.none
-  )
+  case model.progress of
+    Playing state ->
+      let
+        clients =
+          state.clients
+          |> Sync.resolve env scl |> Debug.log "updateWithClientList: New client list"
+      in
+      ( { model
+        | progress =
+            Playing { state | clients = clients }
+        }
+      -- Don't send out the client list we've just received
+      , Cmd.none
+      )
+
+    _ ->
+      (model, Cmd.none)
 
 
 -- View
@@ -420,19 +458,19 @@ view : Model -> Browser.Document Msg
 view model =
   { title = "Paper, scissors, rock"
   , body =
-    case progress model of
+    case model.progress of
       InLobby ->
         viewLobby model.lobby
 
-      ChoosingName ->
-        viewNameForm model
+      ChoosingName state ->
+        viewNameForm state.draftName
 
-      InGame ->
-        viewGame model
+      Playing state ->
+        viewGame state.clients
   }
 
 
-viewLobby : Lobby Msg BGF.GameId -> List (Html Msg)
+viewLobby : Lobby Msg Progress -> List (Html Msg)
 viewLobby lobby =
   [ Lobby.view
     { label = "Enter game ID:"
@@ -443,28 +481,28 @@ viewLobby lobby =
   ]
 
 
-viewNameForm : Model -> List (Html Msg)
-viewNameForm model =
+viewNameForm : String -> List (Html Msg)
+viewNameForm draftName =
   [ Html.label [] [ Html.text "Your name" ]
   , Html.input
     [ Events.onInput NewDraftName
-    , Attr.value model.draftName
+    , Attr.value draftName
     ]
     []
   , Html.button
     [ Events.onClick ConfirmedName
-    , Attr.disabled (not <| okName model.draftName)
+    , Attr.disabled (not <| okName draftName)
     ]
     [ Html.label [] [ Html.text "Go" ]
     ]
   ]
 
 
-viewGame : Model -> List (Html Msg)
-viewGame model =
+viewGame : Sync (Clients Profile) -> List (Html Msg)
+viewGame clients =
   let
     (players, observers) =
-      model.clients
+      clients
       |> Sync.value
       |> Clients.partition .player
       |> Tuple.mapBoth (Clients.mapToList .name) (Clients.mapToList .name)
