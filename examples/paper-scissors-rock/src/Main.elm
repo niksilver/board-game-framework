@@ -142,12 +142,16 @@ init clientId url key =
     , gameId = maybeGameId
     , draftName = ""
     , name = Nothing
-    , clients =
-        Clients.empty
-        |> Sync.zero
+    , clients = initClients
     }
   , cmd
   )
+
+
+initClients : Sync (Clients Profile)
+initClients =
+  Clients.empty
+  |> Sync.zero
 
 
 lobbyConfig : Lobby.Config Msg BGF.GameId
@@ -259,10 +263,18 @@ update msg model =
     ToLobby subMsg ->
       let
         (lobby, maybeGameId, cmd) = Lobby.update subMsg model.lobby
+        clients =
+          case maybeGameId of
+            Just _ ->
+              initClients
+
+            Nothing ->
+              model.clients
       in
       ( { model
         | lobby = lobby
         , gameId = maybeGameId |> Debug.log "maybeGameId"
+        , clients = clients
         }
       , cmd
       )
