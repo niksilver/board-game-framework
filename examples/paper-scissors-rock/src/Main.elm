@@ -277,20 +277,10 @@ update msg model =
           )
 
     NewDraftName draft ->
-      case model.progress of
-        ChoosingName state ->
-          let
-            progress =
-              ChoosingName { state | draftName = draft}
-          in
-          ( { model
-            | progress = progress
-            }
-          , Cmd.none
-          )
-
-        _ ->
-          (model, Cmd.none)
+      ( model
+        |> setDraftName draft
+      , Cmd.none
+      )
 
     ConfirmedName ->
       case model.progress of
@@ -299,10 +289,9 @@ update msg model =
             -- With a good name we can send our name to any other clients
             -- and our player list
             let
-              name = state.draftName
               me =
                 { id = model.myId
-                , name = name
+                , name = state.draftName
                 }
               clients =
                 initClients
@@ -310,7 +299,7 @@ update msg model =
               progress =
                 Playing
                 { gameId = state.gameId
-                , name = name
+                , name = me.name
                 , clients = clients
                 }
             in
@@ -367,21 +356,8 @@ updateWithEnvelope env model =
 
     BGF.Leaver rec ->
       -- Remove a leaver from the clients list and send the new list
-      case model.progress of
-        Playing state ->
-          let
-            clients =
-              state.clients
-              |> Sync.mapToNext (Clients.remove rec.leaver)
-          in
-          ( { model
-            | progress = Playing { state | clients = clients }
-            }
-          , sendClientListCmd clients
-          )
-
-        _ ->
-          (model, Cmd.none)
+      model
+      |> mapClientsToNextAndSend (Clients.remove rec.leaver)
 
     BGF.Connection conn ->
       -- Ignore a connection change
@@ -402,49 +378,62 @@ updateWithBody env body model =
   -- A message from another peer
   case body of
     MyNameMsg namedClient ->
-      updateWithNamedClient namedClient model
+      model
+      |> mapClientsToNextAndSend (addClient namedClient)
 
-    ClientListMsg syncClientList ->
-      updateWithClientList env syncClientList model
+    ClientListMsg clients ->
+      case model.progress of
+        Playing state ->
+          let
+            clients2 =
+              state.clients
+              |> Sync.resolve env clients
+          in
+          ( { model
+            | progress =
+                Playing { state | clients = clients2 }
+            }
+          -- Don't send out the client list we've just received
+          , Cmd.none
+          )
+
+        _ ->
+          (model, Cmd.none)
 
 
+-- Set values for progress in the model
 
-updateWithNamedClient : NamedClient -> Model -> (Model, Cmd Msg)
-updateWithNamedClient namedClient model =
+
+setDraftName : String -> Model -> Model
+setDraftName draft model =
   case model.progress of
-    Playing state ->
+    ChoosingName state ->
       let
-        syncClientList2 =
-          state.clients
-          |> Sync.mapToNext (addClient namedClient)
+        progress =
+          ChoosingName { state | draftName = draft}
       in
-      ( { model
-        | progress =
-            Playing { state | clients = syncClientList2 |> Debug.log "updateWithNamedClient: New client list" }
-        }
-      -- Send the newly-calculated client list
-      , sendClientListCmd syncClientList2
-      )
+      { model
+      | progress = progress
+      }
 
     _ ->
-      (model, Cmd.none)
+      model
 
 
-updateWithClientList : BGF.Envelope Body -> Sync (Clients Profile) -> Model -> (Model, Cmd Msg)
-updateWithClientList env scl model =
+mapClientsToNextAndSend : (Clients Profile -> Clients Profile) -> Model -> (Model, Cmd Msg)
+mapClientsToNextAndSend mapping model =
   case model.progress of
     Playing state ->
       let
         clients =
           state.clients
-          |> Sync.resolve env scl |> Debug.log "updateWithClientList: New client list"
+          |> Sync.mapToNext mapping
       in
       ( { model
         | progress =
             Playing { state | clients = clients }
         }
-      -- Don't send out the client list we've just received
-      , Cmd.none
+      , sendClientListCmd clients
       )
 
     _ ->
