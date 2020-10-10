@@ -18,15 +18,15 @@ type GameState = TheGame
 
 
 lobbyConfig =
-  { init = \_ -> TheGame
+  { initGame = \_ -> TheGame
   , openCmd = \_ -> Cmd.none
   , msgWrapper = ToLobby
   }
 
 
-updateTest : Test
-updateTest =
-  describe "update"
+lobbyTest : Test
+lobbyTest =
+  describe "lobby"
   [ describe "UrlRequested"
     [ describe "Clicking new game URL gives new game" <|
       let

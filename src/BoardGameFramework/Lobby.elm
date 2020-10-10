@@ -14,7 +14,7 @@ module BoardGameFramework.Lobby exposing (
   -- Viewing
   , view
   -- Only expose this for testing
-  --, fakeLobby
+  , fakeLobby
   )
 
 
@@ -76,7 +76,7 @@ import BoardGameFramework as BGF
 -}
 type Lobby msg s =
   Lobby
-    { init : BGF.GameId -> s
+    { initGame : BGF.GameId -> s
     , openCmd : BGF.GameId -> Cmd msg
     , msgWrapper : Msg -> msg
     , url : Url.Url
@@ -102,7 +102,7 @@ type Key =
   lobby).
 -}
 type alias Config msg s =
-  { init : BGF.GameId -> s
+  { initGame : BGF.GameId -> s
   , openCmd : BGF.GameId -> Cmd msg
   , msgWrapper : Msg -> msg
   }
@@ -213,7 +213,7 @@ confirm msgWrapper =
 lobby : Config msg s -> Url.Url -> Nav.Key -> (Lobby msg s, Maybe s, Cmd msg)
 lobby config url_ key =
   Lobby
-    { init = config.init
+    { initGame = config.initGame
     , openCmd = config.openCmd
     , msgWrapper = config.msgWrapper
     , url = url_
@@ -227,7 +227,7 @@ lobby config url_ key =
 fakeLobby : Config msg s -> Url.Url -> () -> (Lobby msg s, Maybe s, Cmd msg)
 fakeLobby config url_ key =
   Lobby
-    { init = config.init
+    { initGame = config.initGame
     , openCmd = config.openCmd
     , msgWrapper = config.msgWrapper
     , url = url_
@@ -258,7 +258,7 @@ forNewUrl (Lobby lob) =
               { lob
               | draftGameId = frag
               }
-          , Just <| lob.init gameId
+          , Just <| lob.initGame gameId
           , lob.openCmd gameId
           )
 
