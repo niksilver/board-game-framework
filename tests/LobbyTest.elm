@@ -14,11 +14,23 @@ type Msg =
   ToLobby Lobby.Msg
 
 
-type GameState = TheGame
+type GameState =
+  NoGame
+  | TheGame
+  | GameState1
+  | GameState2
 
 
 lobbyConfig =
-  { initGame = \_ -> TheGame
+  { initBase = NoGame
+  , initGame = \_ -> TheGame
+  , change =
+    \gameId state ->
+      case state of
+        NoGame -> Debug.todo "Should not get here"
+        TheGame -> TheGame
+        GameState1 -> GameState2
+        GameState2 -> GameState1
   , openCmd = \_ -> Cmd.none
   , msgWrapper = ToLobby
   }
@@ -26,11 +38,11 @@ lobbyConfig =
 
 lobbyTest : Test
 lobbyTest =
-  describe "lobby"
-  [ describe "UrlRequested"
-    [ describe "Clicking new game URL gives new game" <|
+  describe "lobbyTest"
+  [ test "Initialising with a good game ID should bring us into the game" <|
+    \_ ->
       let
-        url1 =
+        url =
           { protocol = Url.Https
           , host = "some.example.com"
           , port_ = Nothing
@@ -38,116 +50,164 @@ lobbyTest =
           , query = Nothing
           , fragment = Just "square-bananas"
           }
-        (lobby1, game1, cmd1) = Lobby.fakeLobby lobbyConfig url1 ()
-        url2 =
-          { url1
-          | fragment = Just "round-fish"
-          }
-        req2 = Browser.Internal url2
-        (ToLobby msg) = Lobby.urlRequested ToLobby req2
-        (lobby2, game2, cmd2) =
-          lobby1
-          |> Lobby.update msg
+        (lobby, game, cmd) = Lobby.fakeLobby lobbyConfig url ()
       in
-      [ test "A" <|
-        \_ -> Expect.equal url2 <| Lobby.url lobby2
+      Expect.equal TheGame game
 
-      , test "B" <|
-        \_ -> Expect.equal "round-fish" <| Lobby.draft lobby2
-
-      , test "C" <|
-        \_ -> Expect.equal (Just TheGame) <| game2
-      ]
-
-    , describe "Clicking game URL with bad frag gives Lobby with frag as draft" <|
+  , test "Initialising with a bad game ID should not bring us into the game" <|
+    \_ ->
       let
-        url1 =
+        url =
           { protocol = Url.Https
           , host = "some.example.com"
           , port_ = Nothing
           , path = "/mygame"
           , query = Nothing
-          , fragment = Just "square-bananas"
+          , fragment = Just "sq"
           }
-        (lobby1, game1, cmd1) = Lobby.fakeLobby lobbyConfig url1 ()
-        url2 =
-          { url1
-          | fragment = Just "ro"
-          }
-        req2 = Browser.Internal url2
-        (ToLobby msg) = Lobby.urlRequested ToLobby req2
-        (lobby2, game2, cmd2) =
-          lobby1
-          |> Lobby.update msg
+        (lobby, game, cmd) = Lobby.fakeLobby lobbyConfig url ()
       in
-      [ test "A" <|
-        \_ -> Expect.equal url2 <| Lobby.url lobby2
+      Expect.equal NoGame game
 
-      , test "B" <|
-        \_ -> Expect.equal "ro" <| Lobby.draft lobby2
-
-      , test "C" <|
-        \_ -> Expect.equal Nothing <| game2
-      ]
-
-    , describe "Clicking game URL no frag gives Lobby (with new ID cmd)" <|
+  , test "Initialising with no game ID should not bring us into the game" <|
+    \_ ->
       let
-        url1 =
+        url =
           { protocol = Url.Https
           , host = "some.example.com"
           , port_ = Nothing
           , path = "/mygame"
           , query = Nothing
-          , fragment = Just "square-bananas"
+          , fragment = Nothing
           }
-        (lobby1, game1, cmd1) = Lobby.fakeLobby lobbyConfig url1 ()
-        url2 =
-          { url1
-          | fragment = Nothing
-          }
-        req2 = Browser.Internal url2
-        (ToLobby msg) = Lobby.urlRequested ToLobby req2
-        (lobby2, game2, cmd2) =
-          lobby1
-          |> Lobby.update msg
+        (lobby, game, cmd) = Lobby.fakeLobby lobbyConfig url ()
       in
-      [ test "A" <|
-        \_ -> Expect.equal url2 <| Lobby.url lobby2
+      Expect.equal NoGame game
 
-      , test "B" <|
-        \_ -> Expect.equal "" <| Lobby.draft lobby2
+  ]
 
-      , test "C" <|
-        \_ -> Expect.equal Nothing <| game2
-      -- Cannot test cmd2
-      ]
+urlRequestedTest : Test
+urlRequestedTest =
+  describe "urlRequestedTest"
+  [ describe "When in old game, clicking new game URL gives new game" <|
+    let
+      url1 =
+        { protocol = Url.Https
+        , host = "some.example.com"
+        , port_ = Nothing
+        , path = "/mygame"
+        , query = Nothing
+        , fragment = Just "square-bananas"
+        }
+      (lobby1, game1, cmd1) = Lobby.fakeLobby lobbyConfig url1 ()
+      url2 =
+        { url1
+        | fragment = Just "round-fish"
+        }
+      req2 = Browser.Internal url2
+      (ToLobby msg) = Lobby.urlRequested ToLobby req2
+      (lobby2, game2, cmd2) =
+        lobby1
+        |> Lobby.update msg GameState1
+    in
+    [ test "A" <|
+      \_ -> Expect.equal url2 <| Lobby.url lobby2
 
-    , describe "Clicking same game URL gives nothing" <|
-      let
-        url1 =
-          { protocol = Url.Https
-          , host = "some.example.com"
-          , port_ = Nothing
-          , path = "/mygame"
-          , query = Nothing
-          , fragment = Just "square-bananas"
-          }
-        (lobby1, game1, cmd1) = Lobby.fakeLobby lobbyConfig url1 ()
-        req2 = Browser.Internal url1
-        (ToLobby msg) = Lobby.urlRequested ToLobby req2
-        (lobby2, game2, cmd2) =
-          lobby1
-          |> Lobby.update msg
-      in
-      [ test "A" <|
-        \_ -> Expect.equal url1 <| Lobby.url lobby2
+    , test "B" <|
+      \_ -> Expect.equal "round-fish" <| Lobby.draft lobby2
 
-      , test "B" <|
-        \_ -> Expect.equal "square-bananas" <| Lobby.draft lobby2
-
-      , test "C" <|
-        \_ -> Expect.equal Nothing <| game2
-      ]
-
+    , test "C" <|
+      \_ -> Expect.equal TheGame <| game2
     ]
+
+  , describe "Clicking game URL with bad frag gives Lobby with frag as draft" <|
+    let
+      url1 =
+        { protocol = Url.Https
+        , host = "some.example.com"
+        , port_ = Nothing
+        , path = "/mygame"
+        , query = Nothing
+        , fragment = Just "square-bananas"
+        }
+      (lobby1, game1, cmd1) = Lobby.fakeLobby lobbyConfig url1 ()
+      url2 =
+        { url1
+        | fragment = Just "ro"
+        }
+      req2 = Browser.Internal url2
+      (ToLobby msg) = Lobby.urlRequested ToLobby req2
+      (lobby2, game2, cmd2) =
+        lobby1
+        |> Lobby.update msg TheGame
+    in
+    [ test "A" <|
+      \_ -> Expect.equal url2 <| Lobby.url lobby2
+
+    , test "B" <|
+      \_ -> Expect.equal "ro" <| Lobby.draft lobby2
+
+    , test "C" <|
+      \_ -> Expect.equal NoGame <| game2
+    ]
+
+  , describe "Clicking game URL no frag gives Lobby (with new ID cmd)" <|
+    let
+      url1 =
+        { protocol = Url.Https
+        , host = "some.example.com"
+        , port_ = Nothing
+        , path = "/mygame"
+        , query = Nothing
+        , fragment = Just "square-bananas"
+        }
+      (lobby1, game1, cmd1) = Lobby.fakeLobby lobbyConfig url1 ()
+      url2 =
+        { url1
+        | fragment = Nothing
+        }
+      req2 = Browser.Internal url2
+      (ToLobby msg) = Lobby.urlRequested ToLobby req2
+      (lobby2, game2, cmd2) =
+        lobby1
+        |> Lobby.update msg GameState1
+    in
+    [ test "A" <|
+      \_ -> Expect.equal url2 <| Lobby.url lobby2
+
+    , test "B" <|
+      \_ -> Expect.equal "" <| Lobby.draft lobby2
+
+    , test "C" <|
+      \_ -> Expect.equal NoGame game2
+    -- Cannot test cmd2
+    ]
+
+  , describe "Clicking same game URL gives same game state" <|
+    let
+      url1 =
+        { protocol = Url.Https
+        , host = "some.example.com"
+        , port_ = Nothing
+        , path = "/mygame"
+        , query = Nothing
+        , fragment = Just "square-bananas"
+        }
+      (lobby1, game1, cmd1) = Lobby.fakeLobby lobbyConfig url1 ()
+      req2 = Browser.Internal url1
+      (ToLobby msg) = Lobby.urlRequested ToLobby req2
+      (lobby2, game2, cmd2) =
+        lobby1
+        |> Lobby.update msg GameState1
+    in
+    [ test "A" <|
+      \_ -> Expect.equal url1 <| Lobby.url lobby2
+
+    , test "B" <|
+      \_ -> Expect.equal "square-bananas" <| Lobby.draft lobby2
+
+    , test "C" <|
+      \_ -> Expect.equal GameState1 <| game2
+    ]
+
   ]
