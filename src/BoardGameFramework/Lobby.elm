@@ -337,7 +337,7 @@ update msg state (Lobby lob) =
 
         Browser.External str ->
           ( Lobby lob
-          , Debug.todo "Was Nothing - correct"
+          , state
           , Nav.load str
           )
 
@@ -350,7 +350,7 @@ update msg state (Lobby lob) =
           { lob
           | draftGameId = gameId |> BGF.fromGameId
           }
-      , Debug.todo "Was Nothing - correct"
+      , state
       , Cmd.none
       )
 
@@ -359,13 +359,13 @@ update msg state (Lobby lob) =
           { lob
           | draftGameId = draft_
           }
-      , Debug.todo "Was Nothing - correct"
+      , state
       , Cmd.none
       )
 
     Confirm ->
       ( Lobby lob
-      , Debug.todo "Was Nothing - correct"
+      , state
       , lob.draftGameId
         |> setFragment lob.url
         |> Url.toString
