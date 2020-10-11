@@ -2,12 +2,8 @@ TO DO:
 
 - Wrap module: Documentation using the WrapTest code.
 - Create paper scissors rock game (PSR).
-- Lobby module: Reconsider the return value of lobby and update (given
-  the challenges with PSR. Consider these config fields:
-    init : GameId -> s    -- As now
-    update GameId s -> s  -- Return the updated state given a new game ID
-                          -- and the existing state.
-  Then init and update both return s instead of Maybe s.
+- Lobby module: Finish updating examples (noughts and crosses and PSR).
+- Lobby module: Update documentation for new initBase, initGame and change.
 
 DONE:
 
@@ -107,3 +103,5 @@ DONE:
 - Wrap module: Function to receive a wrapped command
 - PSR: Have a simple function to (say) update the clients list, and the
   function should handle the game state.
+- Lobby module: Separated init with no game ID, init with a game ID,
+  and a new game ID from a given game state.
