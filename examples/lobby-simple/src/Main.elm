@@ -37,7 +37,7 @@ main =
 
 
 type alias Model =
-  { lobby : Lobby Msg BGF.GameId
+  { lobby : Lobby Msg (Maybe BGF.GameId)
   , game : Maybe BGF.GameId
   }
 
@@ -50,18 +50,20 @@ type Msg =
 init : BGF.ClientId -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
   let
-    (lobby, maybeGameId, cmd) = Lobby.lobby lobbyConfig url key
+    (lobby, game, cmd) = Lobby.lobby lobbyConfig url key
   in
   ( { lobby = lobby
-    , game = maybeGameId
+    , game = game
     }
   , cmd
   )
 
 
-lobbyConfig : Lobby.Config Msg BGF.GameId
+lobbyConfig : Lobby.Config Msg (Maybe BGF.GameId)
 lobbyConfig =
-  { init = identity
+  { initBase = Nothing
+  , initGame = \gameId -> Just gameId
+  , change = \gameId _ -> Just gameId
   , openCmd = openCmd
   , msgWrapper = ToLobby
   }
@@ -104,7 +106,7 @@ update msg model =
   case msg of
     ToLobby subMsg ->
       let
-        (lobby, maybeGameId, cmd) = Lobby.update subMsg model.lobby
+        (lobby, maybeGameId, cmd) = Lobby.update subMsg model.game model.lobby
       in
       ( { model
         | lobby = lobby
@@ -133,7 +135,7 @@ view model =
   }
 
 
-viewLobby : Lobby Msg BGF.GameId -> List (Html Msg)
+viewLobby : Lobby Msg (Maybe BGF.GameId) -> List (Html Msg)
 viewLobby lobby =
   [ Lobby.view
     { label = "Enter game ID:"
