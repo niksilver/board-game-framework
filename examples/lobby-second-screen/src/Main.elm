@@ -102,16 +102,28 @@ initProfile gameId =
   )
 
 
--- If we've got a new game ID after we've established a previous one, then
--- don't make the player go through the profile page all over again.
+-- If the game ID changes mid-game (by editing the browser's location bar)
+-- we still want to preserve the player's name, team, and playing state.
 changeGameId : BGF.GameId -> Playing -> Playing
 changeGameId gameId playing =
   case playing |> Debug.log "Old playing state was " of
     NotPlaying ->
       initProfile gameId
 
-    _ ->
-      playing
+    ProfilePage rawProfileModel ->
+      { gameId = gameId
+      , name = rawProfileModel.values.name
+      , team = rawProfileModel.values.team
+      }
+      |> Form.View.idle
+      |> ProfilePage
+
+    InGame profile ->
+      { gameId = gameId
+      , name = profile.name
+      , team = profile.team
+      }
+      |> InGame
 
 
 lobbyConfig : Lobby.Config Msg Playing
