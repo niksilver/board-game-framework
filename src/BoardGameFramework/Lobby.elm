@@ -14,7 +14,7 @@ module BoardGameFramework.Lobby exposing (
   -- Viewing
   , view
   -- Only expose this for testing
-  , fakeLobby
+  --, fakeLobby
   )
 
 
@@ -290,12 +290,12 @@ forNewUrlInGame state (Lobby lob) =
     Just frag ->
       case BGF.gameId frag of
         Ok gameId ->
-          if BGF.fromGameId gameId == lob.draftGameId then
+          {--          if BGF.fromGameId gameId == lob.draftGameId then
             ( Lobby lob
             , state
             , Cmd.none
             )
-          else
+          else--}
             ( Lobby
                 { lob
                 | draftGameId = frag

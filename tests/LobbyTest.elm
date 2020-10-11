@@ -243,7 +243,8 @@ updateTest =
       \_ -> Expect.equal GameState2 <| game2
     ]
 
-  , describe "When in old game, entering the same URL in the location bar doesn't trigger the change function" <|
+  , describe "When in old game, entering the same URL in the location bar shoudl still trigger the change function" <|
+    -- Otherwise it seems we can't escape the lobby.
     let
       url1 =
         { protocol = Url.Https
@@ -266,7 +267,7 @@ updateTest =
       \_ -> Expect.equal "square-bananas" <| Lobby.draft lobby2
 
     , test "C" <|
-      \_ -> Expect.equal GameState1 <| game2
+      \_ -> Expect.equal GameState2 <| game2
     ]
 
   ]
