@@ -226,7 +226,7 @@ lobby config url_ key =
     , key = Real key
     , draftGameId = ""
     }
-  |> forNewUrl
+  |> forNewUrlAtInit
 
 
 -- Should only be exposed during testing.
@@ -242,12 +242,12 @@ fakeLobby config url_ key =
     , key = Fake
     , draftGameId = ""
     }
-  |> forNewUrl
+  |> forNewUrlAtInit
 
 
--- Process a lobby which has a new URL
-forNewUrl : Lobby msg s -> (Lobby msg s, s, Cmd msg)
-forNewUrl (Lobby lob) =
+-- Process a lobby which has a new URL, when we're not in a game
+forNewUrlAtInit : Lobby msg s -> (Lobby msg s, s, Cmd msg)
+forNewUrlAtInit (Lobby lob) =
   case lob.url.fragment of
     Nothing ->
       ( Lobby
@@ -278,6 +278,34 @@ forNewUrl (Lobby lob) =
           , lob.initBase
           , Cmd.none
           )
+
+
+-- Process a lobby which has a new URL, when we're already in a game
+forNewUrlInGame : s -> Lobby msg s -> (Lobby msg s, s, Cmd msg)
+forNewUrlInGame state (Lobby lob) =
+  case lob.url.fragment of
+    Nothing ->
+      forNewUrlAtInit (Lobby lob)
+
+    Just frag ->
+      case BGF.gameId frag of
+        Ok gameId ->
+          if BGF.fromGameId gameId == lob.draftGameId then
+            ( Lobby lob
+            , state
+            , Cmd.none
+            )
+          else
+            ( Lobby
+                { lob
+                | draftGameId = frag
+                }
+            , lob.change gameId state
+            , lob.openCmd gameId
+            )
+
+        Err _ ->
+          forNewUrlAtInit (Lobby lob)
 
 
 pushUrl : Key -> String -> Cmd msg
@@ -333,7 +361,7 @@ update msg state (Lobby lob) =
             )
           else
             Lobby { lob | url = url_ }
-            |> forNewUrl
+            |> forNewUrlInGame state
 
         Browser.External str ->
           ( Lobby lob
@@ -343,7 +371,7 @@ update msg state (Lobby lob) =
 
     UrlChanged url_ ->
       Lobby { lob | url = url_ }
-      |> forNewUrl
+      |> forNewUrlInGame state
 
     GeneratedGameId gameId ->
       ( Lobby

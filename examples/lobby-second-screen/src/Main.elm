@@ -40,12 +40,13 @@ main =
 
 type alias Model =
   { lobby : Lobby Msg Playing
-  , playing : Maybe Playing
+  , playing : Playing
   }
 
 
 type Playing =
-  ProfilePage RawProfileModel
+  NotPlaying
+  | ProfilePage RawProfileModel
   | InGame Profile
 
 
@@ -81,10 +82,10 @@ type Msg =
 init : BGF.ClientId -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
   let
-    (lobby, maybePlaying, cmd) = Lobby.lobby lobbyConfig url key
+    (lobby, playing, cmd) = Lobby.lobby lobbyConfig url key
   in
   ( { lobby = lobby
-    , playing = maybePlaying
+    , playing = playing
     }
   , cmd
   )
@@ -101,9 +102,23 @@ initProfile gameId =
   )
 
 
+-- If we've got a new game ID after we've established a previous one, then
+-- don't make the player go through the profile page all over again.
+changeGameId : BGF.GameId -> Playing -> Playing
+changeGameId gameId playing =
+  case playing |> Debug.log "Old playing state was " of
+    NotPlaying ->
+      initProfile gameId
+
+    _ ->
+      playing
+
+
 lobbyConfig : Lobby.Config Msg Playing
 lobbyConfig =
-  { init = initProfile
+  { initBase = NotPlaying
+  , initGame = initProfile
+  , change = changeGameId
   , openCmd = openCmd
   , msgWrapper = ToLobby
   }
@@ -201,29 +216,33 @@ ignoreMessage v =
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
+  let
+    m = msg |> Debug.log "update: Msg"
+    x = model.playing |> Debug.log "update: Old playing"
+  in
   case msg of
     ToLobby subMsg ->
       let
-        (lobby, maybePlaying, cmd) =
-          Lobby.update subMsg model.lobby
+        (lobby, playing, cmd) =
+          Lobby.update subMsg model.playing model.lobby
       in
       ( { model
         | lobby = lobby
-        , playing = maybePlaying
+        , playing = playing
         }
       , cmd
       )
 
     RawProfileChanged rawProfileModel ->
       ( { model
-        | playing = Just (ProfilePage rawProfileModel)
+        | playing = ProfilePage rawProfileModel
         }
       , Cmd.none
       )
 
     EnteringGame profile ->
       ( { model
-        | playing = Just (InGame profile)
+        | playing = InGame profile
         }
       , Cmd.none
       )
@@ -240,7 +259,7 @@ view model =
   { title = "Lobby with second screen"
   , body =
     case model.playing of
-      Nothing ->
+      NotPlaying ->
         [ Lobby.view
           { label = "Enter game ID:"
           , placeholder = "Game ID"
@@ -249,10 +268,10 @@ view model =
           model.lobby
         ]
 
-      Just (ProfilePage rawProfileModel) ->
+      ProfilePage rawProfileModel ->
         viewProfileForm rawProfileModel
 
-      Just (InGame profile) ->
+      InGame profile ->
         viewGame profile
   }
 
