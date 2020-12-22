@@ -95,8 +95,10 @@ type Key =
 
 
 {-| How the lobby interoperates with the main app. We need:
-* A way to generate an initial game state (or whatever follows the
-  lobby), given a game ID;
+* The base game state, given no information;
+* A way to generate the game state if we've just got the game ID;
+* A way to generate the game state if the game ID has changed but we've already got
+  another game state;
 * A function to generate the [`open`](../BoardGameFramework#open)
   command to the server, given a game ID;
 * How to wrap a lobby `msg` into an application-specific message (which
