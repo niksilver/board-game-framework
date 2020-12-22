@@ -49,7 +49,7 @@ main =
 
 type alias Model =
   { width : Int
-  , lobby : Lobby Msg PlayingState
+  , lobby : Lobby Msg (Maybe PlayingState)
   , playing : Maybe PlayingState
   }
 
@@ -191,10 +191,25 @@ init v url key =
   )
 
 
-lobbyConfig : Lobby.Config Msg PlayingState
+lobbyConfig : Lobby.Config Msg (Maybe PlayingState)
 lobbyConfig =
-  { init =
+  { initBase = Nothing
+  , initGame =
     \gameId ->
+      Just
+      { gameId = gameId
+      , connectivity = BGF.Connected
+      , playerCount = 1
+      , moveNumber = 0
+      , envNum = 2^31-1
+      , turn = XMark
+      , board = cleanBoard
+      , winner = InProgress
+      , refX = backgroundRefX
+      }
+  , change =
+    \gameId _ ->
+      Just
       { gameId = gameId
       , connectivity = BGF.Connected
       , playerCount = 1
@@ -289,7 +304,7 @@ update msg model =
   case msg of
     ToLobby lMsg ->
       let
-        (lobby, playing, cmd) = Lobby.update lMsg model.lobby
+        (lobby, playing, cmd) = Lobby.update lMsg model.playing model.lobby
       in
       ( { model
         | lobby = lobby
@@ -621,7 +636,7 @@ view model =
   }
 
 
-viewEntrance : Lobby Msg PlayingState -> El.Element Msg
+viewEntrance : Lobby Msg (Maybe PlayingState) -> El.Element Msg
 viewEntrance lobby =
   El.column
   [ El.spacing clearance ]
@@ -642,7 +657,7 @@ viewInstructions =
   |> UI.rotate -0.01
 
 
-viewGameIdBox : Lobby Msg PlayingState -> El.Element Msg
+viewGameIdBox : Lobby Msg (Maybe PlayingState) -> El.Element Msg
 viewGameIdBox lobby =
   El.row
   [ El.spacing (UI.scaledInt -1) ]
