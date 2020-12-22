@@ -49,12 +49,17 @@ main =
 
 type alias Model =
   { width : Int
-  , lobby : Lobby Msg (Maybe PlayingState)
-  , playing : Maybe PlayingState
+  , lobby : Lobby Msg PlayingState
+  , playing : PlayingState
   }
 
 
-type alias PlayingState =
+type PlayingState =
+  InLobby
+  | InGame GameState
+
+
+type alias GameState =
   { gameId : BGF.GameId
   , connectivity : BGF.Connectivity
   , playerCount : Int
@@ -191,35 +196,11 @@ init v url key =
   )
 
 
-lobbyConfig : Lobby.Config Msg (Maybe PlayingState)
+lobbyConfig : Lobby.Config Msg PlayingState
 lobbyConfig =
-  { initBase = Nothing
-  , initGame =
-    \gameId ->
-      Just
-      { gameId = gameId
-      , connectivity = BGF.Connected
-      , playerCount = 1
-      , moveNumber = 0
-      , envNum = 2^31-1
-      , turn = XMark
-      , board = cleanBoard
-      , winner = InProgress
-      , refX = backgroundRefX
-      }
-  , change =
-    \gameId _ ->
-      Just
-      { gameId = gameId
-      , connectivity = BGF.Connected
-      , playerCount = 1
-      , moveNumber = 0
-      , envNum = 2^31-1
-      , turn = XMark
-      , board = cleanBoard
-      , winner = InProgress
-      , refX = backgroundRefX
-      }
+  { initBase = InLobby
+  , initGame = initialGameState
+  , change = \gameId _ -> initialGameState gameId
   , openCmd = openCmd
   , msgWrapper = ToLobby
   }
@@ -243,18 +224,19 @@ decodeFlags v =
   |> Result.withDefault { width = 1000 }
 
 
-initialPlayingState : BGF.GameId -> PlayingState
-initialPlayingState gameId =
-  { gameId = gameId
-  , connectivity = BGF.Connected
-  , playerCount = 1
-  , moveNumber = 0
-  , envNum = 2^31-1
-  , turn = XMark
-  , board = cleanBoard
-  , winner = InProgress
-  , refX = backgroundRefX
-  }
+initialGameState : BGF.GameId -> PlayingState
+initialGameState gameId =
+  InGame
+    { gameId = gameId
+    , connectivity = BGF.Connected
+    , playerCount = 1
+    , moveNumber = 0
+    , envNum = 2^31-1
+    , turn = XMark
+    , board = cleanBoard
+    , winner = InProgress
+    , refX = backgroundRefX
+    }
 
 
 backgroundRefX : (Images.Ref, String)
@@ -286,7 +268,7 @@ makeSeed gameId gameOffset =
 
 
 -- Make a number that points us to a Ref for an X or O image
-makeRefInt : PlayingState -> Int -> Int
+makeRefInt : GameState -> Int -> Int
 makeRefInt state cellNum =
   let
     gameOffset = state.moveNumber - (markCount state.board)
@@ -308,7 +290,10 @@ update msg model =
       in
       ( { model
         | lobby = lobby
-        , playing = playing |> orElse model.playing
+        , playing =
+            case playing of
+              InGame _ -> playing
+              InLobby -> model.playing
         }
       , cmd
       )
@@ -322,7 +307,7 @@ update msg model =
 
     CellClicked i ->
       case model.playing of
-        Just state ->
+        InGame state ->
           let
             -- We set the envNum to a large int, because we'll only really
             -- trust the move when it comes back as a receipt... or perhaps
@@ -338,7 +323,7 @@ update msg model =
               , winner = winner board2
               }
           in
-          ( { model | playing = Just state2 }
+          ( { model | playing = InGame state2 }
           , sendCmd
             { moveNumber = state2.moveNumber
             , turn = state2.turn
@@ -346,21 +331,21 @@ update msg model =
             }
           )
 
-        Nothing ->
+        InLobby ->
           (model, Cmd.none)
 
     Received envRes ->
       case model.playing of
-        Nothing ->
+        InLobby ->
           (model, Cmd.none)
 
-        Just state ->
+        InGame state ->
           case envRes of
             Ok env ->
               let
                 (state2, cmd) = updateWithEnvelope env state
               in
-              ( { model | playing = Just state2 }
+              ( { model | playing = InGame state2 }
               , cmd
               )
 
@@ -370,7 +355,7 @@ update msg model =
 
     ClickedPlayAgain ->
       case model.playing of
-        Just state ->
+        InGame state ->
           let
             state2 =
               { state
@@ -380,7 +365,7 @@ update msg model =
               , winner = InProgress
               }
           in
-          ( { model | playing = Just state2 }
+          ( { model | playing = InGame state2 }
           , sendCmd
             { moveNumber = state2.moveNumber
             , turn = state2.turn
@@ -388,19 +373,19 @@ update msg model =
             }
           )
 
-        Nothing ->
+        InLobby ->
           (model, Cmd.none)
 
     ShowRefX refX ->
       case model.playing of
-        Nothing ->
+        InLobby ->
           (model, Cmd.none)
 
-        Just state ->
+        InGame state ->
           let
             state2 = { state | refX = refX }
           in
-          ( { model | playing = Just state2 }
+          ( { model | playing = InGame state2 }
           , Cmd.none
           )
 
@@ -490,7 +475,7 @@ markCount board =
 -- Responding to incoming information
 
 
-updateWithEnvelope : BGF.Envelope Body -> PlayingState -> (PlayingState, Cmd Msg)
+updateWithEnvelope : BGF.Envelope Body -> GameState -> (GameState, Cmd Msg)
 updateWithEnvelope env state =
   case env of
     BGF.Welcome w ->
@@ -549,7 +534,7 @@ updateWithEnvelope env state =
 -- We will only update the playing state with the given board if it
 -- is a higher move number, or if it's the same move number
 -- and a lower envelope num.
-updateBoard : Int -> Body -> PlayingState -> PlayingState
+updateBoard : Int -> Body -> GameState -> GameState
 updateBoard envNum body state =
   let
     bodyHasHigherMoveNumber = body.moveNumber > state.moveNumber
@@ -628,15 +613,15 @@ view model =
         , Background.image "images/background.jpg"
         ]
       <| case model.playing of
-        Nothing ->
+        InLobby ->
           viewEntrance model.lobby
 
-        Just state ->
+        InGame state ->
           viewPlay model state
   }
 
 
-viewEntrance : Lobby Msg (Maybe PlayingState) -> El.Element Msg
+viewEntrance : Lobby Msg PlayingState -> El.Element Msg
 viewEntrance lobby =
   El.column
   [ El.spacing clearance ]
@@ -657,7 +642,7 @@ viewInstructions =
   |> UI.rotate -0.01
 
 
-viewGameIdBox : Lobby Msg (Maybe PlayingState) -> El.Element Msg
+viewGameIdBox : Lobby Msg PlayingState -> El.Element Msg
 viewGameIdBox lobby =
   El.row
   [ El.spacing (UI.scaledInt -1) ]
@@ -682,7 +667,7 @@ viewGameIdBox lobby =
   |> UI.rotate 0.02
 
 
-viewPlay : Model -> PlayingState -> El.Element Msg
+viewPlay : Model -> GameState -> El.Element Msg
 viewPlay model state =
   if model.width <= 1200 then
     -- Narrow layout
@@ -718,7 +703,7 @@ viewPlay model state =
     ]
 
 
-viewGrid : PlayingState -> El.Element Msg
+viewGrid : GameState -> El.Element Msg
 viewGrid state =
   El.column []
   [ viewHBar
@@ -752,7 +737,7 @@ viewVBar =
   ]
 
 
-viewRow : Int -> PlayingState -> El.Element Msg
+viewRow : Int -> GameState -> El.Element Msg
 viewRow i state =
   El.row []
   [ viewVBar
@@ -765,7 +750,7 @@ viewRow i state =
   ]
 
 
-viewCell : Int -> PlayingState -> El.Element Msg
+viewCell : Int -> GameState -> El.Element Msg
 viewCell i state =
   case Array.get i state.board |> Maybe.withDefault Nothing of
     Nothing ->
@@ -790,7 +775,7 @@ viewCell i state =
       }
 
 
-viewClickableCell : Int -> PlayingState -> El.Element Msg
+viewClickableCell : Int -> GameState -> El.Element Msg
 viewClickableCell i state =
   let
     cellEvent =
@@ -809,7 +794,7 @@ viewClickableCell i state =
   |> El.el cellEvent
 
 
-viewWhoseTurnOrWinner : PlayingState -> El.Element Msg
+viewWhoseTurnOrWinner : GameState -> El.Element Msg
 viewWhoseTurnOrWinner state =
   case state.winner of
     WonBy mMark ->
@@ -862,7 +847,7 @@ viewInvitation model =
   |> UI.rotate -0.01
 
 
-viewConnectivity : PlayingState -> El.Element Msg
+viewConnectivity : GameState -> El.Element Msg
 viewConnectivity state =
   case state.connectivity of
     BGF.Connected ->
@@ -879,7 +864,7 @@ viewConnectivity state =
       |> UI.rotate -0.03
 
 
-viewPlayerCount : PlayingState -> El.Element Msg
+viewPlayerCount : GameState -> El.Element Msg
 viewPlayerCount state =
   case state.playerCount of
     1 ->
@@ -896,7 +881,7 @@ viewPlayerCount state =
       |> UI.rotate 0.05
 
 
-viewRef : PlayingState -> El.Element Msg
+viewRef : GameState -> El.Element Msg
 viewRef state =
   let
     (ref, prefix) = state.refX
