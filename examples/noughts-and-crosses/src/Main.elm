@@ -876,7 +876,7 @@ viewPlayerCount state =
       |> UI.rotate 0.05
 
     p ->
-      (String.fromInt p) ++ " other players online"
+      (p - 1 |> String.fromInt) ++ " other players online"
       |> UI.stickerText
       |> UI.rotate 0.05
 
