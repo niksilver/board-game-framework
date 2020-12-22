@@ -124,13 +124,11 @@ addClient namedClient cs =
 init : BGF.ClientId -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init clientId url key =
   let
-    (lobby, maybeProgress, cmd) = Lobby.lobby lobbyConfig url key
+    (lobby, progress, cmd) = Lobby.lobby lobbyConfig url key
   in
   ( { myId = clientId
     , lobby = lobby
-    , progress =
-        maybeProgress
-        |> Maybe.withDefault InLobby
+    , progress = progress
     }
   , cmd
   )
@@ -144,7 +142,9 @@ initClients =
 
 lobbyConfig : Lobby.Config Msg Progress
 lobbyConfig =
-  { init = lobbyProgress
+  { initBase = InLobby
+  , initGame = lobbyProgress
+  , change = changeGameId
   , openCmd = openCmd
   , msgWrapper = ToLobby
   }
@@ -156,6 +156,23 @@ lobbyProgress gameId =
   { gameId = gameId
   , draftName = ""
   }
+
+
+changeGameId : BGF.GameId -> Progress -> Progress
+changeGameId gameId progress =
+  case progress of
+    InLobby ->
+      lobbyProgress gameId
+
+    ChoosingName rec ->
+      ChoosingName { rec | gameId = gameId }
+
+    Playing rec ->
+      Playing
+      { gameId = gameId
+      , name = rec.name
+      , clients = initClients
+      }
 
 
 -- Game connectivity
@@ -258,23 +275,14 @@ update msg model =
   case msg of
     ToLobby subMsg ->
       let
-        (lobby, maybeProgress, cmd) = Lobby.update subMsg model.lobby
+        (lobby, progress, cmd) = Lobby.update subMsg model.progress model.lobby
       in
-      case maybeProgress of
-        Nothing ->
-          ( { model
-            | lobby = lobby
-            }
-          , cmd
-          )
-
-        Just progress ->
-          ( { model
-            | lobby = lobby
-            , progress = progress
-            }
-          , cmd
-          )
+      ( { model
+        | lobby = lobby
+        , progress = progress
+        }
+      , cmd
+      )
 
     NewDraftName draft ->
       ( model
