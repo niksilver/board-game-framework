@@ -51,7 +51,7 @@ type Playing =
 
 
 type alias Profile =
-  { gameId : BGF.GameId  -- Carried over from raw profile
+  { room : BGF.Room  -- Carried over from raw profile
   , name : String
   , team : Team
   }
@@ -63,7 +63,7 @@ type alias RawProfileModel =
 
 
 type alias RawProfile =
-  { gameId : BGF.GameId  -- Carried over from lobby
+  { room : BGF.Room  -- Carried over from lobby
   , name : String
   , team : String
   }
@@ -91,27 +91,27 @@ init _ url key =
   )
 
 
-initProfile : BGF.GameId -> Playing
-initProfile gameId =
+initProfile : BGF.Room -> Playing
+initProfile room =
   ProfilePage
   ( Form.View.idle
-    { gameId = gameId
+    { room = room
     , name = ""
     , team = "A"
     }
   )
 
 
--- If the game ID changes mid-game (by editing the browser's location bar)
+-- If the room changes mid-game (by editing the browser's location bar)
 -- we still want to preserve the player's name, team, and playing state.
-changeGameId : BGF.GameId -> Playing -> Playing
-changeGameId gameId playing =
+changeRoom : BGF.Room -> Playing -> Playing
+changeRoom room playing =
   case playing |> Debug.log "Old playing state was " of
     NotPlaying ->
-      initProfile gameId
+      initProfile room
 
     ProfilePage rawProfileModel ->
-      { gameId = gameId
+      { room = room
       , name = rawProfileModel.values.name
       , team = rawProfileModel.values.team
       }
@@ -119,7 +119,7 @@ changeGameId gameId playing =
       |> ProfilePage
 
     InGame profile ->
-      { gameId = gameId
+      { room = room
       , name = profile.name
       , team = profile.team
       }
@@ -130,7 +130,7 @@ lobbyConfig : Lobby.Config Msg Playing
 lobbyConfig =
   { initBase = NotPlaying
   , initGame = initProfile
-  , change = changeGameId
+  , change = changeRoom
   , openCmd = openCmd
   , msgWrapper = ToLobby
   }
@@ -139,8 +139,8 @@ lobbyConfig =
 -- Form for the second screen
 
 
-form : BGF.GameId -> Form RawProfile Profile
-form gameId =
+form : BGF.Room -> Form RawProfile Profile
+form room =
   let
     nameField =
       Form.textField
@@ -167,7 +167,7 @@ form gameId =
   in
   Form.succeed
   (\name team ->
-    Profile gameId name team
+    Profile room name team
   )
   |> Form.append nameField
   |> Form.append teamField
@@ -201,7 +201,7 @@ server : BGF.Server
 server = BGF.wssServer "bgf.pigsaw.org"
 
 
-openCmd : BGF.GameId -> Cmd Msg
+openCmd : BGF.Room -> Cmd Msg
 openCmd =
   BGF.open outgoing server
 
@@ -273,8 +273,8 @@ view model =
     case model.playing of
       NotPlaying ->
         [ Lobby.view
-          { label = "Enter game ID:"
-          , placeholder = "Game ID"
+          { label = "Room:"
+          , placeholder = "Room"
           , button = "Go"
           }
           model.lobby
@@ -296,7 +296,7 @@ viewProfileForm rawProfileModel =
     , loading = "Entering..."
     , validation = Form.View.ValidateOnBlur
     }
-    (Form.map EnteringGame (form rawProfileModel.values.gameId))
+    (Form.map EnteringGame (form rawProfileModel.values.room))
     rawProfileModel
   ]
 
@@ -312,7 +312,7 @@ viewGame profile =
         TeamB ->
           "Team B"
   in
-  [ Html.p [] [ Html.text <| "Game ID is " ++ (BGF.fromGameId profile.gameId) ]
+  [ Html.p [] [ Html.text <| "Room is " ++ (BGF.fromRoom profile.room) ]
   , Html.p [] [ Html.text <| "Your name is " ++ profile.name ]
   , Html.p [] [ Html.text <| "Your team is " ++ (teamToString profile.team) ]
   ]
