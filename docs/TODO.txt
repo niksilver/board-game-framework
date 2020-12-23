@@ -2,7 +2,6 @@ TO DO:
 
 - Wrap module: Documentation using the WrapTest code.
 - Create paper scissors rock game (PSR).
-- Lobby module: Update documentation for new initBase, initGame and change.
 - Change game ID to room throughout.
 - Merge Receipt and Peer envelope types (and include boolean receipt field).
 
@@ -107,3 +106,4 @@ DONE:
 - Lobby module: Separated init with no game ID, init with a game ID,
   and a new game ID from a given game state.
 - Lobby module: Finish updating examples (noughts and crosses and PSR).
+- Lobby module: Update documentation for new initBase, initGame and change.
