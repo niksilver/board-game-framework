@@ -284,9 +284,9 @@ makeRefInt state cellNum =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    ToLobby lMsg ->
+    ToLobby lobbyMsg ->
       let
-        (lobby, playing, cmd) = Lobby.update lMsg model.playing model.lobby
+        (lobby, playing, cmd) = Lobby.update lobbyMsg model.playing model.lobby
       in
       ( { model
         | lobby = lobby
