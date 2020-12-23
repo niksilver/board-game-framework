@@ -18,28 +18,25 @@ module BoardGameFramework.Lobby exposing (
   )
 
 
-{-| The lobby is the first screen of any game, and allows the user to select
+{-| The lobby is the first screen of any game, and allows the user to enter
 the game ID. It will also randomly generate a game ID on first loading.
 But the game ID can also be selected by changing the URL,
 so this module also handles changes through that route.
 
 If a player needs to provide further information before entering a
 game (perhaps a name, a team, a role, etc) then that should
-be captured on a subsequent screen.
+be captured on a subsequent screen, after leaving the lobby.
 
-The [`update`](#update) function updates the lobby, including the player
-typing a game ID and the player successfully leaving the lobby with
-a valid game ID.
-Therefore it will also return a `Maybe s`,
-which is the initial state of whatever follows the lobby - for example,
-the initial state of the game.
-This will be `Nothing` if the player is still in the lobby, and `Just s`
-when they successfully leave.
-The `init` field of the lobby's [`Config`](#Config) defines
-how to create this initial state `s`.
+A lobby needs a [`Config`](#Config). An important part of this is to define the
+logic of lobby, such as what to do with the game state when the game ID changes,
+and understanding how to wrap its own lobby-specific messages for handling by the
+main application.
 
 See the [simple lobby example](https://github.com/niksilver/board-game-framework/tree/master/examples/lobby-simple)
-for how this all fits together in practice.
+for how this all fits together in practice, and the
+[lobby second-screen example](https://github.com/niksilver/board-game-framework/tree/master/examples/lobby-second-screen)
+for how to allow someone to enter their additional information (eg their name)
+after leaving the lobby but before entering the game itself.
 
 # Defining
 @docs Lobby, Config, Msg, lobby
@@ -72,7 +69,12 @@ import BoardGameFramework as BGF
 -- Defining
 
 
-{-| The lobby is the gateway to the main game.
+{-| The lobby is the first step into the main game. It may lead directly into a game
+or to interim screens that first ask the user for more information.
+
+A `Lobby` is further defined by two types. The `msg` is the main application message
+type; the lobby will need to wrap its own messages in this type to pass into (and out of)
+the main application. `s` is the state of the game.
 -}
 type Lobby msg s =
   Lobby
@@ -97,13 +99,20 @@ type Key =
 {-| How the lobby interoperates with the main app. We need:
 * The base game state, given no information;
 * A way to generate the game state if we've just got the game ID;
-* A way to generate the game state if the game ID has changed but we've already got
-  another game state;
+* A way to generate the game state if the game ID has changed but we're already
+  in another game state;
 * A function to generate the [`open`](../BoardGameFramework#open)
   command to the server, given a game ID;
-* How to wrap a lobby `msg` into an application-specific message (which
-  we can catch at the top level of our application and then pass into the
-  lobby).
+* How to wrap a lobby `msg` into an application-specific message.
+  We can the catch it at the top level of our application and then pass into the
+  lobby.
+
+The `initGame` function will be used if, say, the user arrives at the game with a
+URL including the game ID.
+
+The `change` function will be used if, say, the user switches game ID in the middle of a
+game. If we've allowed them to choose a name we might want to reuse that as they enter
+the new game.
 -}
 type alias Config msg s =
   { initBase : s
@@ -127,11 +136,15 @@ For example:
       ToLobby Lobby.Msg
       | ...
 
-    type GameState = ...
+    type PlayingState =
+      InLobby
+      | ...
 
-    lobbyConfig : Lobby.Config Msg GameState
+    lobbyConfig : Lobby.Config Msg PlayingState
     lobbyConfig =
-      { init = ...
+      { initBase = ...
+      , initGame = ...
+      , change = ...
       , openCmd = ...
       , msgWrapper = ToLobby
       }
@@ -139,9 +152,9 @@ For example:
     update : Msg -> Model -> (Model, Cmd Msg)
     update msg model =
       case msg of
-        ToLobby subMsg ->
+        ToLobby lobbyMsg ->
           let
-            (lobby, maybeGameState, cmd) = Lobby.update subMsg model.lobby
+            (lobby, playing, cmd) = Lobby.update lobbyMsg model.playing model.lobby
           in
           ...
 -}
@@ -188,7 +201,7 @@ urlChanged msgWrapper url_ =
 
 
 {-| Tell the lobby that the draft game ID has changed - for example, when
-the user types another character into the lobby's text box, asking which
+the user types another character into the lobby's text box asking which
 game they'd like to join.
 
 You don't need to use this if you're using
@@ -215,6 +228,7 @@ confirm msgWrapper =
 
 
 {-| Create a lobby which handles game ID and URL changes.
+We use this when we initialise our applicaton.
 -}
 lobby : Config msg s -> Url.Url -> Nav.Key -> (Lobby msg s, s, Cmd msg)
 lobby config url_ key =
@@ -323,27 +337,26 @@ pushUrl k url_ =
 -- Updating
 
 
-{-| Handle any message for the lobby. Returns the new lobby, maybe a
-new playing state (if a new game ID has been confirmed or a new game link
-has been clicked on)
+{-| Handle any message for the lobby. Returns the new lobby, the latest game state
 and any commands that need to be
 issued (such as opening a connection to a new game).
+It will apply its logic in line with the [`Config`](#Config) that the lobby was defined with.
 
 The example below is the `update` function of some main app.
-We defined our `Lobby` with a `msgWrapper` of
-`ToLobby`, and our model maintains the game-in-progress state as
+We defined our lobby `Config` with a `msgWrapper` of
+`ToLobby`. Our model maintains the game-in-progress state as
 its `playing` field.
 
     update : Msg -> Model -> (Model, Cmd Msg)
     update msg model =
       case msg of
-        ToLobby lMsg ->
+        ToLobby lobbyMsg ->
           let
-            (lobby, maybePlaying, cmd) = Lobby.update lMsg model.lobby
+            (lobby, playing, cmd) = Lobby.update lobbyMsg model.playing model.lobby
           in
           ( { model
             | lobby = lobby
-            , playing = maybePlaying
+            , playing = playing
             }
           , cmd
           )
