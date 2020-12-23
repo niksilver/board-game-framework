@@ -37,8 +37,8 @@ main =
 
 
 type alias Model =
-  { lobby : Lobby Msg (Maybe BGF.GameId)
-  , game : Maybe BGF.GameId
+  { lobby : Lobby Msg (Maybe BGF.Room)
+  , game : Maybe BGF.Room
   }
 
 
@@ -59,11 +59,11 @@ init _ url key =
   )
 
 
-lobbyConfig : Lobby.Config Msg (Maybe BGF.GameId)
+lobbyConfig : Lobby.Config Msg (Maybe BGF.Room)
 lobbyConfig =
   { initBase = Nothing
-  , initGame = \gameId -> Just gameId
-  , change = \gameId _ -> Just gameId
+  , initGame = \room -> Just room
+  , change = \room _ -> Just room
   , openCmd = openCmd
   , msgWrapper = ToLobby
   }
@@ -76,7 +76,7 @@ server : BGF.Server
 server = BGF.wssServer "bgf.pigsaw.org"
 
 
-openCmd : BGF.GameId -> Cmd Msg
+openCmd : BGF.Room -> Cmd Msg
 openCmd =
   BGF.open outgoing server
 
@@ -106,11 +106,11 @@ update msg model =
   case msg of
     ToLobby subMsg ->
       let
-        (lobby, maybeGameId, cmd) = Lobby.update subMsg model.game model.lobby
+        (lobby, maybeRoom, cmd) = Lobby.update subMsg model.game model.lobby
       in
       ( { model
         | lobby = lobby
-        , game = maybeGameId
+        , game = maybeRoom
         }
       , cmd
       )
@@ -130,23 +130,23 @@ view model =
       Nothing ->
         viewLobby model.lobby
 
-      Just gameId ->
-        viewGame gameId
+      Just room ->
+        viewGame room
   }
 
 
-viewLobby : Lobby Msg (Maybe BGF.GameId) -> List (Html Msg)
+viewLobby : Lobby Msg (Maybe BGF.Room) -> List (Html Msg)
 viewLobby lobby =
   [ Lobby.view
-    { label = "Enter game ID:"
-    , placeholder = "Game ID"
+    { label = "Room:"
+    , placeholder = "Room"
     , button = "Go"
     }
     lobby
   ]
 
 
-viewGame : BGF.GameId -> List (Html Msg)
-viewGame id =
-  [ Html.text <| "Game ID is " ++ (BGF.fromGameId id)
+viewGame : BGF.Room -> List (Html Msg)
+viewGame room =
+  [ Html.text <| "Room is " ++ (BGF.fromRoom room)
   ]
