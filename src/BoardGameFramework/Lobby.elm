@@ -19,8 +19,9 @@ module BoardGameFramework.Lobby exposing (
 
 
 {-| The lobby is the first screen of any game, and allows the user to enter
-the game ID. It will also randomly generate a game ID on first loading.
-But the game ID can also be selected by changing the URL,
+the game room. It will also randomly generate a room name on first loading.
+ut
+But the room can also be selected by changing the URL,
 so this module also handles changes through that route.
 
 If a player needs to provide further information before entering a
@@ -28,7 +29,7 @@ game (perhaps a name, a team, a role, etc) then that should
 be captured on a subsequent screen, after leaving the lobby.
 
 A lobby needs a [`Config`](#Config). An important part of this is to define the
-logic of lobby, such as what to do with the game state when the game ID changes,
+logic of lobby, such as what to do with the game state when the room changes,
 and understanding how to wrap its own lobby-specific messages for handling by the
 main application.
 
@@ -79,13 +80,13 @@ the main application. `s` is the state of the game.
 type Lobby msg s =
   Lobby
     { initBase : s
-    , initGame : BGF.GameId -> s
-    , change : BGF.GameId -> s -> s
-    , openCmd : BGF.GameId -> Cmd msg
+    , initGame : BGF.Room -> s
+    , change : BGF.Room -> s -> s
+    , openCmd : BGF.Room -> Cmd msg
     , msgWrapper : Msg -> msg
     , url : Url.Url
     , key : Key
-    , draftGameId : String
+    , draftRoom : String
     }
 
 
@@ -98,27 +99,27 @@ type Key =
 
 {-| How the lobby interoperates with the main app. We need:
 * The base game state, given no information;
-* A way to generate the game state if we've just got the game ID;
-* A way to generate the game state if the game ID has changed but we're already
+* A way to generate the game state if we've just got the room name;
+* A way to generate the game state if the room has changed but we're already
   in another game state;
 * A function to generate the [`open`](../BoardGameFramework#open)
-  command to the server, given a game ID;
+  command to the server, given a room name;
 * How to wrap a lobby `msg` into an application-specific message.
   We can the catch it at the top level of our application and then pass into the
   lobby.
 
 The `initGame` function will be used if, say, the user arrives at the game with a
-URL including the game ID.
+URL including the room name.
 
-The `change` function will be used if, say, the user switches game ID in the middle of a
+The `change` function will be used if, say, the user switches room in the middle of a
 game. If we've allowed them to choose a name we might want to reuse that as they enter
 the new game.
 -}
 type alias Config msg s =
   { initBase : s
-  , initGame : BGF.GameId -> s
-  , change : BGF.GameId -> s -> s
-  , openCmd : BGF.GameId -> Cmd msg
+  , initGame : BGF.Room-> s
+  , change : BGF.Room-> s -> s
+  , openCmd : BGF.Room-> Cmd msg
   , msgWrapper : Msg -> msg
   }
 
@@ -161,7 +162,7 @@ For example:
 type Msg =
   UrlRequested Browser.UrlRequest
   | UrlChanged Url.Url
-  | GeneratedGameId BGF.GameId
+  | GeneratedRoom BGF.Room
   | NewDraft String
   | Confirm
 
@@ -200,9 +201,9 @@ urlChanged msgWrapper url_ =
   msgWrapper <| UrlChanged url_
 
 
-{-| Tell the lobby that the draft game ID has changed - for example, when
+{-| Tell the lobby that the draft room name has changed - for example, when
 the user types another character into the lobby's text box asking which
-game they'd like to join.
+room they'd like to join.
 
 You don't need to use this if you're using
 this module's [`view`](#view) function, but do look at the source of
@@ -214,9 +215,9 @@ newDraft msgWrapper draft_ =
 
 
 {-| Confirm that we should try to use the draft
-game ID as the actual game ID -
-for example, when the user has clicked a Go button after typing in a game
-ID. There is no need to check if the game ID is valid.
+room name as the actual room name -
+for example, when the user has clicked a Go button after typing in a
+name. There is no need to check if the room name is valid.
 
 You don't need to use this if you're using
 this module's [`view`](#view) function, but do look at the source of
@@ -227,7 +228,7 @@ confirm msgWrapper =
   msgWrapper <| Confirm
 
 
-{-| Create a lobby which handles game ID and URL changes.
+{-| Create a lobby which handles room and URL changes.
 We use this when we initialise our applicaton.
 -}
 lobby : Config msg s -> Url.Url -> Nav.Key -> (Lobby msg s, s, Cmd msg)
@@ -240,7 +241,7 @@ lobby config url_ key =
     , msgWrapper = config.msgWrapper
     , url = url_
     , key = Real key
-    , draftGameId = ""
+    , draftRoom = ""
     }
   |> forNewUrlAtInit
 
@@ -256,7 +257,7 @@ fakeLobby config url_ key =
     , msgWrapper = config.msgWrapper
     , url = url_
     , key = Fake
-    , draftGameId = ""
+    , draftRoom = ""
     }
   |> forNewUrlAtInit
 
@@ -268,28 +269,28 @@ forNewUrlAtInit (Lobby lob) =
     Nothing ->
       ( Lobby
           { lob
-          | draftGameId = ""
+          | draftRoom = ""
           }
       , lob.initBase
-      , Random.generate GeneratedGameId BGF.idGenerator
+      , Random.generate GeneratedRoom BGF.roomGenerator
         |> Cmd.map lob.msgWrapper
       )
 
     Just frag ->
-      case BGF.gameId frag of
-        Ok gameId ->
+      case BGF.room frag of
+        Ok room ->
           ( Lobby
               { lob
-              | draftGameId = frag
+              | draftRoom = frag
               }
-          , lob.initGame gameId
-          , lob.openCmd gameId
+          , lob.initGame room
+          , lob.openCmd room
           )
 
         Err _ ->
           ( Lobby
               { lob
-              | draftGameId = frag
+              | draftRoom = frag
               }
           , lob.initBase
           , Cmd.none
@@ -304,8 +305,8 @@ forNewUrlInGame state (Lobby lob) =
       forNewUrlAtInit (Lobby lob)
 
     Just frag ->
-      case BGF.gameId frag of
-        Ok gameId ->
+      case BGF.room frag of
+        Ok room ->
           {--          if BGF.fromGameId gameId == lob.draftGameId then
             ( Lobby lob
             , state
@@ -314,10 +315,10 @@ forNewUrlInGame state (Lobby lob) =
           else--}
             ( Lobby
                 { lob
-                | draftGameId = frag
+                | draftRoom = frag
                 }
-            , lob.change gameId state
-            , lob.openCmd gameId
+            , lob.change room state
+            , lob.openCmd room
             )
 
         Err _ ->
@@ -388,10 +389,10 @@ update msg state (Lobby lob) =
       Lobby { lob | url = url_ }
       |> forNewUrlInGame state
 
-    GeneratedGameId gameId ->
+    GeneratedRoom room ->
       ( Lobby
           { lob
-          | draftGameId = gameId |> BGF.fromGameId
+          | draftRoom = room |> BGF.fromRoom
           }
       , state
       , Cmd.none
@@ -400,7 +401,7 @@ update msg state (Lobby lob) =
     NewDraft draft_ ->
       ( Lobby
           { lob
-          | draftGameId = draft_
+          | draftRoom = draft_
           }
       , state
       , Cmd.none
@@ -409,7 +410,7 @@ update msg state (Lobby lob) =
     Confirm ->
       ( Lobby lob
       , state
-      , lob.draftGameId
+      , lob.draftRoom
         |> setFragment lob.url
         |> Url.toString
         |> pushUrl lob.key
@@ -441,24 +442,24 @@ urlString (Lobby lob) =
   |> Url.toString
 
 
-{-| Get the (possibly incomplete) game ID that the player is entering
+{-| Get the (possibly incomplete) room name that the player is entering
 into the lobby UI.
 This isn't necessary if you're using the
 [`view`](#view) function.
 -}
 draft : Lobby msg s -> String
 draft (Lobby lob) =
-  lob.draftGameId
+  lob.draftRoom
 
 
-{-| See if what the player has typed into the lobby is a valid game ID.
+{-| See if what the player has typed into the lobby is a valid room name.
 Useful for knowing if we should enable or disable a Go button in the UI,
 but it isn't necessary if you're using the
 [`view`](#view) function.
 -}
 okDraft : Lobby msg s -> Bool
 okDraft (Lobby lob) =
-  case lob.draftGameId |> BGF.gameId of
+  case lob.draftRoom |> BGF.room of
     Ok _ ->
       True
 

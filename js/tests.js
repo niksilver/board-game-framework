@@ -48,7 +48,7 @@ test('New BGF object generates client ID', function(t) {
     }
 
     // Make sure the websocket we open includes this ID
-    bgf.act({ instruction: 'Open', url: 'wss://some.id.test/g/game-id'});
+    bgf.act({ instruction: 'Open', url: 'wss://some.id.test/g/room-name'});
     substr = 'id=' + bgf.id;
     if (!urlUsed.includes(substr)) {
         t.fail("URL used ('') should have included '" + substr +
@@ -74,10 +74,10 @@ test('Open action creates websocket', function(t) {
     bgf._delay = function(){ return 1; };
 
     // Do the open action
-    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-room-name'});
 
     // Check the websocket was created
-    t.equal(urlUsed, 'wss://my.test.url/g/my-id?id=' + bgf.id);
+    t.equal(urlUsed, 'wss://my.test.url/g/my-room-name?id=' + bgf.id);
 
     // Tell tape we're done
     t.end();
@@ -99,7 +99,7 @@ test('Open action sends connecting envelope', function(t) {
     bgf._delay = function(){ return 1; };
 
     // Do the open action
-    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+    bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-room-name'});
 
     // Check connecting envelope was sent
     t.deepEqual({connection: 'connecting'}, envelope);
@@ -126,7 +126,7 @@ test('Disconnection means a retry at least once', function(t) {
 
     let tests = async function() {
         // Do the open action, register onopen, then cut the connection once
-        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-room-name'});
         websocket.onopen({});
 
         t.equal(connections, 1);
@@ -162,7 +162,7 @@ test('Opened envelope sent only after stable period', function(t) {
     let tests = async function() {
         // Do the open action, register onopen, the expect the 'connected'
         // envelope only after the stable period.
-        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-room-name'});
         websocket.onopen({});
 
         t.equal(connections, 1);
@@ -202,7 +202,7 @@ test('Opened envelope sent as soon as message received', function(t) {
         // Do the open action, expect it to say it's connecting,
         // register onopen, then expect the 'connected'
         // envelope only after the stable period.
-        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-room-name'});
         t.deepEqual(envelopes, [{connection: 'connecting'}]);
         envelopes = [];
         websocket.onopen({});
@@ -246,7 +246,7 @@ test('Should not get second Opened envelope after message received', function(t)
         // Do the open action, expect a 'connecting' message,
         // register onopen, then expect the 'connected'
         // envelope only after the stable period.
-        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-room-name'});
         t.deepEqual(envelopes, [{connection: 'connecting'}]);
         envelopes = [];
         websocket.onopen({});
@@ -296,7 +296,7 @@ test('Should not get second Opened envelope after second message', function(t) {
         // Do the open action, expect a 'connecting' envelope,
         // register onopen, then expect the 'connected'
         // envelope only after the stable period.
-        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-room-name'});
         t.deepEqual(envelopes, [{connection: 'connecting'}]);
         envelopes = [];
         websocket.onopen({});
@@ -346,7 +346,7 @@ test('Opened envelope not sent while reconnecting', function(t) {
         // Do the open action, expect a 'connecting' envelope,
         // register onopen, the expect the 'connected'
         // envelope only after the stable period.
-        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-id'});
+        bgf.act({ instruction: 'Open', url: 'wss://my.test.url/g/my-room-name'});
         t.deepEqual(lastEnv, {connection: 'connecting'});
         lastEnv = 'Untouched';
         websocket.onopen({});

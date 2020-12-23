@@ -8,8 +8,8 @@ examples](https://github.com/niksilver/board-game-framework/blob/master/docs/REA
 before going further.
 
 Key elements of any board game will be:
-* Generating a random game ID for your players;
-* Connecting to the server with that game ID;
+* Generating a random room name for your players;
+* Connecting to the server naming that room;
 * Exchanging data with the other clients.
 
 You don't need to worry about disconnecting, but you can if you like.
@@ -60,7 +60,7 @@ or messages about the state of the server connection.
 ## Connecting and disconnecting to the server
 
 To connect to a game, our client code needs to know the name of the
-server, and a unique game ID that will bring together all the players:
+server, and a unique room that will bring together all the players:
 
 ```elm
 import BoardGameFramework as BGF
@@ -68,17 +68,17 @@ import BoardGameFramework as BGF
 server : BGF.Server
 server = BGF.wssServer "bgf.pigsaw.org"
 
-openCmd : BGF.GameId -> Cmd Msg
-openCmd id =
-  BGF.open outgoing server id
+openCmd : BGF.Room -> Cmd Msg
+openCmd room =
+  BGF.open outgoing server room
 ```
 
 Now we can use the `openCmd` function to issue a `Cmd Msg` to connect
-to the server with some game ID.
+to the server with some room name.
 
-The game ID is typically a simple string which is easy to communicate
+The room name is typically a simple string which is easy to communicate
 to other players, and each to remember.
-The API provides a function for randomly generating nice game IDs
+The API provides a function for randomly generating nice room names
 as two English words separated by a hyphen.
 
 To disconnect from the server we simply call

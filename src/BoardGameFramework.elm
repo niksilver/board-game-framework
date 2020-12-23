@@ -4,10 +4,10 @@
 
 
 module BoardGameFramework exposing (
-  -- Game IDs
-  GameId, gameId, fromGameId , idGenerator
+  -- Room names
+  Room, room, fromRoom , roomGenerator
   -- Server connection
-  , Server, wsServer, wssServer, withPort, Address, withGameId, toUrlString
+  , Server, wsServer, wssServer, withPort, Address, withRoom, toUrlString
   -- Open, send close
   , open, send, close
   -- Receiving messages
@@ -22,12 +22,12 @@ using the related framework. See
 code](https://github.com/niksilver/board-game-framework/tree/master/docs)
 for a proper introduction.
 
-# Game IDs
-Players with the same game ID (on the same server) are playing the same game.
-@docs GameId, gameId, fromGameId, idGenerator
+# Rooms
+Players with the same room name (on the same server) are playing the same game.
+@docs Room, room, fromRoom, roomGenerator
 
 # Server connection
-@docs Server, wsServer, wssServer, withPort, withGameId, Address, toUrlString
+@docs Server, wsServer, wssServer, withPort, withRoom, Address, toUrlString
 
 # Basic actions: open, send, close
 @docs open, send, close
@@ -51,50 +51,51 @@ import Url exposing (Url)
 import Words
 
 
--- Game IDs
+-- Rooms
 
 
-{-| A game ID represents a game that multiple players can join.
-It's a string intended to be shared among intended players.
+{-| A room represents a place where several people can play one game
+together.
+It's a string intended to be shared among the players.
 -}
-type GameId = GameId String
+type Room = Room String
 
 
-{-| Turn a string into a game ID.
-A good game ID will have a good chance of being unique and wil be easy
+{-| Turn a string into a room name.
+A good room name will have a good chance of being unique and wil be easy
 to communicate, especially in URLs.
 This test passes if it's five to thirty characters long (inclusive)
 and consists of just alphanumerics, dots, dashes, and forward slashes.
 
-    gameId "pancake-road"            == Ok ...
-    gameId "backgammon/pancake-road" == Ok ...
-    gameId "#345#"                   == Err "Bad characters"
-    gameId "road"                    == Err "Too short"
+    room "pancake-road"            == Ok ...
+    room "backgammon/pancake-road" == Ok ...
+    room "#345#"                   == Err "Bad characters"
+    room "road"                    == Err "Too short"
 -}
-gameId : String -> Result String GameId
-gameId str =
+room : String -> Result String Room
+room str =
   let
     goodChar c =
       Char.isAlphaNum c || c == '-' || c == '.' || c == '/'
   in
   if String.length str < 5 then
-    Err "Game ID too short"
+    Err "Room name too short"
   else if String.length str > 30 then
-    Err "Game ID too long"
+    Err "Room name too long"
   else if String.all goodChar str then
-    Ok (GameId str)
+    Ok (Room str)
   else
-    Err "Bad characters in game ID"
+    Err "Bad characters in room name"
 
 
-{-| Extract the game ID as a string.
+{-| Extract the room name as a string.
 -}
-fromGameId : GameId -> String
-fromGameId (GameId str) =
+fromRoom : Room -> String
+fromRoom (Room str) =
   str
 
 
-{-| A random name generator for game IDs, which will be of the form
+{-| A random name generator for rooms, which will be of the form
 "_word_-_word_".
 
 To create a `Cmd` that generates a random name, we can use code like this:
@@ -102,10 +103,10 @@ To create a `Cmd` that generates a random name, we can use code like this:
     import Random
     import BoardGameFramework as BGF
 
-    -- Make sure our Msg can handle a generated game id
+    -- Make sure our Msg can handle a generated room name
     Msg =
       ...
-      | GeneratedGameId BGF.GameId
+      | GeneratedRoom BGF.Room
       | ...
 
     -- Our update function
@@ -113,25 +114,25 @@ To create a `Cmd` that generates a random name, we can use code like this:
     update msg model =
       case msg of
         ... ->
-          -- Generate a game ID
+          -- Generate a room name
           ( updatedModel
-          , Random.generate GeneratedGameId BGF.idGenerator
+          , Random.generate GeneratedRoom BGF.roomGenerator
           )
 
-        GeneratedGameId gameId ->
-          -- Use the generated game ID
+        GeneratedRoom room ->
+          -- Use the generated room name
 -}
-idGenerator : Random.Generator GameId
-idGenerator =
+roomGenerator : Random.Generator Room
+roomGenerator =
   case Words.words of
     head :: tail ->
       Random.uniform head tail
       |> Random.list 2
       |> Random.map (\w -> String.join "-" w)
-      |> Random.map GameId
+      |> Random.map Room
 
     _ ->
-      Random.constant (GameId "xxx")
+      Random.constant (Room "xxx")
 
 
 -- Server connection
@@ -197,26 +198,26 @@ type Address =
   Address
     { start : String
     , mPort : Maybe Int
-    , gameId : GameId
+    , room : Room
     }
 
 
 {-| Create the address of an actual game we can connect to.
 
-    gid1 = gameId "voter-when"
-    gid2 = gameId "poor-modern"
+    room1 = room "voter-when"
+    room2 = room "poor-modern"
 
     wsServer "localhost"
     |> withPort 8080
-    |> withGameId gid1    -- We can join ws://localhost:8080/g/voter-when
-    |> withGameId gid2    -- Changes to  ws://localhost:8080/g/poor-modern
+    |> withRoom room1    -- We can join ws://localhost:8080/g/voter-when
+    |> withRoom room2    -- Changes to  ws://localhost:8080/g/poor-modern
 -}
-withGameId : GameId -> Server -> Address
-withGameId gId (Server server) =
+withRoom : Room -> Server -> Address
+withRoom room_ (Server server) =
   Address
     { start = server.start
     , mPort = server.mPort
-    , gameId = gId
+    , room = room_
     }
 
 
@@ -234,32 +235,32 @@ toUrlString (Address addr) =
         Nothing ->
           ""
   in
-  addr.start ++ portStr ++ "/g/" ++ (fromGameId addr.gameId)
+  addr.start ++ portStr ++ "/g/" ++ (fromRoom addr.room)
 
 
 -- Open, send close
 
 
-{-| Open a connection to server, with a given game ID, via an Elm port.
+{-| Open a connection to server, with a given room name, via an Elm port.
 
     import BoardGameFramework as BGF
 
     port outgoing : Enc.Value -> Cmd msg
 
     server = BGF.wssServer "bgf.pigsaw.org"
-    gameIdResult = BGF.gameId "notice-handle"
+    roomResult = BGF.room "notice-handle"
 
     -- Open a connection to wss://bgf.pigsaw.org/g/notice-handle
-    case gameIdResult of
-      Ok gameId ->
-        BGF.open outgoing server gameId
+    case roomResult of
+      Ok room ->
+        BGF.open outgoing server room
       Err _ ->
         -- Won't get here
 -}
-open : (Enc.Value -> Cmd msg) -> Server -> GameId -> Cmd msg
-open cmder server gId =
+open : (Enc.Value -> Cmd msg) -> Server -> Room -> Cmd msg
+open cmder server room_ =
   let
-    addr = server |> withGameId gId
+    addr = server |> withRoom room_
     encode =
       Enc.object
         [ ("instruction", Enc.string "Open")

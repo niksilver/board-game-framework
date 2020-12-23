@@ -18,10 +18,10 @@ There are three core components in the Go code:
 
 An initial request from an end user comes in as an HTTP request
 asking to upgrade to a websocket. The request is to
-`https://some.server.name/g/some-game-id`.
+`https://some.server.name/g/some-room-name`.
 The `/g/` path prefix tells the server the request is to join a game,
-and `some-game-id` is the ID of the game. All clients that join
-with the same game ID join the same game.
+and `some-room-name` is the name of the room. All clients that join
+with the same room join the same game.
 
 ## Client initialisation
 

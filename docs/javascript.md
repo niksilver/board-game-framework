@@ -34,11 +34,11 @@ where `data` is one of the following structures:
 
 ```js
 { instruction: "Open",
-  url: "wss://some.server.name/g/some-game-id"
+  url: "wss://some.server.name/g/some-room-name"
 }
 ```
-This says to open a connection to the given server, using `some-game-id`
-as the ID of the game for the players.
+This says to open a connection to the given server, using `some-room-name`
+as the name of the room for the players.
 
 ```js
 { instruction: "Close"
