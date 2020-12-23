@@ -51,11 +51,11 @@ type alias Model =
 type Progress =
   InLobby
   | ChoosingName
-    { gameId : BGF.GameId
+    { room : BGF.Room
     , draftName : String
     }
   | Playing
-    { gameId : BGF.GameId
+    { room : BGF.Room
     , name : String
     , clients : Sync (Clients Profile)
     }
@@ -144,32 +144,32 @@ lobbyConfig : Lobby.Config Msg Progress
 lobbyConfig =
   { initBase = InLobby
   , initGame = lobbyProgress
-  , change = changeGameId
+  , change = changeRoom
   , openCmd = openCmd
   , msgWrapper = ToLobby
   }
 
 
-lobbyProgress : BGF.GameId -> Progress
-lobbyProgress gameId =
+lobbyProgress : BGF.Room -> Progress
+lobbyProgress room =
   ChoosingName
-  { gameId = gameId
+  { room = room
   , draftName = ""
   }
 
 
-changeGameId : BGF.GameId -> Progress -> Progress
-changeGameId gameId progress =
+changeRoom : BGF.Room -> Progress -> Progress
+changeRoom room progress =
   case progress of
     InLobby ->
-      lobbyProgress gameId
+      lobbyProgress room
 
     ChoosingName rec ->
-      ChoosingName { rec | gameId = gameId }
+      ChoosingName { rec | room = room }
 
     Playing rec ->
       Playing
-      { gameId = gameId
+      { room = room
       , name = rec.name
       , clients = initClients
       }
@@ -182,7 +182,7 @@ server : BGF.Server
 server = BGF.wssServer "bgf.pigsaw.org"
 
 
-openCmd : BGF.GameId -> Cmd Msg
+openCmd : BGF.Room -> Cmd Msg
 openCmd =
   BGF.open outgoing server
 
@@ -306,7 +306,7 @@ update msg model =
                 |> Sync.mapToNext (addClient me)
               progress =
                 Playing
-                { gameId = state.gameId
+                { room = state.room
                 , name = me.name
                 , clients = clients
                 }
@@ -470,8 +470,8 @@ view model =
 viewLobby : Lobby Msg Progress -> List (Html Msg)
 viewLobby lobby =
   [ Lobby.view
-    { label = "Enter game ID:"
-    , placeholder = "Game ID"
+    { label = "Room:"
+    , placeholder = "Room"
     , button = "Next"
     }
     lobby
