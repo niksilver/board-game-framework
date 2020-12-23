@@ -290,10 +290,7 @@ update msg model =
       in
       ( { model
         | lobby = lobby
-        , playing =
-            case playing of
-              InGame _ -> playing
-              InLobby -> model.playing
+        , playing = playing
         }
       , cmd
       )
