@@ -60,7 +60,7 @@ type PlayingState =
 
 
 type alias GameState =
-  { gameId : BGF.GameId
+  { room : BGF.Room
   , connectivity : BGF.Connectivity
   , playerCount : Int
   , moveNumber : Int
@@ -91,7 +91,7 @@ server : BGF.Server
 server = BGF.wssServer "bgf.pigsaw.org"
 
 
-openCmd : BGF.GameId -> Cmd Msg
+openCmd : BGF.Room -> Cmd Msg
 openCmd =
   BGF.open outgoing server
 
@@ -200,7 +200,7 @@ lobbyConfig : Lobby.Config Msg PlayingState
 lobbyConfig =
   { initBase = InLobby
   , initGame = initialGameState
-  , change = \gameId _ -> initialGameState gameId
+  , change = \room _ -> initialGameState room
   , openCmd = openCmd
   , msgWrapper = ToLobby
   }
@@ -224,10 +224,10 @@ decodeFlags v =
   |> Result.withDefault { width = 1000 }
 
 
-initialGameState : BGF.GameId -> PlayingState
-initialGameState gameId =
+initialGameState : BGF.Room -> PlayingState
+initialGameState room =
   InGame
-    { gameId = gameId
+    { room = room
     , connectivity = BGF.Connected
     , playerCount = 1
     , moveNumber = 0
@@ -251,19 +251,19 @@ backgroundRefX =
 
 -- Create a randomish seed for a seed... almost certainly not a great
 -- algorithm. gameOffset is a number that should be vary for each successive
--- game with the same game ID, but constant throughout out each game. This
+-- game in the same room, but constant throughout out each game. This
 -- is to ensure the images are different for successive games, but remain
 -- constant within a game.
-makeSeed : BGF.GameId -> Int -> Int
-makeSeed gameId gameOffset =
+makeSeed : BGF.Room -> Int -> Int
+makeSeed room gameOffset =
   let
     extend chr i =
       Char.toCode chr
       |> (*) 2
       |> Bitwise.xor i
   in
-  gameId
-  |> BGF.fromGameId
+  room
+  |> BGF.fromRoom
   |> String.foldl extend gameOffset
 
 
@@ -273,7 +273,7 @@ makeRefInt state cellNum =
   let
     gameOffset = state.moveNumber - (markCount state.board)
   in
-  makeSeed state.gameId gameOffset
+  makeSeed state.room gameOffset
   |> (+) (cellNum * (gameOffset + 1))
   |> abs
 
@@ -623,14 +623,14 @@ viewEntrance lobby =
   El.column
   [ El.spacing clearance ]
   [ viewInstructions
-  , viewGameIdBox lobby
+  , viewRoomBox lobby
   ]
 
 
 viewInstructions : El.Element Msg
 viewInstructions =
   "Noughts and crosses (also known as tic tac toe). " ++
-  "Use the game ID below and click Go to start. Or enter a game ID " ++
+  "Use the room name below and click Go to start. Or enter a room name " ++
   "from a friend and click Go to join their game."
   |> El.text
   |> List.singleton
@@ -639,16 +639,16 @@ viewInstructions =
   |> UI.rotate -0.01
 
 
-viewGameIdBox : Lobby Msg PlayingState -> El.Element Msg
-viewGameIdBox lobby =
+viewRoomBox : Lobby Msg PlayingState -> El.Element Msg
+viewRoomBox lobby =
   El.row
   [ El.spacing (UI.scaledInt -1) ]
   [ El.text""
   , UI.inputText
     { onChange = Lobby.newDraft ToLobby
     , text = Lobby.draft lobby
-    , placeholderText = "Game ID"
-    , label = "Game ID"
+    , placeholderText = "Room"
+    , label = "Room"
     , fontScale = 12
     , miniPalette = UI.miniPaletteWhite
     }
