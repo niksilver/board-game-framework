@@ -484,11 +484,6 @@ updateWithEnvelope env state =
       , Cmd.none
       )
 
-    BGF.Receipt r ->
-      ( updateBoard r.num r.body state
-      , Cmd.none
-      )
-
     BGF.Peer p ->
       ( updateBoard p.num p.body state
       , Cmd.none
