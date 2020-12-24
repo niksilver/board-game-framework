@@ -350,9 +350,6 @@ updateWithEnvelope env model =
       , Cmd.none
       )
 
-    BGF.Receipt rec ->
-      updateWithBody env rec.body model
-
     BGF.Peer rec ->
       updateWithBody env rec.body model
 
@@ -380,7 +377,7 @@ updateWithEnvelope env model =
       )
 
 
--- Respond the same to a Receipt or Peer envelope
+-- Respond to a Peer envelope
 updateWithBody : BGF.Envelope Body -> Body -> Model -> (Model, Cmd Msg)
 updateWithBody env body model =
   -- A message from another peer
