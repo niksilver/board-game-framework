@@ -14,7 +14,7 @@ module BoardGameFramework.Lobby exposing (
   -- Viewing
   , view
   -- Only expose this for testing
-  --, fakeLobby
+  , fakeLobby
   )
 
 

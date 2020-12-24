@@ -1,4 +1,4 @@
-module Json exposing (..)
+module JsonTest exposing (..)
 
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
@@ -125,7 +125,7 @@ decodeTest =
       ]
 
     , describe "Decode Peer" <|
-      [ test "Good Peer" <|
+      [ test "Good Peer (from other client)" <|
         let
           j =
             Enc.object
@@ -134,6 +134,7 @@ decodeTest =
             , ("Num", Enc.int 29)
             , ("Time", Enc.int 8765432)
             , ("Intent", Enc.string "Peer")
+            , ("Receipt", Enc.bool False)
             , ("Body", Enc.object [("colour", Enc.string "Red")])
             ]
         in
@@ -145,6 +146,7 @@ decodeTest =
               , \d -> Expect.equal ["123.456", "333.345"] d.to
               , \d -> Expect.equal 29 d.num
               , \d -> Expect.equal 8765432 d.time
+              , \d -> Expect.equal False d.receipt
               , \d -> Expect.equal {colour = "Red"} d.body
               ] data
             other ->
@@ -157,6 +159,7 @@ decodeTest =
           , ("Num", Enc.int 29)
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Peer")
+          , ("Receipt", Enc.bool False)
           , ("Body", Enc.object [("colour", Enc.string "Red")])
           ]
 
@@ -167,12 +170,13 @@ decodeTest =
           , ("Num", Enc.int 29)
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Peer")
+          , ("Receipt", Enc.bool False)
           , ("Body", Enc.object [("Xolor", Enc.string "Red")])
           ]
         ]
 
-    , describe "Decode Receipt" <|
-      [ test "Good Receipt" <|
+    , describe "Decode Peer (as a receipt)" <|
+      [ test "Good Peer (as a receipt)" <|
         let
           j =
             Enc.object
@@ -180,18 +184,20 @@ decodeTest =
             , ("To", Enc.list Enc.string ["123.456", "333.345"])
             , ("Num", Enc.int 30)
             , ("Time", Enc.int 8765432)
-            , ("Intent", Enc.string "Receipt")
+            , ("Intent", Enc.string "Peer")
+            , ("Receipt", Enc.bool True)
             , ("Body", Enc.object [("colour", Enc.string "Red")])
             ]
         in
         \_ ->
           case decode simpleDecoder j of
-            Ok (Receipt data) ->
+            Ok (Peer data) ->
               Expect.all
-              [ \d -> Expect.equal "222.234" d.me
-              , \d -> Expect.equal ["123.456", "333.345"] d.others
+              [ \d -> Expect.equal "222.234" d.from
+              , \d -> Expect.equal ["123.456", "333.345"] d.to
               , \d -> Expect.equal 30 d.num
               , \d -> Expect.equal 8765432 d.time
+              , \d -> Expect.equal True d.receipt
               , \d -> Expect.equal {colour = "Red"} d.body
               ] data
             other ->
@@ -203,7 +209,8 @@ decodeTest =
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
           , ("Num", Enc.int 30)
           , ("Time", Enc.int 8765432)
-          , ("Intent", Enc.string "Receipt")
+          , ("Intent", Enc.string "Peer")
+          , ("Receipt", Enc.bool True)
           , ("Body", Enc.object [("colour", Enc.string "Red")])
           ]
 
@@ -213,7 +220,8 @@ decodeTest =
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
           , ("Num", Enc.int 30)
           , ("Time", Enc.int 8765432)
-          , ("Intent", Enc.string "Receipt")
+          , ("Intent", Enc.string "Peer")
+          , ("Receipt", Enc.bool True)
           , ("Body", Enc.object [("Xolor", Enc.string "Red")])
           ]
 
@@ -486,6 +494,7 @@ decoderTest =
             , ("Num", Enc.int 29)
             , ("Time", Enc.int 8765432)
             , ("Intent", Enc.string "Peer")
+            , ("Receipt", Enc.bool False)
             , ("Body", Enc.object [("colour", Enc.string "Red")])
             ]
         in
@@ -497,6 +506,7 @@ decoderTest =
               , \d -> Expect.equal ["123.456", "333.345"] d.to
               , \d -> Expect.equal 29 d.num
               , \d -> Expect.equal 8765432 d.time
+              , \d -> Expect.equal False d.receipt
               , \d -> Expect.equal {colour = "Red"} d.body
               ] data
             other ->
@@ -509,6 +519,7 @@ decoderTest =
           , ("Num", Enc.int 29)
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Peer")
+          , ("Receipt", Enc.bool False)
           , ("Body", Enc.object [("colour", Enc.string "Red")])
           ]
 
@@ -519,11 +530,12 @@ decoderTest =
           , ("Num", Enc.int 29)
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Peer")
+          , ("Receipt", Enc.bool False)
           , ("Body", Enc.object [("Xolor", Enc.string "Red")])
           ]
         ]
 
-    , describe "Decoder for Receipt" <|
+    , describe "Decoder for Peer (as a receipt)" <|
       [ test "Good Receipt" <|
         let
           j =
@@ -532,18 +544,20 @@ decoderTest =
             , ("To", Enc.list Enc.string ["123.456", "333.345"])
             , ("Num", Enc.int 30)
             , ("Time", Enc.int 8765432)
-            , ("Intent", Enc.string "Receipt")
+            , ("Intent", Enc.string "Peer")
+            , ("Receipt", Enc.bool True)
             , ("Body", Enc.object [("colour", Enc.string "Red")])
             ]
         in
         \_ ->
           case Dec.decodeValue (decoder simpleDecoder) j of
-            Ok (Receipt data) ->
+            Ok (Peer data) ->
               Expect.all
-              [ \d -> Expect.equal "222.234" d.me
-              , \d -> Expect.equal ["123.456", "333.345"] d.others
+              [ \d -> Expect.equal "222.234" d.from
+              , \d -> Expect.equal ["123.456", "333.345"] d.to
               , \d -> Expect.equal 30 d.num
               , \d -> Expect.equal 8765432 d.time
+              , \d -> Expect.equal True d.receipt
               , \d -> Expect.equal {colour = "Red"} d.body
               ] data
             other ->
@@ -555,7 +569,8 @@ decoderTest =
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
           , ("Num", Enc.int 30)
           , ("Time", Enc.int 8765432)
-          , ("Intent", Enc.string "Receipt")
+          , ("Intent", Enc.string "Peer")
+          , ("Receipt", Enc.bool True)
           , ("Body", Enc.object [("colour", Enc.string "Red")])
           ]
 
@@ -565,7 +580,8 @@ decoderTest =
           , ("To", Enc.list Enc.string ["123.456", "333.345"])
           , ("Num", Enc.int 30)
           , ("Time", Enc.int 8765432)
-          , ("Intent", Enc.string "Receipt")
+          , ("Intent", Enc.string "Peer")
+          , ("Receipt", Enc.bool True)
           , ("Body", Enc.object [("Xolor", Enc.string "Red")])
           ]
 

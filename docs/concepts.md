@@ -46,9 +46,7 @@ These are the envelope intents that a client can receive:
 * Welcome. Received by a client when it joins.
 * Joiner. Received when another new client joins the game.
 * Leaver. Received when another client leaves the game.
-* Peer. Envelope containing a message sent by another client.
-* Receipt. Containing the client's own message, indicating that the server
-  has sent that message to all the other clients.
+* Peer. Envelope containing a message sent by any client, including oneself.
 
 A small JavaScript layer sits between a client application and the server
 to make connectivity easier. It adds two other kinds of messages for clients:
@@ -58,7 +56,8 @@ to make connectivity easier. It adds two other kinds of messages for clients:
 
 ## Connecting to the server
 
-A server can host many distinct games at one time. At the time of writing
+A server can host many distinct games at one time, each in its own named "room".
+At the time of writing
 there is a server which can be used freely at `bgf.pigsaw.org` (this
 one happens to accept both SSL and non-SSL connections).
 
@@ -84,8 +83,8 @@ The ID allows clients to identify and distinguish each other.
 ## Envelope basics
 
 When a client sends a message to the server, the server wraps it in an
-envelope and sends that envelope to all other clients in the same game.
-At the same time, it sends a receipt to the original client.
+envelope and sends that envelope to all other clients in the same game,
+including the client which sent it.
 
 Suppose client `123.456` is in a game with two other clients, `222.234`
 and `333.345`. If it sends some arbitrary game message that looks like this
@@ -105,6 +104,7 @@ it will be wrapped and sent to the other clients like this:
   Num: 8
   Time: 76487293
   Intent: "Peer"
+  Receipt: false
   Body: { turn: 0
           spaces: 3
           letters: ["D", "K", "G"]
@@ -121,6 +121,7 @@ it will be wrapped and sent to the other clients like this:
   number of milliseconds after 1 January 1970;
 * `Intent` is what the envelope contains - in this case, a message from
    a client peer.
+* `Receipt` says whether this message is an echo of one sent by this client.
 * `Body` is the original message from the client.
 
 The fields `From`, `To`, `Num`, `Time` and `Intent` appear in all
@@ -218,15 +219,12 @@ See below for how a client becomes a leaver.
 
 ### Peer
 
-See details above for what's in a Peer envelope.
+As explained above, when a client sends a message it is received by
+those other clients as a Peer envelope, and the Receipt field is false.
 
-### Receipt
-
-When a client sends a message, not only to the other clients receive
-a Peer envelope, but it receives the its own message back as a Receipt
-envelope. When a client receives a Receipt envelope it is exactly
-the same as the Peer envelope received by others, except that the
-`Intent` field has the value `Receipt`.
+Additionally, the sending client receives its own message back.
+This received message is exactly the same one as all the other clients
+receive, except that the Receipt field is true.
 
 So suppose, as above,
 client `123.456` is in a game with two other clients, `222.234`
@@ -239,14 +237,15 @@ and `333.345`. If it sends a game message that looks like this
 }
 ```
 
-it will receive a Receipt that looks like this:
+it will receive a Peer envelope that looks like this:
 
 ```js
 { From: ["123.456"]
   To: ["222.234", "333.345"]
   Num: 8
   Time: 76487293
-  Intent: "Receipt"
+  Intent: "Peer"
+  Receipt: true
   Body: { turn: 0
           spaces: 3
           letters: ["D", "K", "G"]
@@ -254,8 +253,8 @@ it will receive a Receipt that looks like this:
 }
 ```
 
-Just as with the Welcome/Joiner envelopes, the corresponding
-Peer/Receipt envelopes will all have the same values in the
+Just as with the Welcome/Joiner envelopes, the
+Peer envelopes will all have the same values in the
 `Num` and `Time` fields. This is to aid synchronisation.
 
 ### Connection messages
@@ -291,7 +290,7 @@ However, the Num field is useful for tracking order.
 Every envelope a client receives will have an incrementing Num,
 and when the server sends out a batch of envelopes they will all have
 the same Num: a Welcome envelope and its corresponding Joiner envelopes
-will all have the same Num, and a Receipt envelope and its corresponding
+will all have the same Num, and a batch of
 Peer envelopes will all have the same Num.
 
 The Num only resets for a game after all clients have left.

@@ -72,9 +72,7 @@ envelopes with the `Intent`:
 * Welcome - when the client first joins;
 * Joiner - when another client joins;
 * Leaver - when a client leaves;
-* Peer - when another client has sent a message;
-* Receipt - when this client has sent a message and the server is
-  sending it out to other clients as a Peer message.
+* Peer - when any client has sent a message;
 
 Additionally `toApp()` will be called with one of these three envelopes when
 something changes with the connection:

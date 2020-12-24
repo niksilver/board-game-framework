@@ -359,19 +359,20 @@ The envelopes are:
 The field names have consistent types and meaning:
 * `me`: our client's own client ID.
 * `others`: the IDs of all other clients currently in the game.
-* `from`: the ID of the client (not us) who sent the message.
-* `to`: the IDs of the clients to whom a message was sent, including us.
+* `from`: the ID of the client who sent the message, which may be us.
+* `to`: the IDs of the clients to whom a message was sent - that is, all the known clients
+  apart from the sender.
 * `joiner`: the ID of a client who has just joined.
 * `leaver`: the ID of a client who has just left.
 * `num`: the ID of the envelope. After a Welcome envelope, nums will
   be consecutive.
 * `time`: when the envelope was sent, in milliseconds since the epoch.
+* `receipt`: a flag to say if this is an application-specific message we sent.
 * `body`: the application-specific message sent by the client.
 -}
 type Envelope a =
   Welcome {me: ClientId, others: List ClientId, num: Int, time: Int}
-  | Receipt {me: ClientId, others: List ClientId, num: Int, time: Int, body: a}
-  | Peer {from: ClientId, to: List ClientId, num: Int, time: Int, body: a}
+  | Peer {from: ClientId, to: List ClientId, num: Int, time: Int, receipt: Bool, body: a}
   | Joiner {joiner: ClientId, to: List ClientId, num: Int, time: Int}
   | Leaver {leaver: ClientId, to: List ClientId, num: Int, time: Int}
   | Connection Connectivity
@@ -635,35 +636,19 @@ purposeHelpDec bodyDecoder purpose =
         toDec = Dec.field "To" (Dec.list Dec.string)
         numDec = Dec.field "Num" Dec.int
         timeDec = Dec.field "Time" Dec.int
+        receiptDec = Dec.field "Receipt" Dec.bool
         bodyDec = Dec.field "Body" bodyDecoder
-        make to from num time body =
+        make to from num time receipt body =
           Peer
           { from = from
           , to = to
           , num = num
           , time = time
+          , receipt = receipt
           , body = body
           }
       in
-      Dec.map5 make toDec fromDec numDec timeDec bodyDec
-
-    ("Intent", "Receipt") ->
-      let
-        meDec = Dec.field "From" singletonStringDecoder
-        othersDec = Dec.field "To" (Dec.list Dec.string)
-        numDec = Dec.field "Num" Dec.int
-        timeDec = Dec.field "Time" Dec.int
-        bodyDec = Dec.field "Body" bodyDecoder
-        make me others num time body =
-          Receipt
-          { me = me
-          , others = others
-          , num = num
-          , time = time
-          , body = body
-          }
-      in
-      Dec.map5 make meDec othersDec numDec timeDec bodyDec
+      Dec.map6 make toDec fromDec numDec timeDec receiptDec bodyDec
 
     ("Intent", "Joiner") ->
       let

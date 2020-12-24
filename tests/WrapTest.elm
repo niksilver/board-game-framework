@@ -153,6 +153,7 @@ receiveTest =
           , ("Num", Enc.int 29)
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Peer")
+          , ("Receipt", Enc.bool False)
           , ("Body", encodeCard "Tell us a secret" )
           ]
       in
@@ -178,6 +179,7 @@ receiveTest =
           , ("Num", Enc.int 29)
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Peer")
+          , ("Receipt", Enc.bool False)
           , ("Body", encodeChips [100, 0, 150] )
           ]
       in
@@ -210,6 +212,7 @@ receiveAltTest =
           , ("Num", Enc.int 29)
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Peer")
+          , ("Receipt", Enc.bool False)
           , ("Body", encodeCard "Tell us a secret" )
           ]
       in
@@ -235,6 +238,7 @@ receiveAltTest =
           , ("Num", Enc.int 29)
           , ("Time", Enc.int 8765432)
           , ("Intent", Enc.string "Peer")
+          , ("Receipt", Enc.bool False)
           , ("Body", encodeChips [100, 0, 150] )
           ]
       in

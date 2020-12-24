@@ -8,7 +8,7 @@ There are three core components in the Go code:
   The hub also tells the client what messages to send out to the end user.
 * A hub is a focal point for all clients in a given game. For example,
   If a message comes in from a client it sends it as a peer message
-  to all other clients and as a receipt to the original client.
+  to all clients, including the sender.
   It also handles welcome, joiner and leaver messages.
 * The superhub looks after the relationship between clients and hubs.
   When a new client joins it gets its hub from the superhub.

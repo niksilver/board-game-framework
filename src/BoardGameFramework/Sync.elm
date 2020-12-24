@@ -21,7 +21,7 @@ we also want to synchronise them.
 The problem: Suppose we send the state of the board as a value
 between peers, and our game allows any client to make a move
 to update the board. What happens when two clients make different
-moves simultaneously.
+moves simultaneously?
 
 The solution:
 When we set our initial value (e.g. the initial state of the game)
@@ -29,7 +29,7 @@ we count that as "step 0". Each subsequent change is step 1, step 2,
 etc. But whenever we set our own value we must recognised that it's
 not yet verified. We must also send it to our peers via the server.
 They will be doing the same thing. Whenever we receive a value
-(either ours as a Receipt, or theirs as a Peer message) we must
+(as a Peer envelope sent by any other client or by us) we must
 resolve it against what we currently hold. Whichever value came
 through first from the server is the accepted value for that step.
 
@@ -296,9 +296,6 @@ timing env =
       SomeTiming { num = rec.num, time = rec.time }
 
     BGF.Joiner rec ->
-      SomeTiming { num = rec.num, time = rec.time }
-
-    BGF.Receipt rec ->
       SomeTiming { num = rec.num, time = rec.time }
 
     BGF.Peer rec ->

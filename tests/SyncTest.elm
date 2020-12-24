@@ -163,6 +163,7 @@ env num time =
     , to = ["c1", "c2", "c3"]
     , num = num
     , time = time
+    , receipt = False
     , body = ()
     }
 
