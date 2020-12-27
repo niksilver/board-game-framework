@@ -53,6 +53,7 @@ type Progress =
   | ChoosingName
     { room : BGF.Room
     , draftName : String
+    , clients : Sync (Clients Profile)
     }
   | Playing
     { room : BGF.Room
@@ -155,6 +156,7 @@ lobbyProgress room =
   ChoosingName
   { room = room
   , draftName = ""
+  , clients = initClients
   }
 
 
@@ -302,7 +304,7 @@ update msg model =
                 , name = state.draftName
                 }
               clients =
-                initClients
+                state.clients
                 |> Sync.mapToNext (addClient me)
               progress =
                 Playing
@@ -343,7 +345,7 @@ okName draft =
 
 updateWithEnvelope : BGF.Envelope Body -> Model -> (Model, Cmd Msg)
 updateWithEnvelope env model =
-  case env |> Debug.log "Received envelope" of
+  case env of
     BGF.Welcome rec ->
       -- We've joined the game, but no action required.
       ( model
@@ -354,10 +356,17 @@ updateWithEnvelope env model =
       updateWithBody env rec.body model
 
     BGF.Joiner rec ->
-      -- Ignore a joiner. We'll do something later when they send their name.
-      ( model
-      , Cmd.none
-      )
+      -- We've got a joiner, so let's tell them who the named clients are so far, if we can
+      case model.progress of
+        Playing state ->
+          ( model
+          , sendClientListCmd state.clients
+          )
+
+        _ ->
+          ( model
+          , Cmd.none
+          )
 
     BGF.Leaver rec ->
       -- Remove a leaver from the clients list and send the new list
@@ -389,6 +398,7 @@ updateWithBody env body model =
     ClientListMsg clients ->
       case model.progress of
         Playing state ->
+          -- We're playing and we've got an updated list of named clients
           let
             clients2 =
               state.clients
@@ -399,6 +409,15 @@ updateWithBody env body model =
                 Playing { state | clients = clients2 }
             }
           -- Don't send out the client list we've just received
+          , Cmd.none
+          )
+
+        ChoosingName state ->
+          -- We're still choosing our name, but we've got a list of named clients
+          ( { model
+            | progress =
+                ChoosingName { state | clients = clients }
+            }
           , Cmd.none
           )
 
