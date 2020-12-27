@@ -83,6 +83,7 @@ type Msg =
   | NewDraftName String
   | ConfirmedName
   | Received (Result Dec.Error (BGF.Envelope Body))
+  | ConfirmedObserve
 
 
 type Body =
@@ -336,6 +337,9 @@ update msg model =
           -- Ignore an error for now
           (model, Cmd.none)
 
+    ConfirmedObserve ->
+      makeMeObserver model
+
 
 okName : String -> Bool
 okName draft =
@@ -464,6 +468,33 @@ mapClientsToNextAndSend mapping model =
       (model, Cmd.none)
 
 
+makeMeObserver : Model -> (Model, Cmd Msg)
+makeMeObserver model =
+  case model.progress of
+    Playing state ->
+      let
+        downgradeMe client =
+          if client.id == model.myId then
+            { client | player = False }
+          else
+            client
+        clients2 =
+          state.clients
+          |> Sync.mapToNext (Clients.map downgradeMe)
+        model2 =
+          { model
+          | progress =
+              Playing { state | clients = clients2 }
+          }
+      in
+      ( model
+      , sendClientListCmd clients2
+      )
+
+    _ ->
+      (model, Cmd.none)
+
+
 -- View
 
 
@@ -479,7 +510,7 @@ view model =
         viewNameForm state.draftName
 
       Playing state ->
-        viewGame state.clients
+        viewGame state.clients model.myId
   }
 
 
@@ -511,29 +542,42 @@ viewNameForm draftName =
   ]
 
 
-viewGame : Sync (Clients Profile) -> List (Html Msg)
-viewGame clients =
+viewGame : Sync (Clients Profile) -> BGF.ClientId -> List (Html Msg)
+viewGame clients myId =
   let
     (players, observers) =
       clients
       |> Sync.value
       |> Clients.partition .player
+    (playerNames, observerNames) =
+      (players, observers)
       |> Tuple.mapBoth (Clients.mapToList .name) (Clients.mapToList .name)
+    amPlayer =
+      players
+      |> Clients.member myId
   in
   [ Html.div []
     [ Html.p []
       [ Html.text "Players: "
-      , if List.length players == 0 then
+      , if List.length playerNames == 0 then
           Html.text "None"
         else
-          Html.text <| String.join ", " players
+          Html.text <| String.join ", " playerNames
       ]
     , Html.p []
       [ Html.text "Observers: "
-      , if List.length observers == 0 then
+      , if List.length observerNames == 0 then
           Html.text "None"
         else
-          Html.text <| String.join ", " observers
+          Html.text <| String.join ", " observerNames
+      ]
+    , Html.p []
+      [ Html.button
+        [ Events.onClick ConfirmedObserve
+        , Attr.disabled (not <| amPlayer)
+        ]
+        [ Html.label [] [ Html.text "Observe" ]
+        ]
       ]
     ]
   ]
