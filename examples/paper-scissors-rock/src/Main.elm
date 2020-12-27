@@ -169,7 +169,11 @@ changeRoom room progress =
       lobbyProgress room
 
     ChoosingName rec ->
-      ChoosingName { rec | room = room }
+      ChoosingName
+      { room = room
+      , draftName = rec.draftName
+      , clients = initClients
+      }
 
     Playing rec ->
       Playing
@@ -366,14 +370,19 @@ updateWithEnvelope env model =
     BGF.Joiner rec ->
       -- We've got a joiner, so let's tell them who the named clients are so far, if we can
       case model.progress of
-        Playing state ->
+        InLobby ->
+          ( model
+          , Cmd.none
+          )
+
+        ChoosingName state ->
           ( model
           , sendClientListCmd state.clients
           )
 
-        _ ->
+        Playing state ->
           ( model
-          , Cmd.none
+          , sendClientListCmd state.clients
           )
 
     BGF.Leaver rec ->
@@ -455,6 +464,22 @@ setDraftName draft model =
 mapClientsToNextAndSend : (Clients Profile -> Clients Profile) -> Model -> (Model, Cmd Msg)
 mapClientsToNextAndSend mapping model =
   case model.progress of
+    InLobby ->
+      (model, Cmd.none)
+
+    ChoosingName state ->
+      let
+        clients =
+          state.clients
+          |> Sync.mapToNext mapping
+      in
+      ( { model
+        | progress =
+            ChoosingName { state | clients = clients }
+        }
+      , sendClientListCmd clients
+      )
+
     Playing state ->
       let
         clients =
@@ -467,9 +492,6 @@ mapClientsToNextAndSend mapping model =
         }
       , sendClientListCmd clients
       )
-
-    _ ->
-      (model, Cmd.none)
 
 
 makeMeObserver : Model -> (Model, Cmd Msg)
