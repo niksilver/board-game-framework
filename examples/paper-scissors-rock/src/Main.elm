@@ -84,6 +84,7 @@ type Msg =
   | ConfirmedName
   | Received (Result Dec.Error (BGF.Envelope Body))
   | ConfirmedObserve
+  | ConfirmedPlay
 
 
 type Body =
@@ -340,6 +341,9 @@ update msg model =
     ConfirmedObserve ->
       makeMeObserver model
 
+    ConfirmedPlay ->
+      makeMePlayer model
+
 
 okName : String -> Bool
 okName draft =
@@ -495,6 +499,33 @@ makeMeObserver model =
       (model, Cmd.none)
 
 
+makeMePlayer : Model -> (Model, Cmd Msg)
+makeMePlayer model =
+  case model.progress of
+    Playing state ->
+      let
+        upgradeMe client =
+          if client.id == model.myId then
+            { client | player = True }
+          else
+            client
+        clients2 =
+          state.clients
+          |> Sync.mapToNext (Clients.map upgradeMe)
+        model2 =
+          { model
+          | progress =
+              Playing { state | clients = clients2 }
+          }
+      in
+      ( model
+      , sendClientListCmd clients2
+      )
+
+    _ ->
+      (model, Cmd.none)
+
+
 -- View
 
 
@@ -555,6 +586,11 @@ viewGame clients myId =
     amPlayer =
       players
       |> Clients.member myId
+    amObserver =
+      observers
+      |> Clients.member myId
+    playerVacancy = List.length playerNames < 2
+    canBePlayer = amObserver && playerVacancy
   in
   [ Html.div []
     [ Html.p []
@@ -577,6 +613,12 @@ viewGame clients myId =
         , Attr.disabled (not <| amPlayer)
         ]
         [ Html.label [] [ Html.text "Observe" ]
+        ]
+      , Html.button
+        [ Events.onClick ConfirmedPlay
+        , Attr.disabled (not <| canBePlayer)
+        ]
+        [ Html.label [] [ Html.text "Play" ]
         ]
       ]
     ]
