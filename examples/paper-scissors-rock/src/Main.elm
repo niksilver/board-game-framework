@@ -538,10 +538,8 @@ changeRole id role clients =
   let
     changeRole2 client =
       { client | role = role }
-    changeMaybe =
-      Maybe.map changeRole2
     changeList =
-      Clients.update id changeMaybe
+      Clients.mapOne id changeRole2
   in
   clients
   |> Sync.mapToNext changeList
