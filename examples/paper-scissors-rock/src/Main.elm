@@ -318,7 +318,7 @@ syncClientListDecoder =
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  case msg |> Debug.log "msg" of
+  case msg of
     ToLobby subMsg ->
       let
         (lobby, progress, cmd) = Lobby.update subMsg model.progress model.lobby
@@ -381,10 +381,10 @@ update msg model =
           (model, Cmd.none)
 
     ConfirmedObserve ->
-      makeMeObserver model
+      updateMyRole Observer model
 
     ConfirmedPlay ->
-      makeMePlayer model
+      updateMyRole Player model
 
 
 okName : String -> Bool
@@ -532,55 +532,34 @@ mapClientsToNextAndSend mapping model =
       )
 
 
-makeMeObserver : Model -> (Model, Cmd Msg)
-makeMeObserver model =
+-- Change the role of one client only in a synced client list
+changeRole : BGF.ClientId -> Role -> Sync (Clients Profile) -> Sync (Clients Profile)
+changeRole id role clients =
+  let
+    changeRole2 client =
+      { client | role = role }
+    changeMaybe =
+      Maybe.map changeRole2
+    changeList =
+      Clients.update id changeMaybe
+  in
+  clients
+  |> Sync.mapToNext changeList
+
+
+updateMyRole : Role -> Model -> (Model, Cmd Msg)
+updateMyRole role model =
   case model.progress of
     Playing state ->
       let
-        downgrade client =
-          { client | role = Observer }
-        downgradeMaybe =
-          Maybe.map downgrade
-        downgradeList =
-          Clients.update model.myId downgradeMaybe
-        clientMap =
-          Sync.mapToNext downgradeList
-        clients2 =
-          clientMap state.clients
-        model2 =
-          { model
-          | progress =
-              Playing { state | clients = clients2 }
-          }
-      in
-      ( model
-      , sendClientListCmd clients2
-      )
-
-    _ ->
-      (model, Cmd.none)
-
-
-makeMePlayer : Model -> (Model, Cmd Msg)
-makeMePlayer model =
-  case model.progress of
-    Playing state ->
-      let
-        upgradeMe client =
-          if client.id == model.myId then
-            { client | role = Player }
-          else
-            client
         clients2 =
           state.clients
-          |> Sync.mapToNext (Clients.map upgradeMe)
-        model2 =
-          { model
-          | progress =
-              Playing { state | clients = clients2 }
-          }
+          |> changeRole model.myId role
       in
-      ( model
+      ( { model
+        | progress =
+            Playing { state | clients = clients2 }
+        }
       , sendClientListCmd clients2
       )
 
