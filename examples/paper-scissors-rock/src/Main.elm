@@ -103,8 +103,9 @@ type Msg =
   | NewDraftName String
   | ConfirmedName
   | Received (Result Dec.Error (BGF.Envelope Body))
-  | ConfirmedObserve
-  | ConfirmedPlay
+  | ConfirmedBecomeObserver
+  | ConfirmedBecomePlayer
+  | ConfirmedShow
 
 
 type Body =
@@ -391,11 +392,14 @@ update msg model =
           -- Ignore an error for now
           (model, Cmd.none)
 
-    ConfirmedObserve ->
+    ConfirmedBecomeObserver ->
       updateMyRole Observer model
 
-    ConfirmedPlay ->
+    ConfirmedBecomePlayer ->
       updateMyRole (Player Closed) model
+
+    ConfirmedShow ->
+      updateMyRole (Player Showing) model
 
 
 okName : String -> Bool
@@ -623,6 +627,19 @@ viewNameForm draftName =
   ]
 
 
+-- Show a client's name with the hand they are currently playing. E.g. "Alice (scissors)"
+nameWithHand : Client Profile -> String
+nameWithHand client =
+  let
+    roleToShapeText role =
+      case role of
+        Observer -> ""
+        Player Closed -> "..."
+        Player Showing -> " (played!)"
+  in
+  client.name ++ (roleToShapeText client.role)
+
+
 viewGame : Sync (Clients Profile) -> BGF.ClientId -> List (Html Msg)
 viewGame clients myId =
   let
@@ -632,7 +649,7 @@ viewGame clients myId =
       |> Clients.partition isPlayer
     (playerNames, observerNames) =
       (players, observers)
-      |> Tuple.mapBoth (Clients.mapToList .name) (Clients.mapToList .name)
+      |> Tuple.mapBoth (Clients.mapToList nameWithHand) (Clients.mapToList nameWithHand)
     amPlayer =
       players
       |> Clients.member myId
@@ -650,6 +667,7 @@ viewGame clients myId =
         else
           Html.text <| String.join ", " playerNames
       ]
+
     , Html.p []
       [ Html.text "Observers: "
       , if List.length observerNames == 0 then
@@ -657,18 +675,28 @@ viewGame clients myId =
         else
           Html.text <| String.join ", " observerNames
       ]
+
     , Html.p []
       [ Html.button
-        [ Events.onClick ConfirmedObserve
+        [ Events.onClick ConfirmedBecomeObserver
         , Attr.disabled (not <| amPlayer)
         ]
-        [ Html.label [] [ Html.text "Observe" ]
+        [ Html.label [] [ Html.text "Become observer" ]
         ]
       , Html.button
-        [ Events.onClick ConfirmedPlay
+        [ Events.onClick ConfirmedBecomePlayer
         , Attr.disabled (not <| canBePlayer)
         ]
-        [ Html.label [] [ Html.text "Play" ]
+        [ Html.label [] [ Html.text "Become player" ]
+        ]
+      ]
+
+    , Html.p []
+      [ Html.button
+        [ Events.onClick ConfirmedShow
+        , Attr.disabled (not <| amPlayer)
+        ]
+        [ Html.label [] [ Html.text "Show" ]
         ]
       ]
     ]
