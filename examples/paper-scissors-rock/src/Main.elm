@@ -57,7 +57,6 @@ type Progress =
     }
   | Playing
     { room : BGF.Room
-    , name : String
     , clients : Sync (Clients Profile)
     }
 
@@ -192,7 +191,6 @@ changeRoom room progress =
     Playing rec ->
       Playing
       { room = room
-      , name = rec.name
       , clients = initClients
       }
 
@@ -353,7 +351,6 @@ update msg model =
               progress =
                 Playing
                 { room = state.room
-                , name = me.name
                 , clients = clients
                 }
             in
