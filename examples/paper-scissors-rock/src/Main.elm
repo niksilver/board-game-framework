@@ -218,12 +218,12 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 
 sendClientListCmd : Sync (Clients Profile) -> Cmd Msg
 sendClientListCmd =
-  Wrap.send outgoing "clients" syncClientListEncode
+  Wrap.send outgoing "clients" encodeSyncClientList
 
 
 sendMyNameCmd : NamedClient -> Cmd Msg
 sendMyNameCmd =
-  Wrap.send outgoing "myName" namedClientEncode
+  Wrap.send outgoing "myName" encodeNamedClient
 
 
 subscriptions : Model -> Sub Msg
@@ -243,8 +243,8 @@ receive =
 -- JSON encoders and decoders
 
 
-roleEncode : Role -> Enc.Value
-roleEncode role =
+encodeRole : Role -> Enc.Value
+encodeRole role =
   case role of
     Player ->
       Enc.string "Player"
@@ -253,25 +253,25 @@ roleEncode role =
       Enc.string "Observer"
 
 
-namedClientEncode : NamedClient -> Enc.Value
-namedClientEncode namedClient =
+encodeNamedClient : NamedClient -> Enc.Value
+encodeNamedClient namedClient =
   Enc.object
     [ ( "id", Enc.string namedClient.id )
     , ( "name", Enc.string namedClient.name )
     ]
 
 
-clientListEncode : Clients Profile -> Enc.Value
-clientListEncode =
+encodeClientList : Clients Profile -> Enc.Value
+encodeClientList =
   Clients.encode
   [ ("name", .name >> Enc.string)
-  , ("role", .role >> roleEncode)
+  , ("role", .role >> encodeRole)
   ]
 
 
-syncClientListEncode : Sync (Clients Profile) -> Enc.Value
-syncClientListEncode scl =
-  Sync.encode clientListEncode scl
+encodeSyncClientList : Sync (Clients Profile) -> Enc.Value
+encodeSyncClientList scl =
+  Sync.encode encodeClientList scl
 
 
 namedClientDecoder : Dec.Decoder NamedClient
