@@ -7,7 +7,7 @@ module BoardGameFramework.Clients exposing
   -- Basic types
   ( Client, Clients
   -- Build
-  , empty, singleton, insert, update, remove
+  , empty, singleton, insert, update, mapOne, remove
   -- Query
   , isEmpty, member, get, length, filterLength
   -- Lists and dicts
@@ -36,7 +36,7 @@ The type `ClientId` is just an alias for `String`, and comes from the base
 @docs Client, Clients
 
 # Build
-@docs empty, singleton, insert, update, remove
+@docs empty, singleton, insert, update, mapOne, remove
 
 # Query
 @docs isEmpty, member, get, length, filterLength
@@ -134,6 +134,21 @@ update id mapper (Clients cs) =
         |> Dict.remove id
         |> Clients
         |> insert v2
+
+
+{-| Update one specific client that we expect to be there.
+If the specified client isn't there then nothing changes.
+This is a simpler (but less powerful) version of [`update`](#udpate).
+
+It's possible for the mapping function to produce a value with
+a different `id` from the one given. This would almost certainly be
+an error. But if you did it, then the client with the `id` given will
+be removed, and the value produced by the mapping function will be
+inserted.
+-}
+mapOne : BGF.ClientId -> (Client e -> Client e) -> Clients e -> Clients e
+mapOne id mapper clients =
+  update id (Maybe.map mapper) clients
 
 
 {-| Remove a client from the client list.

@@ -134,6 +134,94 @@ updateTest =
   ]
 
 
+mapOneTest : Test
+mapOneTest =
+  describe "mapOneTest"
+  [ test "Mapping one that's there should change it" <|
+    \_ ->
+      let
+        fn entry =
+          { entry | points = 21 }
+      in
+      Clients.empty
+      |> Clients.insert { id = "123.456", points = 20 }
+      |> Clients.insert { id = "654.321", points = 40 }
+      |> Clients.insert { id = "999.999", points = 40 }
+      |> Clients.mapOne "123.456" fn
+      |> Clients.toDict
+      |> Dict.get "123.456"
+      |> Expect.equal (Just { id = "123.456", points = 21 } )
+
+  , describe "Mapping one that's not there should change nothing" <|
+    let
+      fn entry =
+        { entry | points = 21 }
+      clients2 =
+        Clients.empty
+        |> Clients.insert { id = "123.456", points = 20 }
+        |> Clients.insert { id = "654.321", points = 40 }
+        |> Clients.insert { id = "999.999", points = 40 }
+        |> Clients.mapOne "333.333" fn
+    in
+    [ test "A" <|
+      \_ ->
+        clients2
+        |> Clients.toDict
+        |> Dict.get "333.333"
+        |> Expect.equal Nothing
+
+    , test "B" <|
+      \_ ->
+        clients2
+        |> Clients.toDict
+        |> Dict.get "123.456"
+        |> Expect.equal (Just { id = "123.456", points = 20 } )
+
+    , test "C" <|
+      \_ ->
+        clients2
+        |> Clients.toDict
+        |> Dict.size
+        |> Expect.equal 3
+
+    ]
+
+  , describe "Mapping one that's changes the ID should remove the old one" <|
+    let
+      fn entry =
+        { id = "123.!!!", points = 21 }
+      clients2 =
+        Clients.empty
+        |> Clients.insert { id = "123.456", points = 20 }
+        |> Clients.insert { id = "654.321", points = 40 }
+        |> Clients.insert { id = "999.999", points = 40 }
+        |> Clients.mapOne "123.456" fn
+    in
+    [ test "A" <|
+      \_ ->
+        clients2
+        |> Clients.toDict
+        |> Dict.get "123.456"
+        |> Expect.equal Nothing
+
+    , test "B" <|
+      \_ ->
+        clients2
+        |> Clients.toDict
+        |> Dict.get "123.!!!"
+        |> Expect.equal (Just { id = "123.!!!", points = 21 } )
+
+    , test "C" <|
+      \_ ->
+        clients2
+        |> Clients.toDict
+        |> Dict.size
+        |> Expect.equal 3
+
+    ]
+  ]
+
+
 removeTest : Test
 removeTest =
   test "Removing one should yield one less" <|
