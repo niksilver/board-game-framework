@@ -314,6 +314,80 @@ filterLengthTest =
     |> Expect.equal 1
 
 
+allTest : Test
+allTest =
+  describe "allTest" <|
+  let
+    clients =
+      Clients.empty
+      |> Clients.insert { id = "123.456", points = 20 }
+      |> Clients.insert { id = "654.321", points = 40 }
+      |> Clients.insert { id = "999.999", points = 40 }
+  in
+  [ test "If all pass a test, should be true" <|
+    \_ ->
+      clients
+      |> Clients.all (\c -> c.points > 0)
+      |> Expect.equal True
+
+  , test "If only some pass a test, should be false" <|
+    \_ ->
+      clients
+      |> Clients.all (\c -> c.points == 40)
+      |> Expect.equal False
+
+  , test "If none pass a test, should be false" <|
+    \_ ->
+      clients
+      |> Clients.all (\c -> c.points == 999)
+      |> Expect.equal False
+
+  , test "If list is empty, should be true" <|
+    \_ ->
+      Clients.empty
+      |> Clients.all (\c -> c.points == 999)
+      |> Expect.equal True
+
+  ]
+
+
+anyTest : Test
+anyTest =
+  describe "anyTest" <|
+  let
+    clients =
+      Clients.empty
+      |> Clients.insert { id = "123.456", points = 20 }
+      |> Clients.insert { id = "654.321", points = 40 }
+      |> Clients.insert { id = "999.999", points = 40 }
+  in
+  [ test "If only some pass a test, should be true" <|
+    \_ ->
+      clients
+      |> Clients.any (\c -> c.points == 40)
+      |> Expect.equal True
+
+  , test "If all pass a test, should be true" <|
+    \_ ->
+      clients
+      |> Clients.any (\c -> c.points > 0)
+      |> Expect.equal True
+
+  , test "If none pass a test, should be false" <|
+    \_ ->
+      clients
+      |> Clients.any (\c -> c.points == 999)
+      |> Expect.equal False
+
+  , test "If empty, should be false" <|
+    \_ ->
+      Clients.empty
+      |> Clients.any (\c -> c.points == 999)
+      |> Expect.equal False
+
+  ]
+
+
 fromListTest : Test
 fromListTest =
   describe "fromListTest"

@@ -9,7 +9,7 @@ module BoardGameFramework.Clients exposing
   -- Build
   , empty, singleton, insert, update, mapOne, remove
   -- Query
-  , isEmpty, member, get, length, filterLength
+  , isEmpty, member, get, length, filterLength, all, any
   -- Lists and dicts
   , ids, toList, mapToList, toDict, fromList
   -- Transform
@@ -39,7 +39,7 @@ The type `ClientId` is just an alias for `String`, and comes from the base
 @docs empty, singleton, insert, update, mapOne, remove
 
 # Query
-@docs isEmpty, member, get, length, filterLength
+@docs isEmpty, member, get, length, filterLength, all, any
 
 # Lists and dicts
 @docs ids, toList, mapToList, toDict, fromList
@@ -207,6 +207,30 @@ filterLength : (Client e -> Bool) -> Clients e -> Int
 filterLength fn cs =
   filter fn cs
   |> length
+
+
+{-| See if all clients pass a test. If there are no clients in the client list then
+it will return `True`.
+
+Here's how we might see if all clients are ready:
+
+    all .ready clients
+-}
+all : (Client e -> Bool) -> Clients e -> Bool
+all fn cs =
+  filter fn cs
+  |> length
+  |> (==) (length cs)
+
+
+{-| See if any clients pass a test. If there are no clients in the client list then
+it will return `False`.
+-}
+any : (Client e -> Bool) -> Clients e -> Bool
+any fn cs =
+  filter fn cs
+  |> length
+  |> (\i -> i >= 1)
 
 
 -- Lists and dicts

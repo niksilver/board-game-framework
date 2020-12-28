@@ -4,7 +4,6 @@ TO DO:
 - Create paper scissors rock game (PSR).
 - Nought and crosses: Explain aspects of the design.
 - Paper scissors rock: Explain aspects of the design.
-- Clients module: Add all and any functions.
 
 DONE:
 
@@ -110,3 +109,4 @@ DONE:
 - Lobby module: Update documentation for new initBase, initGame and change.
 - Change game ID to room throughout.
 - Merge Receipt and Peer envelope types (and include boolean receipt field).
+- Clients module: Add all and any functions.
