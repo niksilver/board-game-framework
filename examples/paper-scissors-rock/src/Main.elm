@@ -82,7 +82,13 @@ type Role =
 
 type Hand =
   Closed
-  | Showing
+  | Showing Shape
+
+
+type Shape =
+  Paper
+  | Scissors
+  | Rock
 
 
 isPlayer : Client Profile -> Bool
@@ -105,7 +111,7 @@ type Msg =
   | Received (Result Dec.Error (BGF.Envelope Body))
   | ConfirmedBecomeObserver
   | ConfirmedBecomePlayer
-  | ConfirmedShow
+  | ConfirmedShow Shape
 
 
 type Body =
@@ -258,8 +264,14 @@ encodeRole role =
     Player Closed ->
       Enc.string "PlayerClosed"
 
-    Player Showing ->
-      Enc.string "PlayerShowing"
+    Player (Showing Paper) ->
+      Enc.string "PlayerShowingPaper"
+
+    Player (Showing Scissors) ->
+      Enc.string "PlayerShowingScissors"
+
+    Player (Showing Rock) ->
+      Enc.string "PlayerShowingRock"
 
     Observer ->
       Enc.string "Observer"
@@ -299,7 +311,9 @@ roleDecoder =
     toSymbol str =
       case str of
         "PlayerClosed" -> Dec.succeed (Player Closed)
-        "PlayerShowing" -> Dec.succeed (Player Showing)
+        "PlayerShowingPaper" -> Dec.succeed (Player (Showing Paper))
+        "PlayerShowingScissors" -> Dec.succeed (Player (Showing Scissors))
+        "PlayerShowingRock" -> Dec.succeed (Player (Showing Rock))
         "Observer" -> Dec.succeed Observer
         _ -> Dec.fail ("Unrecognised role '" ++ str ++ "'")
   in
@@ -398,8 +412,8 @@ update msg model =
     ConfirmedBecomePlayer ->
       updateMyRole (Player Closed) model
 
-    ConfirmedShow ->
-      updateMyRole (Player Showing) model
+    ConfirmedShow shape ->
+      updateMyRole (Player (Showing shape)) model
 
 
 okName : String -> Bool
@@ -635,7 +649,9 @@ nameWithHand client =
       case role of
         Observer -> ""
         Player Closed -> "..."
-        Player Showing -> " (played!)"
+        Player (Showing Paper) -> " (paper)"
+        Player (Showing Scissors) -> " (scissors)"
+        Player (Showing Rock) -> " (rock)"
   in
   client.name ++ (roleToShapeText client.role)
 
@@ -693,10 +709,22 @@ viewGame clients myId =
 
     , Html.p []
       [ Html.button
-        [ Events.onClick ConfirmedShow
+        [ Events.onClick (ConfirmedShow Paper)
         , Attr.disabled (not <| amPlayer)
         ]
-        [ Html.label [] [ Html.text "Show" ]
+        [ Html.label [] [ Html.text "Paper" ]
+        ]
+      , Html.button
+        [ Events.onClick (ConfirmedShow Scissors)
+        , Attr.disabled (not <| amPlayer)
+        ]
+        [ Html.label [] [ Html.text "Scissors" ]
+        ]
+      , Html.button
+        [ Events.onClick (ConfirmedShow Rock)
+        , Attr.disabled (not <| amPlayer)
+        ]
+        [ Html.label [] [ Html.text "Rock" ]
         ]
       ]
     ]
