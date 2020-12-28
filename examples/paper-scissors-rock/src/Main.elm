@@ -77,12 +77,22 @@ type alias Profile =
 
 type Role =
   Observer
-  | Player
+  | Player Hand
+
+
+type Hand =
+  Closed
+  | Showing
 
 
 isPlayer : Client Profile -> Bool
 isPlayer client =
-  client.role == Player
+  case client.role of
+    Player _ ->
+      True
+
+    Observer ->
+      False
 
 
 -- Message types
@@ -114,18 +124,18 @@ playerCount cs =
 addClient : NamedClient -> Clients Profile -> Clients Profile
 addClient namedClient cs =
   let
-    role =
+    clientIsPlayer =
       Clients.get namedClient.id cs
-      |> Maybe.map .role
-      |> Maybe.withDefault Observer
+      |> Maybe.map isPlayer
+      |> Maybe.withDefault False
     playerNeeded =
       playerCount cs < 2
     client =
       { id = namedClient.id
       , name = namedClient.name
       , role =
-          if role == Player || playerNeeded then
-            Player
+          if clientIsPlayer || playerNeeded then
+            Player Closed
           else
             Observer
       }
@@ -244,8 +254,11 @@ receive =
 encodeRole : Role -> Enc.Value
 encodeRole role =
   case role of
-    Player ->
-      Enc.string "Player"
+    Player Closed ->
+      Enc.string "PlayerClosed"
+
+    Player Showing ->
+      Enc.string "PlayerShowing"
 
     Observer ->
       Enc.string "Observer"
@@ -284,7 +297,8 @@ roleDecoder =
   let
     toSymbol str =
       case str of
-        "Player" -> Dec.succeed Player
+        "PlayerClosed" -> Dec.succeed (Player Closed)
+        "PlayerShowing" -> Dec.succeed (Player Showing)
         "Observer" -> Dec.succeed Observer
         _ -> Dec.fail ("Unrecognised role '" ++ str ++ "'")
   in
@@ -381,7 +395,7 @@ update msg model =
       updateMyRole Observer model
 
     ConfirmedPlay ->
-      updateMyRole Player model
+      updateMyRole (Player Closed) model
 
 
 okName : String -> Bool
