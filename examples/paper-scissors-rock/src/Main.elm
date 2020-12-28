@@ -67,12 +67,23 @@ type alias NamedClient =
   , name : String
   }
 
+
 -- A profile is a client description without their ID.
 -- Their ID is added when we talk about a Client Profile.
 type alias Profile =
   { name : String
-  , player : Bool
+  , role : Role
   }
+
+
+type Role =
+  Observer
+  | Player
+
+
+isPlayer : Client Profile -> Bool
+isPlayer client =
+  client.role == Player
 
 
 -- Message types
@@ -98,23 +109,26 @@ type Body =
 playerCount : Clients Profile -> Int
 playerCount cs =
   cs
-  |> Clients.filterLength .player
+  |> Clients.filterLength isPlayer
 
 
 addClient : NamedClient -> Clients Profile -> Clients Profile
 addClient namedClient cs =
   let
-    isPlayer =
+    role =
       Clients.get namedClient.id cs
-      |> Maybe.map .player
-      |> Maybe.withDefault False
+      |> Maybe.map .role
+      |> Maybe.withDefault Observer
     playerNeeded =
       playerCount cs < 2
     client =
       { id = namedClient.id
       , name = namedClient.name
-      , player =
-          isPlayer || playerNeeded
+      , role =
+          if role == Player || playerNeeded then
+            Player
+          else
+            Observer
       }
   in
     cs
@@ -229,6 +243,16 @@ receive =
 -- JSON encoders and decoders
 
 
+roleEncode : Role -> Enc.Value
+roleEncode role =
+  case role of
+    Player ->
+      Enc.string "Player"
+
+    Observer ->
+      Enc.string "Observer"
+
+
 namedClientEncode : NamedClient -> Enc.Value
 namedClientEncode namedClient =
   Enc.object
@@ -241,7 +265,7 @@ clientListEncode : Clients Profile -> Enc.Value
 clientListEncode =
   Clients.encode
   [ ("name", .name >> Enc.string)
-  , ("player", .player >> Enc.bool)
+  , ("role", .role >> roleEncode)
   ]
 
 
@@ -257,12 +281,26 @@ namedClientDecoder =
     (Dec.field "name" Dec.string)
 
 
+roleDecoder : Dec.Decoder Role
+roleDecoder =
+  let
+    toSymbol str =
+      case str of
+        "Player" -> Dec.succeed Player
+        "Observer" -> Dec.succeed Observer
+        _ -> Dec.fail ("Unrecognised role '" ++ str ++ "'")
+  in
+  Dec.string
+  |> Dec.andThen toSymbol
+
+
+clientDecoder : Dec.Decoder (Client Profile)
 clientDecoder =
   Dec.map3
-  (\id name player -> { id = id, name = name, player = player })
+  (\id name role -> { id = id, name = name, role = role })
   (Dec.field "id" Dec.string)
   (Dec.field "name" Dec.string)
-  (Dec.field "player" Dec.bool)
+  (Dec.field "role" roleDecoder)
 
 
 clientListDecoder : Dec.Decoder (Clients Profile)
@@ -280,7 +318,7 @@ syncClientListDecoder =
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  case msg of
+  case msg |> Debug.log "msg" of
     ToLobby subMsg ->
       let
         (lobby, progress, cmd) = Lobby.update subMsg model.progress model.lobby
@@ -499,14 +537,16 @@ makeMeObserver model =
   case model.progress of
     Playing state ->
       let
-        downgradeMe client =
-          if client.id == model.myId then
-            { client | player = False }
-          else
-            client
+        downgrade client =
+          { client | role = Observer }
+        downgradeMaybe =
+          Maybe.map downgrade
+        downgradeList =
+          Clients.update model.myId downgradeMaybe
+        clientMap =
+          Sync.mapToNext downgradeList
         clients2 =
-          state.clients
-          |> Sync.mapToNext (Clients.map downgradeMe)
+          clientMap state.clients
         model2 =
           { model
           | progress =
@@ -528,7 +568,7 @@ makeMePlayer model =
       let
         upgradeMe client =
           if client.id == model.myId then
-            { client | player = True }
+            { client | role = Player }
           else
             client
         clients2 =
@@ -601,7 +641,7 @@ viewGame clients myId =
     (players, observers) =
       clients
       |> Sync.value
-      |> Clients.partition .player
+      |> Clients.partition isPlayer
     (playerNames, observerNames) =
       (players, observers)
       |> Tuple.mapBoth (Clients.mapToList .name) (Clients.mapToList .name)

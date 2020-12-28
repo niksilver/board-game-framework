@@ -105,6 +105,7 @@ insert c (Clients cs) =
 
 
 {-| Update a specific client using a mapping function.
+This includes removing the client or creating it.
 
 It's possible for the mapping function to produce a value with
 a different `id` from the one given. This would almost certainly be
