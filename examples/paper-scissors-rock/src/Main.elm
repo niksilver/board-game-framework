@@ -674,9 +674,7 @@ nameWithHand ready client =
 allHavePlayed : Clients Profile -> Bool
 allHavePlayed clients =
   clients
-  |> Clients.filter isPlayer
-  |> Clients.mapToList hasPlayed
-  |> List.all ((==) True)
+  |> Clients.all hasPlayed
 
 
 viewGame : Sync (Clients Profile) -> BGF.ClientId -> List (Html Msg)
