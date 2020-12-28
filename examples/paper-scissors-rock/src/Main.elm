@@ -101,6 +101,16 @@ isPlayer client =
       False
 
 
+hasPlayed : Client Profile -> Bool
+hasPlayed client =
+  case client.role of
+    Player (Showing _) ->
+      True
+
+    _ ->
+      False
+
+
 -- Message types
 
 
@@ -641,31 +651,49 @@ viewNameForm draftName =
   ]
 
 
--- Show a client's name with the hand they are currently playing. E.g. "Alice (scissors)"
-nameWithHand : Client Profile -> String
-nameWithHand client =
+-- Show a client's name with the hand they are currently playing. E.g. "Alice (scissors)".
+-- But if we're all not ready, just show "Alice (ready)"
+nameWithHand : Bool -> Client Profile -> String
+nameWithHand ready client =
   let
     roleToShapeText role =
-      case role of
-        Observer -> ""
-        Player Closed -> "..."
-        Player (Showing Paper) -> " (paper)"
-        Player (Showing Scissors) -> " (scissors)"
-        Player (Showing Rock) -> " (rock)"
+      case (ready, role) of
+        (_, Observer) -> ""
+        (_, Player Closed) -> "..."
+        (False, Player (Showing _)) -> " (ready)"
+        (True, Player (Showing hand)) ->
+          case hand of
+            Paper -> " (paper)"
+            Scissors -> " (scissors)"
+            Rock -> " (rock)"
   in
   client.name ++ (roleToShapeText client.role)
+
+
+-- True if all players have played their hand
+allHavePlayed : Clients Profile -> Bool
+allHavePlayed clients =
+  clients
+  |> Clients.filter isPlayer
+  |> Clients.mapToList hasPlayed
+  |> List.all ((==) True)
 
 
 viewGame : Sync (Clients Profile) -> BGF.ClientId -> List (Html Msg)
 viewGame clients myId =
   let
+    clientsValue = Sync.value clients
+    showHands =
+      allHavePlayed clientsValue
+    displayAllNames =
+      nameWithHand showHands
+      |> Clients.mapToList
     (players, observers) =
-      clients
-      |> Sync.value
+      clientsValue
       |> Clients.partition isPlayer
     (playerNames, observerNames) =
       (players, observers)
-      |> Tuple.mapBoth (Clients.mapToList nameWithHand) (Clients.mapToList nameWithHand)
+      |> Tuple.mapBoth displayAllNames displayAllNames
     amPlayer =
       players
       |> Clients.member myId

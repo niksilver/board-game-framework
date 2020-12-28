@@ -4,6 +4,7 @@ TO DO:
 - Create paper scissors rock game (PSR).
 - Nought and crosses: Explain aspects of the design.
 - Paper scissors rock: Explain aspects of the design.
+- Clients module: Add all and any functions.
 
 DONE:
 
