@@ -172,6 +172,70 @@ addClient namedClient cs =
     |> Clients.insert client
 
 
+-- Set the role of one client only in a client list
+setRole : BGF.ClientId -> Role -> Clients Profile -> Clients Profile
+setRole id role clients =
+  let
+    changeRole client =
+      { client | role = role }
+  in
+  clients
+  |> Clients.mapOne id changeRole
+
+
+-- Get the other player (as long as we're given a player and there is another one)
+otherPlayer : Client Profile -> Clients Profile -> Maybe (Client Profile)
+otherPlayer me clients =
+  case me.role of
+    Observer ->
+      Nothing
+
+    Player _ ->
+      clients
+      |> Clients.filter (\c -> isPlayer c && c.id /= me.id)
+      |> Clients.toList
+      |> List.head
+
+
+-- Increment the scores for all the players (but at most one player will score 1 point)
+incrementScores : Clients Profile -> Clients Profile
+incrementScores clients =
+  let
+    -- Allow a client to score 1 point if it's won vs another client
+    points client =
+      pointsVsOther client (otherPlayer client clients)
+
+    -- Increment one client's score by however many points it deserves
+    increment client =
+      { client
+      | score = client.score + (points client)
+      }
+  in
+  clients
+  |> Clients.map increment
+
+
+-- How many points we score (1 or 0) vs a possible other player
+pointsVsOther : Client Profile -> Maybe (Client Profile) -> Int
+pointsVsOther me maybeOther =
+  let
+    otherRole =
+      maybeOther
+      |> Maybe.map .role
+      |> Maybe.withDefault Observer
+  in
+  case (me.role, otherRole) of
+    (Player (Showing myHand), Player (Showing otherHand)) ->
+      case (myHand, otherHand) of
+        (Paper, Rock) -> 1
+        (Scissors, Paper) -> 1
+        (Rock, Scissors) -> 1
+        _ -> 0
+
+    _ ->
+      0
+
+
 -- Initialisation functions
 
 
@@ -535,6 +599,59 @@ updateWithBody env body model =
           (model, Cmd.none)
 
 
+updateMyRole : Role -> Model -> (Model, Cmd Msg)
+updateMyRole role model =
+  case model.progress of
+    Playing state ->
+      let
+        setMyRole = setRole model.myId role
+        setMyRoleAndIncrementScores =
+          setMyRole >> incrementScores
+        clients2 =
+          state.clients
+          |> Sync.mapToNext setMyRoleAndIncrementScores
+      in
+      ( { model
+        | progress =
+            Playing { state | clients = clients2 }
+        }
+      , sendClientListCmd clients2
+      )
+
+    _ ->
+      (model, Cmd.none)
+
+
+updateAnotherRound : Model -> (Model, Cmd Msg)
+updateAnotherRound model =
+  case model.progress of
+    Playing state ->
+      let
+        resetHand client =
+          case client.role of
+            Player _ ->
+              { client | role = Player Closed }
+
+            Observer ->
+              client
+        clients2 =
+          state.clients
+          |> Sync.mapToNext (Clients.map resetHand)
+        state2 =
+          { state
+          | clients = clients2
+          }
+      in
+      ( { model
+        | progress = Playing state2
+        }
+      , sendClientListCmd clients2
+      )
+
+    _ ->
+      (model, Cmd.none)
+
+
 -- Set values for progress in the model
 
 
@@ -585,69 +702,6 @@ mapClientsToNextAndSend mapping model =
         }
       , sendClientListCmd clients
       )
-
-
--- Change the role of one client only in a synced client list
-changeRole : BGF.ClientId -> Role -> Sync (Clients Profile) -> Sync (Clients Profile)
-changeRole id role clients =
-  let
-    changeRole2 client =
-      { client | role = role }
-    changeList =
-      Clients.mapOne id changeRole2
-  in
-  clients
-  |> Sync.mapToNext changeList
-
-
-updateMyRole : Role -> Model -> (Model, Cmd Msg)
-updateMyRole role model =
-  case model.progress of
-    Playing state ->
-      let
-        clients2 =
-          state.clients
-          |> changeRole model.myId role
-      in
-      ( { model
-        | progress =
-            Playing { state | clients = clients2 }
-        }
-      , sendClientListCmd clients2
-      )
-
-    _ ->
-      (model, Cmd.none)
-
-
-updateAnotherRound : Model -> (Model, Cmd Msg)
-updateAnotherRound model =
-  case model.progress of
-    Playing state ->
-      let
-        resetHand client =
-          case client.role of
-            Player _ ->
-              { client | role = Player Closed }
-
-            Observer ->
-              client
-        clients2 =
-          state.clients
-          |> Sync.mapToNext (Clients.map resetHand)
-        state2 =
-          { state
-          | clients = clients2
-          }
-      in
-      ( { model
-        | progress = Playing state2
-        }
-      , sendClientListCmd clients2
-      )
-
-    _ ->
-      (model, Cmd.none)
 
 
 -- View
