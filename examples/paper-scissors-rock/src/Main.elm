@@ -824,7 +824,10 @@ viewGame clients myId =
       && haveTwoPlayers
   in
   [ Html.div []
-    [ Html.p []
+    [ Html.p [] <|
+      viewUserBar myId clients amPlayer canBePlayer
+
+    , Html.p []
       [ Html.text "Players: "
       , if List.length playerNames == 0 then
           Html.text "None"
@@ -833,7 +836,7 @@ viewGame clients myId =
       ]
 
     , Html.p []
-      [ viewPlayStatus players
+      [viewPlayStatus players
       ]
 
     , Html.p []
@@ -842,21 +845,6 @@ viewGame clients myId =
           Html.text "None"
         else
           Html.text <| String.join ", " observerNames
-      ]
-
-    , Html.p []
-      [ Html.button
-        [ Events.onClick ConfirmedBecomeObserver
-        , Attr.disabled (not <| amPlayer)
-        ]
-        [ Html.label [] [ Html.text "Become observer" ]
-        ]
-      , Html.button
-        [ Events.onClick ConfirmedBecomePlayer
-        , Attr.disabled (not <| canBePlayer)
-        ]
-        [ Html.label [] [ Html.text "Become player" ]
-        ]
       ]
 
     , Html.p []
@@ -888,12 +876,41 @@ viewGame clients myId =
         [ Html.label [] [ Html.text "Again" ]
         ]
       ]
-    ]
 
-    , Html.p []
-      (viewScores clients)
+    , Html.p [] <|
+      viewScores clients
+
+    ]
   ]
 
+
+viewUserBar : BGF.ClientId -> Clients Profile -> Bool -> Bool -> List (Html Msg)
+viewUserBar myId clients amPlayer canBePlayer =
+  case Clients.get myId clients of
+    Nothing ->
+      []
+
+    Just me ->
+      let
+        roleText =
+          case me.role of
+            Observer -> "Observer"
+            Player _ -> "Player"
+      in
+      [ Html.text <| me.name ++ " (" ++ roleText ++ ") "
+      , Html.button
+        [ Events.onClick ConfirmedBecomeObserver
+        , Attr.disabled (not <| amPlayer)
+        ]
+        [ Html.label [] [ Html.text "Become observer" ]
+        ]
+      , Html.button
+        [ Events.onClick ConfirmedBecomePlayer
+        , Attr.disabled (not <| canBePlayer)
+        ]
+        [ Html.label [] [ Html.text "Become player" ]
+        ]
+      ]
 
 viewPlayStatus : Clients Profile -> Html Msg
 viewPlayStatus players =
