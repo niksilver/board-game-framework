@@ -753,6 +753,13 @@ viewGame clients myId =
       |> Clients.member myId
     playerVacancy = List.length playerNames < 2
     canBePlayer = amObserver && playerVacancy
+    iHavePlayed =
+      clients
+      |> Clients.get myId
+      |> Maybe.map hasPlayed
+      |> Maybe.withDefault False
+    iNeedToPlay =
+      amPlayer && (not iHavePlayed)
   in
   [ Html.div []
     [ Html.p []
@@ -789,19 +796,19 @@ viewGame clients myId =
     , Html.p []
       [ Html.button
         [ Events.onClick (ConfirmedShow Paper)
-        , Attr.disabled (not <| amPlayer)
+        , Attr.disabled (not <| iNeedToPlay)
         ]
         [ Html.label [] [ Html.text "Paper" ]
         ]
       , Html.button
         [ Events.onClick (ConfirmedShow Scissors)
-        , Attr.disabled (not <| amPlayer)
+        , Attr.disabled (not <| iNeedToPlay)
         ]
         [ Html.label [] [ Html.text "Scissors" ]
         ]
       , Html.button
         [ Events.onClick (ConfirmedShow Rock)
-        , Attr.disabled (not <| amPlayer)
+        , Attr.disabled (not <| iNeedToPlay)
         ]
         [ Html.label [] [ Html.text "Rock" ]
         ]
