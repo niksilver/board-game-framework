@@ -226,14 +226,31 @@ pointsVsOther me maybeOther =
   in
   case (me.role, otherRole) of
     (Player (Showing myHand), Player (Showing otherHand)) ->
-      case (myHand, otherHand) of
-        (Paper, Rock) -> 1
-        (Scissors, Paper) -> 1
-        (Rock, Scissors) -> 1
+      case winner myHand otherHand of
+        1 -> 1
+        2 -> 0
         _ -> 0
 
     _ ->
       0
+
+
+-- What is the winning shape? Shape 1, 2 or neither.
+winner : Shape -> Shape -> Int
+winner shape1 shape2 =
+  case (shape1, shape2) of
+    -- Shape 1 wins
+    (Paper, Rock) -> 1
+    (Scissors, Paper) -> 1
+    (Rock, Scissors) -> 1
+
+    -- Shape 2 wins
+    (Rock, Paper) -> 2
+    (Paper, Scissors) -> 2
+    (Scissors, Rock) -> 2
+
+    -- It's a draw
+    _ -> 0
 
 
 -- Initialisation functions
@@ -772,19 +789,6 @@ nameWithHand ready client =
   client.name ++ (roleToShapeText client.role)
 
 
-viewScores : Clients Profile -> List (Html Msg)
-viewScores clients =
-  let
-    viewScore client =
-      [ Html.text <| client.name ++ ": " ++ (String.fromInt client.score)
-      , Html.br [] []
-      ]
-  in
-  clients
-  |> Clients.mapToList viewScore
-  |> List.concat
-
-
 viewGame : Clients Profile -> BGF.ClientId -> List (Html Msg)
 viewGame clients myId =
   let
@@ -826,6 +830,10 @@ viewGame clients myId =
           Html.text "None"
         else
           Html.text <| String.join ", " playerNames
+      ]
+
+    , Html.p []
+      [ viewPlayStatus players
       ]
 
     , Html.p []
@@ -885,3 +893,52 @@ viewGame clients myId =
     , Html.p []
       (viewScores clients)
   ]
+
+
+viewPlayStatus : Clients Profile -> Html Msg
+viewPlayStatus players =
+  case Clients.toList players of
+    [] ->
+      Html.text "Need two players"
+
+    [_] ->
+      Html.text "Need one more player"
+
+    [player1, player2] ->
+      case (player1.role, player2.role) of
+        (Player Closed, Player Closed) ->
+          Html.text "Both to play"
+
+        (Player (Showing _), Player Closed) ->
+          Html.text <| "Waiting for " ++ player2.name
+
+        (Player Closed, Player (Showing _)) ->
+          Html.text <| "Waiting for " ++ player1.name
+
+        (Player (Showing shape1), Player (Showing shape2)) ->
+          case winner shape1 shape2 of
+            1 ->
+              Html.text <| player1.name ++ " wins!"
+            2 ->
+              Html.text <| player2.name ++ " wins!"
+            _ ->
+              Html.text "It's a draw"
+
+        _ ->
+          Html.text "Strange. One player is an observer"
+
+    _ ->
+      Html.text "Too many players"
+
+
+viewScores : Clients Profile -> List (Html Msg)
+viewScores clients =
+  let
+    viewScore client =
+      [ Html.text <| client.name ++ ": " ++ (String.fromInt client.score)
+      , Html.br [] []
+      ]
+  in
+  clients
+  |> Clients.mapToList viewScore
+  |> List.concat
