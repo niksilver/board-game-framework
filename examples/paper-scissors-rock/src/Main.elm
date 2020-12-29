@@ -770,8 +770,8 @@ viewNameForm draftName =
   ]
 
 
--- Show a client's name with the hand they are currently playing. E.g. "Alice (scissors)".
--- But if we're all not ready, just show "Alice (ready)"
+-- Show a client's name with the hand they are currently playing.
+-- E.g. "Alice (scissors)".  But if we're all not ready, just show "Alice (ready)"
 nameWithHand : Bool -> Client Profile -> String
 nameWithHand ready client =
   let
@@ -794,46 +794,27 @@ viewGame clients myId =
   let
     showHands =
       allHavePlayed clients
-    displayAllNames =
-      nameWithHand showHands
-      |> Clients.mapToList
     (players, observers) =
       clients
       |> Clients.partition isPlayer
-    (playerNames, observerNames) =
-      (players, observers)
-      |> Tuple.mapBoth displayAllNames displayAllNames
+    observerNames =
+      observers
+      |> Clients.mapToList .name
     amPlayer =
       players
       |> Clients.member myId
     amObserver =
       observers
       |> Clients.member myId
-    playerVacancy = List.length playerNames < 2
+    playerVacancy = Clients.length players < 2
     canBePlayer = amObserver && playerVacancy
-    iHavePlayed =
-      clients
-      |> Clients.get myId
-      |> Maybe.map hasPlayed
-      |> Maybe.withDefault False
-    haveTwoPlayers =
-      playerCount clients == 2
-    iNeedToPlay =
-      amPlayer
-      && (not iHavePlayed)
-      && haveTwoPlayers
   in
   [ Html.div []
     [ Html.p [] <|
       viewUserBar myId clients amPlayer canBePlayer
 
-    , Html.p []
-      [ Html.text "Players: "
-      , if List.length playerNames == 0 then
-          Html.text "None"
-        else
-          Html.text <| String.join ", " playerNames
-      ]
+    , Html.div [] <|
+      viewPlayers myId players
 
     , Html.p []
       [viewPlayStatus players
@@ -845,27 +826,6 @@ viewGame clients myId =
           Html.text "None"
         else
           Html.text <| String.join ", " observerNames
-      ]
-
-    , Html.p []
-      [ Html.button
-        [ Events.onClick (ConfirmedShow Paper)
-        , Attr.disabled (not <| iNeedToPlay)
-        ]
-        [ Html.label [] [ Html.text "Paper" ]
-        ]
-      , Html.button
-        [ Events.onClick (ConfirmedShow Scissors)
-        , Attr.disabled (not <| iNeedToPlay)
-        ]
-        [ Html.label [] [ Html.text "Scissors" ]
-        ]
-      , Html.button
-        [ Events.onClick (ConfirmedShow Rock)
-        , Attr.disabled (not <| iNeedToPlay)
-        ]
-        [ Html.label [] [ Html.text "Rock" ]
-        ]
       ]
 
     , Html.p []
@@ -897,7 +857,7 @@ viewUserBar myId clients amPlayer canBePlayer =
             Observer -> "Observer"
             Player _ -> "Player"
       in
-      [ Html.text <| me.name ++ " (" ++ roleText ++ ") "
+      [ Html.text <| "You: " ++ me.name ++ " (" ++ roleText ++ ") "
       , Html.button
         [ Events.onClick ConfirmedBecomeObserver
         , Attr.disabled (not <| amPlayer)
@@ -911,6 +871,118 @@ viewUserBar myId clients amPlayer canBePlayer =
         [ Html.label [] [ Html.text "Become player" ]
         ]
       ]
+
+
+viewPlayers : BGF.ClientId -> Clients Profile -> List (Html Msg)
+viewPlayers myId clients =
+  case Clients.toList clients of
+    [] ->
+      [ Html.p [] [Html.text "Waiting for first player"]
+      , Html.p [] [Html.text "Waiting for second player"]
+      ]
+
+    [player1] ->
+      [ Html.p [] <| viewPlayer myId player1 clients
+      , Html.p [] [Html.text "Waiting for second player"]
+      ]
+
+    [player1, player2] ->
+      [ Html.p [] <| viewPlayer myId player1 clients
+      , Html.p [] <| viewPlayer myId player2 clients
+      ]
+
+    _ ->
+      -- Should never have three or more players
+      [ Html.p []
+        [ Html.text "Too many players!"
+        ]
+      ]
+
+
+-- View one player. We show their name, followed by something...
+--   The shape - if both players have played
+--   "played"  - if they've played but the other player hasn't
+--   Error     - if they've played and there's no other player
+--   "to play" - if they've not played, and they're not us, and there's another player
+--   "alone"   - if they've not played, and they're not us, and there's no other player
+--   Buttons   - if they've not played, and they are us
+--               Buttons are disabled if there's no other player
+viewPlayer : BGF.ClientId -> Client Profile -> Clients Profile -> List (Html Msg)
+viewPlayer myId player clients =
+  let
+    playerIsMe =
+      player.id == myId
+    otherRole =
+      otherPlayer player clients
+      |> Maybe.map .role
+      |> Maybe.withDefault Observer
+  in
+  case (player.role, playerIsMe, otherRole) of
+    (Player (Showing shape1), _, Player (Showing _)) ->
+      [ Html.text <| player.name ++ " (" ++ (shapeToText shape1) ++ ")"
+      ]
+
+    (Player (Showing _), _, Player Closed) ->
+      [ Html.text <| player.name ++ " (played)"
+      ]
+
+    (Player (Showing _), _, Observer) ->
+      [ Html.text <| player.name ++ " Error! Played without another player"
+      ]
+
+    (Player Closed, False, Player _) ->
+      [ Html.text <| player.name ++ " to play"
+      ]
+
+    (Player Closed, False, Observer) ->
+      [ Html.text <| player.name ++ " is alone"
+      ]
+
+    (Player Closed, True, other) ->
+      [ Html.text <| player.name ++ " "
+      , viewShapeButtons otherRole
+      ]
+
+    (Observer, _, _) ->
+      [ Html.text <| player.name ++ " Error! This player is an observer"
+      ]
+
+
+shapeToText : Shape -> String
+shapeToText shape =
+  case shape of
+    Paper -> "paper"
+    Scissors -> "scissors"
+    Rock -> "rock"
+
+
+viewShapeButtons : Role -> Html Msg
+viewShapeButtons otherRole =
+  let
+    noOtherPlayer =
+      otherRole == Observer
+  in
+  Html.span []
+    [ Html.button
+      [ Events.onClick (ConfirmedShow Paper)
+      , Attr.disabled noOtherPlayer
+      ]
+      [ Html.label [] [ Html.text "Paper" ]
+      ]
+    , Html.button
+      [ Events.onClick (ConfirmedShow Scissors)
+      , Attr.disabled noOtherPlayer
+      ]
+      [ Html.label [] [ Html.text "Scissors" ]
+      ]
+    , Html.button
+      [ Events.onClick (ConfirmedShow Rock)
+      , Attr.disabled noOtherPlayer
+      ]
+      [ Html.label [] [ Html.text "Rock" ]
+      ]
+    ]
+
 
 viewPlayStatus : Clients Profile -> Html Msg
 viewPlayStatus players =
