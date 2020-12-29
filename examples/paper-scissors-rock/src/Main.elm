@@ -812,8 +812,12 @@ viewGame clients myId =
       |> Clients.get myId
       |> Maybe.map hasPlayed
       |> Maybe.withDefault False
+    haveTwoPlayers =
+      playerCount clients == 2
     iNeedToPlay =
-      amPlayer && (not iHavePlayed)
+      amPlayer
+      && (not iHavePlayed)
+      && haveTwoPlayers
   in
   [ Html.div []
     [ Html.p []
