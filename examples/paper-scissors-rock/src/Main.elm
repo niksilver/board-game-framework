@@ -72,6 +72,7 @@ type alias NamedClient =
 type alias Profile =
   { name : String
   , role : Role
+  , score : Int
   }
 
 
@@ -89,26 +90,6 @@ type Shape =
   Paper
   | Scissors
   | Rock
-
-
-isPlayer : Client Profile -> Bool
-isPlayer client =
-  case client.role of
-    Player _ ->
-      True
-
-    Observer ->
-      False
-
-
-hasPlayed : Client Profile -> Bool
-hasPlayed client =
-  case client.role of
-    Player (Showing _) ->
-      True
-
-    _ ->
-      False
 
 
 -- Message types
@@ -131,6 +112,34 @@ type Body =
 
 
 -- Client functions
+
+
+isPlayer : Client Profile -> Bool
+isPlayer client =
+  case client.role of
+    Player _ ->
+      True
+
+    Observer ->
+      False
+
+
+hasPlayed : Client Profile -> Bool
+hasPlayed client =
+  case client.role of
+    Player (Showing _) ->
+      True
+
+    _ ->
+      False
+
+
+-- True if all players have played their hand
+allHavePlayed : Clients Profile -> Bool
+allHavePlayed clients =
+  clients
+  |> Clients.filter isPlayer
+  |> Clients.all hasPlayed
 
 
 playerCount : Clients Profile -> Int
@@ -156,6 +165,7 @@ addClient namedClient cs =
             Player Closed
           else
             Observer
+      , score = 0
       }
   in
     cs
@@ -301,6 +311,7 @@ encodeClientList =
   Clients.encode
   [ ("name", .name >> Enc.string)
   , ("role", .role >> encodeRole)
+  , ("score", .score >> Enc.int)
   ]
 
 
@@ -334,11 +345,12 @@ roleDecoder =
 
 clientDecoder : Dec.Decoder (Client Profile)
 clientDecoder =
-  Dec.map3
-  (\id name role -> { id = id, name = name, role = role })
+  Dec.map4
+  (\id name role score -> { id = id, name = name, role = role, score = score })
   (Dec.field "id" Dec.string)
   (Dec.field "name" Dec.string)
   (Dec.field "role" roleDecoder)
+  (Dec.field "score" Dec.int)
 
 
 clientListDecoder : Dec.Decoder (Clients Profile)
@@ -637,6 +649,7 @@ updateAnotherRound model =
     _ ->
       (model, Cmd.none)
 
+
 -- View
 
 
@@ -652,7 +665,9 @@ view model =
         viewNameForm state.draftName
 
       Playing state ->
-        viewGame state.clients model.myId
+        viewGame
+          (Sync.value state.clients)
+          model.myId
   }
 
 
@@ -703,25 +718,29 @@ nameWithHand ready client =
   client.name ++ (roleToShapeText client.role)
 
 
--- True if all players have played their hand
-allHavePlayed : Clients Profile -> Bool
-allHavePlayed clients =
+viewScores : Clients Profile -> List (Html Msg)
+viewScores clients =
+  let
+    viewScore client =
+      [ Html.text <| client.name ++ ": " ++ (String.fromInt client.score)
+      , Html.br [] []
+      ]
+  in
   clients
-  |> Clients.filter isPlayer
-  |> Clients.all hasPlayed
+  |> Clients.mapToList viewScore
+  |> List.concat
 
 
-viewGame : Sync (Clients Profile) -> BGF.ClientId -> List (Html Msg)
+viewGame : Clients Profile -> BGF.ClientId -> List (Html Msg)
 viewGame clients myId =
   let
-    clientsValue = Sync.value clients
     showHands =
-      allHavePlayed clientsValue
+      allHavePlayed clients
     displayAllNames =
       nameWithHand showHands
       |> Clients.mapToList
     (players, observers) =
-      clientsValue
+      clients
       |> Clients.partition isPlayer
     (playerNames, observerNames) =
       (players, observers)
@@ -797,4 +816,7 @@ viewGame clients myId =
         ]
       ]
     ]
+
+    , Html.p []
+      (viewScores clients)
   ]
