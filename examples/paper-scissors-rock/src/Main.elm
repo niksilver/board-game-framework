@@ -122,6 +122,7 @@ type Msg =
   | ConfirmedBecomeObserver
   | ConfirmedBecomePlayer
   | ConfirmedShow Shape
+  | ConfirmedAnother
 
 
 type Body =
@@ -425,6 +426,9 @@ update msg model =
     ConfirmedShow shape ->
       updateMyRole (Player (Showing shape)) model
 
+    ConfirmedAnother ->
+      updateAnotherRound model
+
 
 okName : String -> Bool
 okName draft =
@@ -604,6 +608,35 @@ updateMyRole role model =
       (model, Cmd.none)
 
 
+updateAnotherRound : Model -> (Model, Cmd Msg)
+updateAnotherRound model =
+  case model.progress of
+    Playing state ->
+      let
+        resetHand client =
+          case client.role of
+            Player _ ->
+              { client | role = Player Closed }
+
+            Observer ->
+              client
+        clients2 =
+          state.clients
+          |> Sync.mapToNext (Clients.map resetHand)
+        state2 =
+          { state
+          | clients = clients2
+          }
+      in
+      ( { model
+        | progress = Playing state2
+        }
+      , sendClientListCmd clients2
+      )
+
+    _ ->
+      (model, Cmd.none)
+
 -- View
 
 
@@ -674,6 +707,7 @@ nameWithHand ready client =
 allHavePlayed : Clients Profile -> Bool
 allHavePlayed clients =
   clients
+  |> Clients.filter isPlayer
   |> Clients.all hasPlayed
 
 
@@ -751,6 +785,15 @@ viewGame clients myId =
         , Attr.disabled (not <| amPlayer)
         ]
         [ Html.label [] [ Html.text "Rock" ]
+        ]
+      ]
+
+    , Html.p []
+      [ Html.button
+        [ Events.onClick (ConfirmedAnother)
+        , Attr.disabled (not <| amPlayer)
+        ]
+        [ Html.label [] [ Html.text "Again" ]
         ]
       ]
     ]
