@@ -138,8 +138,8 @@ hasPlayed client =
 allHavePlayed : Clients Profile -> Bool
 allHavePlayed clients =
   clients
-  |> Clients.filter isPlayer
-  |> Clients.all hasPlayed
+  |> Clients.filterLength hasPlayed
+  |> (==) 2
 
 
 playerCount : Clients Profile -> Int
