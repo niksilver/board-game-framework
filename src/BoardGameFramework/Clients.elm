@@ -140,11 +140,14 @@ update id mapper (Clients cs) =
 If the specified client isn't there then nothing changes.
 This is a simpler (but less powerful) version of [`update`](#udpate).
 
-If `clients` holds our clients, and our client ID is `myID`, then here's
-how we might increment our score:
+Suppose we have this function to increment one client's score:
 
     inc c =
         { c | score = c.score + 1 }
+
+If `clients` holds our clients, and our client ID is `myID`,
+then here's how we might increment our score only:
+
     mapOne myId inc clients
 
 It's possible for the mapping function to produce a value with

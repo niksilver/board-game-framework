@@ -197,6 +197,30 @@ otherPlayer me clients =
       |> List.head
 
 
+-- When one player has just become an observer we want to make sure the other
+-- player's hand reverts to a closed state. This function does this for us.
+closeOtherHandById : BGF.ClientId -> Role -> Clients Profile -> Clients Profile
+closeOtherHandById myId myRole clients =
+  let
+    maybeOther =
+      clients
+      |> Clients.filter (\c -> isPlayer c && c.id /= myId)
+      |> Clients.toList
+      |> List.head
+    maybeMe = Clients.get myId clients
+    maybeMaybeOther =
+      maybeMe
+      |> Maybe.map (\me -> otherPlayer me clients)
+  in
+  case (myRole, maybeOther)
+    (Observer, Just other) ->
+      clients
+      |> Clients.mapOne other.id (\c -> { c | role = Player Closed })
+
+    _ ->
+      clients
+
+
 -- Increment the scores for all the players (but at most one player will score 1 point)
 incrementScores : Clients Profile -> Clients Profile
 incrementScores clients =
@@ -622,11 +646,12 @@ updateMyRole role model =
     Playing state ->
       let
         setMyRole = setRole model.myId role
-        setMyRoleAndIncrementScores =
-          setMyRole >> incrementScores
+        closeOtherHand = closeOtherHandById model.myId role
+        changeClients =
+          setMyRole >> closeOtherHand >> incrementScores
         clients2 =
           state.clients
-          |> Sync.mapToNext setMyRoleAndIncrementScores
+          |> Sync.mapToNext changeClients
       in
       ( { model
         | progress =
