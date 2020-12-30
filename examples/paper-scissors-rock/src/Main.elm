@@ -92,6 +92,14 @@ type Shape =
   | Rock
 
 
+-- Sometimes it will be be useful to have a Client which we know is a player
+type alias PlayerProfile =
+  { name : String
+  , hand : Hand
+  , score : Int
+  }
+
+
 -- Message types
 
 
@@ -122,6 +130,20 @@ isPlayer client =
 
     Observer ->
       False
+
+
+players : Clients Profile -> Clients PlayerProfile
+players clients =
+  let
+    toPlayer client =
+      case client.role of
+        Player hand ->
+          Just { id = client.id, name = client.name, hand = hand, score = client.score}
+
+        Observer ->
+          Nothing
+  in
+  Clients.filterMap toPlayer clients
 
 
 hasPlayed : Client Profile -> Bool
@@ -183,18 +205,13 @@ setRole id role clients =
   |> Clients.mapOne id changeRole
 
 
--- Get the other player (as long as we're given a player and there is another one)
-otherPlayer : Client Profile -> Clients Profile -> Maybe (Client Profile)
+-- Get the other player, if there is one.
+otherPlayer : Client PlayerProfile -> Clients Profile -> Maybe (Client PlayerProfile)
 otherPlayer me clients =
-  case me.role of
-    Observer ->
-      Nothing
-
-    Player _ ->
-      clients
-      |> Clients.filter (\c -> isPlayer c && c.id /= me.id)
-      |> Clients.toList
-      |> List.head
+  players clients
+  |> Clients.filter (\c -> c.id /= me.id)
+  |> Clients.toList
+  |> List.head
 
 
 -- When one player has just become an observer we want to make sure the other
@@ -208,11 +225,8 @@ closeOtherHandById myId myRole clients =
       |> Clients.toList
       |> List.head
     maybeMe = Clients.get myId clients
-    maybeMaybeOther =
-      maybeMe
-      |> Maybe.map (\me -> otherPlayer me clients)
   in
-  case (myRole, maybeOther)
+  case (myRole, maybeOther) of
     (Observer, Just other) ->
       clients
       |> Clients.mapOne other.id (\c -> { c | role = Player Closed })
@@ -221,60 +235,52 @@ closeOtherHandById myId myRole clients =
       clients
 
 
--- Increment the scores for all the players (but at most one player will score 1 point)
-incrementScores : Clients Profile -> Clients Profile
-incrementScores clients =
-  let
-    -- Allow a client to score 1 point if it's won vs another client
-    points client =
-      pointsVsOther client (otherPlayer client clients)
-
-    -- Increment one client's score by however many points it deserves
-    increment client =
-      { client
-      | score = client.score + (points client)
-      }
-  in
-  clients
-  |> Clients.map increment
-
-
--- How many points we score (1 or 0) vs a possible other player
-pointsVsOther : Client Profile -> Maybe (Client Profile) -> Int
-pointsVsOther me maybeOther =
-  let
-    otherRole =
-      maybeOther
-      |> Maybe.map .role
-      |> Maybe.withDefault Observer
-  in
-  case (me.role, otherRole) of
-    (Player (Showing myHand), Player (Showing otherHand)) ->
-      case winner myHand otherHand of
-        1 -> 1
-        2 -> 0
-        _ -> 0
+-- Increment the score of the one player (if any) who has the winning hand.
+awardPoint : Clients Profile -> Clients Profile
+awardPoint clients =
+  case players clients |> Clients.toList of
+    [player1, player2] ->
+      let
+        id1 = player1.id
+        id2 = player2.id
+        (points1, points2) =
+          case winner player1.hand player2.hand of
+            1 -> (1, 0)
+            2 -> (0, 1)
+            _ -> (0, 0)
+        increment points client =
+          { client | score = client.score + points }
+      in
+      clients
+      |> Clients.mapOne id1 (increment points1)
+      |> Clients.mapOne id2 (increment points2)
 
     _ ->
+      clients
+
+
+-- What is the winning hand? Hand 1, 2 or neither.
+winner : Hand -> Hand -> Int
+winner hand1 hand2 =
+  case (hand1, hand2) of
+    (Showing shape1, Showing shape2) ->
+      case (shape1, shape2) of
+        -- Shape 1 wins
+        (Paper, Rock) -> 1
+        (Scissors, Paper) -> 1
+        (Rock, Scissors) -> 1
+
+        -- Shape 2 wins
+        (Rock, Paper) -> 2
+        (Paper, Scissors) -> 2
+        (Scissors, Rock) -> 2
+
+        -- It's a draw
+        _ -> 0
+
+    -- We don't have both hands showing
+    _ ->
       0
-
-
--- What is the winning shape? Shape 1, 2 or neither.
-winner : Shape -> Shape -> Int
-winner shape1 shape2 =
-  case (shape1, shape2) of
-    -- Shape 1 wins
-    (Paper, Rock) -> 1
-    (Scissors, Paper) -> 1
-    (Rock, Scissors) -> 1
-
-    -- Shape 2 wins
-    (Rock, Paper) -> 2
-    (Paper, Scissors) -> 2
-    (Scissors, Rock) -> 2
-
-    -- It's a draw
-    _ -> 0
 
 
 -- Initialisation functions
@@ -648,7 +654,7 @@ updateMyRole role model =
         setMyRole = setRole model.myId role
         closeOtherHand = closeOtherHandById model.myId role
         changeClients =
-          setMyRole >> closeOtherHand >> incrementScores
+          setMyRole >> closeOtherHand >> awardPoint
         clients2 =
           state.clients
           |> Sync.mapToNext changeClients
@@ -795,43 +801,26 @@ viewNameForm draftName =
   ]
 
 
--- Show a client's name with the hand they are currently playing.
--- E.g. "Alice (scissors)".  But if we're all not ready, just show "Alice (ready)"
-nameWithHand : Bool -> Client Profile -> String
-nameWithHand ready client =
-  let
-    roleToShapeText role =
-      case (ready, role) of
-        (_, Observer) -> ""
-        (_, Player Closed) -> "..."
-        (False, Player (Showing _)) -> " (ready)"
-        (True, Player (Showing hand)) ->
-          case hand of
-            Paper -> " (paper)"
-            Scissors -> " (scissors)"
-            Rock -> " (rock)"
-  in
-  client.name ++ (roleToShapeText client.role)
-
-
 viewGame : Clients Profile -> BGF.ClientId -> List (Html Msg)
 viewGame clients myId =
   let
     showHands =
       allHavePlayed clients
-    (players, observers) =
+    players_ =
+      players clients
+    observers =
       clients
-      |> Clients.partition isPlayer
+      |> Clients.filter (not << isPlayer)
     observerNames =
       observers
       |> Clients.mapToList .name
     amPlayer =
-      players
+      players_
       |> Clients.member myId
     amObserver =
       observers
       |> Clients.member myId
-    playerVacancy = Clients.length players < 2
+    playerVacancy = Clients.length players_ < 2
     canBePlayer = amObserver && playerVacancy
   in
   [ Html.div []
@@ -839,10 +828,10 @@ viewGame clients myId =
       viewUserBar myId clients amPlayer canBePlayer
 
     , Html.div [] <|
-      viewPlayers myId players
+      viewPlayers myId players_
 
     , Html.p []
-      [viewPlayStatus players
+      [viewPlayStatus players_
       ]
 
     , Html.p []
@@ -898,22 +887,22 @@ viewUserBar myId clients amPlayer canBePlayer =
       ]
 
 
-viewPlayers : BGF.ClientId -> Clients Profile -> List (Html Msg)
-viewPlayers myId clients =
-  case Clients.toList clients of
+viewPlayers : BGF.ClientId -> Clients PlayerProfile -> List (Html Msg)
+viewPlayers myId players_ =
+  case Clients.toList players_ of
     [] ->
       [ Html.p [] [Html.text "Waiting for first player"]
       , Html.p [] [Html.text "Waiting for second player"]
       ]
 
     [player1] ->
-      [ Html.p [] <| viewPlayer myId player1 clients
+      [ Html.p [] <| viewPlayer myId player1 Nothing
       , Html.p [] [Html.text "Waiting for second player"]
       ]
 
     [player1, player2] ->
-      [ Html.p [] <| viewPlayer myId player1 clients
-      , Html.p [] <| viewPlayer myId player2 clients
+      [ Html.p [] <| viewPlayer myId player1 (Just player2)
+      , Html.p [] <| viewPlayer myId player2 (Just player1)
       ]
 
     _ ->
@@ -925,51 +914,41 @@ viewPlayers myId clients =
 
 
 -- View one player. We show their name, followed by something...
+--   "alone"   - if there's no other player
 --   The shape - if both players have played
 --   "played"  - if they've played but the other player hasn't
---   Error     - if they've played and there's no other player
 --   "to play" - if they've not played, and they're not us, and there's another player
---   "alone"   - if they've not played, and they're not us, and there's no other player
 --   Buttons   - if they've not played, and they are us
---               Buttons are disabled if there's no other player
-viewPlayer : BGF.ClientId -> Client Profile -> Clients Profile -> List (Html Msg)
-viewPlayer myId player clients =
+viewPlayer : BGF.ClientId -> Client PlayerProfile -> Maybe (Client PlayerProfile) -> List (Html Msg)
+viewPlayer myId player maybeOtherPlayer =
   let
     playerIsMe =
       player.id == myId
-    otherRole =
-      otherPlayer player clients
-      |> Maybe.map .role
-      |> Maybe.withDefault Observer
+    maybeOtherHand =
+      maybeOtherPlayer
+      |> Maybe.map .hand
   in
-  case (player.role, playerIsMe, otherRole) of
-    (Player (Showing shape1), _, Player (Showing _)) ->
-      [ Html.text <| player.name ++ " (" ++ (shapeToText shape1) ++ ")"
-      ]
+  case (player.hand, playerIsMe, maybeOtherHand) of
 
-    (Player (Showing _), _, Player Closed) ->
-      [ Html.text <| player.name ++ " (played)"
-      ]
-
-    (Player (Showing _), _, Observer) ->
-      [ Html.text <| player.name ++ " Error! Played without another player"
-      ]
-
-    (Player Closed, False, Player _) ->
-      [ Html.text <| player.name ++ " to play"
-      ]
-
-    (Player Closed, False, Observer) ->
+    (_, _, Nothing) ->
       [ Html.text <| player.name ++ " is alone"
       ]
 
-    (Player Closed, True, other) ->
-      [ Html.text <| player.name ++ " "
-      , viewShapeButtons otherRole
+    (Showing shape1, _, Just (Showing _)) ->
+      [ Html.text <| player.name ++ " (" ++ (shapeToText shape1) ++ ")"
       ]
 
-    (Observer, _, _) ->
-      [ Html.text <| player.name ++ " Error! This player is an observer"
+    (Showing _, _, Just Closed) ->
+      [ Html.text <| player.name ++ " (played)"
+      ]
+
+    (Closed, False, Just _) ->
+      [ Html.text <| player.name ++ " to play"
+      ]
+
+    (Closed, True, Just otherHand) ->
+      [ Html.text <| player.name ++ " "
+      , viewShapeButtons
       ]
 
 
@@ -981,37 +960,30 @@ shapeToText shape =
     Rock -> "rock"
 
 
-viewShapeButtons : Role -> Html Msg
-viewShapeButtons otherRole =
-  let
-    noOtherPlayer =
-      otherRole == Observer
-  in
+viewShapeButtons : Html Msg
+viewShapeButtons =
   Html.span []
     [ Html.button
       [ Events.onClick (ConfirmedShow Paper)
-      , Attr.disabled noOtherPlayer
       ]
       [ Html.label [] [ Html.text "Paper" ]
       ]
     , Html.button
       [ Events.onClick (ConfirmedShow Scissors)
-      , Attr.disabled noOtherPlayer
       ]
       [ Html.label [] [ Html.text "Scissors" ]
       ]
     , Html.button
       [ Events.onClick (ConfirmedShow Rock)
-      , Attr.disabled noOtherPlayer
       ]
       [ Html.label [] [ Html.text "Rock" ]
       ]
     ]
 
 
-viewPlayStatus : Clients Profile -> Html Msg
-viewPlayStatus players =
-  case Clients.toList players of
+viewPlayStatus : Clients PlayerProfile -> Html Msg
+viewPlayStatus players_ =
+  case Clients.toList players_ of
     [] ->
       Html.text "Need two players"
 
@@ -1019,27 +991,24 @@ viewPlayStatus players =
       Html.text "Need one more player"
 
     [player1, player2] ->
-      case (player1.role, player2.role) of
-        (Player Closed, Player Closed) ->
+      case (player1.hand, player2.hand) of
+        (Closed, Closed) ->
           Html.text "Both to play"
 
-        (Player (Showing _), Player Closed) ->
+        (Showing _, Closed) ->
           Html.text <| "Waiting for " ++ player2.name
 
-        (Player Closed, Player (Showing _)) ->
+        (Closed, Showing _) ->
           Html.text <| "Waiting for " ++ player1.name
 
-        (Player (Showing shape1), Player (Showing shape2)) ->
-          case winner shape1 shape2 of
+        (hand1, hand2) ->
+          case winner hand1 hand2 of
             1 ->
               Html.text <| player1.name ++ " wins!"
             2 ->
               Html.text <| player2.name ++ " wins!"
             _ ->
               Html.text "It's a draw"
-
-        _ ->
-          Html.text "Strange. One player is an observer"
 
     _ ->
       Html.text "Too many players"
