@@ -992,23 +992,18 @@ viewPlayStatus players =
 
     [player1, player2] ->
       case (player1.hand, player2.hand) of
-        (Closed, Closed) ->
-          Html.text "Both to play"
-
-        (Showing _, Closed) ->
-          Html.text <| "Waiting for " ++ player2.name
-
-        (Closed, Showing _) ->
-          Html.text <| "Waiting for " ++ player1.name
-
-        (hand1, hand2) ->
-          case winner hand1 hand2 of
+        (Showing _, Showing _) ->
+          case winner player1.hand player2.hand of
             1 ->
               Html.text <| player1.name ++ " wins!"
             2 ->
               Html.text <| player2.name ++ " wins!"
             _ ->
               Html.text "It's a draw"
+
+        _ ->
+          -- Empty status (non-breaking space)
+          Html.text "\u{00a0}"
 
     _ ->
       Html.text "Too many players"
