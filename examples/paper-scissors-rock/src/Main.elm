@@ -15,6 +15,8 @@ import Json.Encode as Enc
 import Json.Decode as Dec
 import Url
 
+import Element as El
+
 import BoardGameFramework as BGF
 import BoardGameFramework.Clients as Clients exposing (Clients, Client)
 import BoardGameFramework.Lobby as Lobby exposing (Lobby)
@@ -759,7 +761,11 @@ view : Model -> Browser.Document Msg
 view model =
   { title = "Paper, scissors, rock"
   , body =
-    case model.progress of
+    List.singleton
+    <| El.layout []
+    <| El.html
+    <| Html.div []
+    <| case model.progress of
       InLobby ->
         viewLobby model.lobby
 
