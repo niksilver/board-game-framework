@@ -16,6 +16,7 @@ import Json.Decode as Dec
 import Url
 
 import Element as El
+import Element.Input as Input
 
 import BoardGameFramework as BGF
 import BoardGameFramework.Clients as Clients exposing (Clients, Client)
@@ -763,14 +764,16 @@ view model =
   , body =
     List.singleton
     <| El.layout []
-    <| El.html
-    <| Html.div []
     <| case model.progress of
       InLobby ->
         viewLobby model.lobby
+        |> Html.div []
+        |> El.html
 
       ChoosingName state ->
         viewNameForm state.draftName
+        |> Html.div []
+        |> El.html
 
       Playing state ->
         viewGame
@@ -807,7 +810,7 @@ viewNameForm draftName =
   ]
 
 
-viewGame : Clients Profile -> BGF.ClientId -> List (Html Msg)
+viewGame : Clients Profile -> BGF.ClientId -> El.Element Msg
 viewGame clients myId =
   let
     showHands =
@@ -829,46 +832,45 @@ viewGame clients myId =
     playerVacancy = List.length players < 2
     canBePlayer = amObserver && playerVacancy
   in
-  [ Html.div []
-    [ Html.p [] <|
-      viewUserBar myId clients amPlayer canBePlayer
+  El.column []
+  [ viewUserBar myId clients amPlayer canBePlayer
 
-    , Html.div [] <|
-      viewPlayers myId players
+  , El.html <| Html.div [] <|
+    viewPlayers myId players
 
-    , Html.p []
-      [viewPlayStatus players
-      ]
-
-    , Html.p []
-      [ Html.text "Observers: "
-      , if List.length observerNames == 0 then
-          Html.text "None"
-        else
-          Html.text <| String.join ", " observerNames
-      ]
-
-    , Html.p []
-      [ Html.button
-        [ Events.onClick (ConfirmedAnother)
-        , Attr.disabled (not <| amPlayer)
-        ]
-        [ Html.label [] [ Html.text "Again" ]
-        ]
-      ]
-
-    , Html.p [] <|
-      viewScores clients
-
+  , El.html <| Html.div [] <|
+    [viewPlayStatus players
     ]
+
+  , El.html <| Html.div [] <|
+    [ Html.text "Observers: "
+    , if List.length observerNames == 0 then
+        Html.text "None"
+      else
+        Html.text <| String.join ", " observerNames
+    ]
+
+  , El.html <| Html.div [] <|
+    [ Html.button
+      [ Events.onClick (ConfirmedAnother)
+      , Attr.disabled (not <| amPlayer)
+      ]
+      [ Html.label [] [ Html.text "Again" ]
+      ]
+    ]
+
+  , El.html <| Html.div [] <|
+    viewScores clients
+
   ]
 
 
-viewUserBar : BGF.ClientId -> Clients Profile -> Bool -> Bool -> List (Html Msg)
+viewUserBar : BGF.ClientId -> Clients Profile -> Bool -> Bool -> El.Element Msg
 viewUserBar myId clients amPlayer canBePlayer =
   case Clients.get myId clients of
     Nothing ->
-      []
+      -- A client that's not in the client list?!
+      El.none
 
     Just me ->
       let
@@ -877,19 +879,18 @@ viewUserBar myId clients amPlayer canBePlayer =
             Observer -> "Observer"
             Player _ -> "Player"
       in
-      [ Html.text <| "You: " ++ me.name ++ " (" ++ roleText ++ ") "
-      , Html.button
-        [ Events.onClick ConfirmedBecomeObserver
-        , Attr.disabled (not <| amPlayer)
-        ]
-        [ Html.label [] [ Html.text "Become observer" ]
-        ]
-      , Html.button
-        [ Events.onClick ConfirmedBecomePlayer
-        , Attr.disabled (not <| canBePlayer)
-        ]
-        [ Html.label [] [ Html.text "Become player" ]
-        ]
+      El.row []
+      [ El.text <| "You: " ++ me.name ++ " (" ++ roleText ++ ") "
+      , Input.button []
+        { onPress = Just ConfirmedBecomeObserver
+        , label = El.text "Become observer"
+        -- , Attr.disabled (not <| amPlayer)
+        }
+      , Input.button []
+        { onPress = Just ConfirmedBecomePlayer
+        -- , Attr.disabled (not <| canBePlayer)
+        , label = El.text "Become player"
+        }
       ]
 
 
