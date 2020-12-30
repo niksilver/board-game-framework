@@ -7,13 +7,13 @@ module BoardGameFramework.Clients exposing
   -- Basic types
   ( Client, Clients
   -- Build
-  , empty, singleton, insert, update, mapOne, remove
+  , empty, singleton, insert, update, remove
   -- Query
   , isEmpty, member, get, length, filterLength, all, any
   -- Lists and dicts
   , ids, toList, mapToList, toDict, fromList
   -- Transform
-  , map, fold, filter, partition
+  , map, mapOne, fold, filter, filterMap, partition
   -- Combine
   , union, intersect, diff
   -- JSON
@@ -21,7 +21,7 @@ module BoardGameFramework.Clients exposing
   )
 
 
-{-| Functions for managing a list of clients (which may be players,
+{-| Functions for managing a list of clients. These may be
 observers, or something else).
 
 Each client is simply a record with an `id` field of type `ClientId`,
@@ -29,14 +29,15 @@ plus other fields as desired.
 The client list will never contain more than one
 element with the same `ClientId`.
 
-The type `ClientId` is just an alias for `String`, and comes from the base
+The type [`ClientId`](../BoardGameFramework#ClientId)
+is just an alias for `String`, and comes from the base
 [`BoardGameFramework`](../BoardGameFramework) module.
 
 # Basic types
 @docs Client, Clients
 
 # Build
-@docs empty, singleton, insert, update, mapOne, remove
+@docs empty, singleton, insert, update, remove
 
 # Query
 @docs isEmpty, member, get, length, filterLength, all, any
@@ -45,7 +46,7 @@ The type `ClientId` is just an alias for `String`, and comes from the base
 @docs ids, toList, mapToList, toDict, fromList
 
 # Transform
-@docs map, fold, filter, partition
+@docs map, mapOne, fold, filter, filterMap, partition
 
 # Combine
 @docs union, intersect, diff
@@ -73,7 +74,7 @@ type alias Client e =
   }
 
 
-{-| A list of clients.
+{-| A list of clients. The list is not ordered in any particular way.
 -}
 type Clients e =
   Clients (Dict BGF.ClientId (Client e))
@@ -107,10 +108,10 @@ insert c (Clients cs) =
 {-| Update a specific client using a mapping function.
 This includes removing the client or creating it.
 
-It's possible for the mapping function to produce a value with
+You might supply a mapping function whose output value has
 a different `id` from the one given. This would almost certainly be
 an error. But if you did it, then the client with the `id` given will
-be removed, and the value produced by the mapping function will be
+be removed, and the value output by the mapping function will be
 inserted.
 -}
 update : BGF.ClientId -> (Maybe (Client e) -> Maybe (Client e)) -> Clients e -> Clients e
@@ -134,31 +135,6 @@ update id mapper (Clients cs) =
         |> Dict.remove id
         |> Clients
         |> insert v2
-
-
-{-| Update one specific client that we expect to be there.
-If the specified client isn't there then nothing changes.
-This is a simpler (but less powerful) version of [`update`](#udpate).
-
-Suppose we have this function to increment one client's score:
-
-    inc c =
-        { c | score = c.score + 1 }
-
-If `clients` holds our clients, and our client ID is `myID`,
-then here's how we might increment our score only:
-
-    mapOne myId inc clients
-
-It's possible for the mapping function to produce a value with
-a different `id` from the one given. This would almost certainly be
-an error. But if you did it, then the client with the `id` given will
-be removed, and the value produced by the mapping function will be
-inserted.
--}
-mapOne : BGF.ClientId -> (Client e -> Client e) -> Clients e -> Clients e
-mapOne id mapper clients =
-  update id (Maybe.map mapper) clients
 
 
 {-| Remove a client from the client list.
@@ -313,6 +289,31 @@ map fn (Clients cs) =
   |> Clients
 
 
+{-| Update one specific client that we expect to be there.
+If the specified client isn't there then nothing changes.
+This is a simpler (but less powerful) version of [`update`](#udpate).
+
+Suppose we have this function to increment one client's score:
+
+    inc c =
+        { c | score = c.score + 1 }
+
+If `clients` holds our clients, and our client ID is `myId`,
+then here's how we might increment our score only:
+
+    mapOne myId inc clients
+
+You might supply a mapping function whose output value has
+a different `id` from the one given. This would almost certainly be
+an error. But if you did it, then the client with the `id` given will
+be removed, and the value output by the mapping function will be
+inserted.
+-}
+mapOne : BGF.ClientId -> (Client e -> Client e) -> Clients e -> Clients e
+mapOne id mapper clients =
+  update id (Maybe.map mapper) clients
+
+
 {-| Fold over all the clients. Order of processing is not guaranteed.
 
 Here's how to add up everyone's score:
@@ -343,6 +344,73 @@ filter fn (Clients cs) =
   cs
   |> Dict.filter fn2
   |> Clients
+
+
+{-| Create a new client list from only those clients that pass a test.
+
+This describes participants in a game. Participants can be either players or
+observers, and there are two kinds of players. Our list of participants is
+in `clients`.
+
+    type Role =
+      Observer
+      | Player PlayerType
+
+    type PlayerType =
+      Attacker
+      | Defender
+
+    type alias ParticipantRecord =
+      { role : Role
+      }
+
+    type alias PlayerRecord =
+      { playerType : PlayerType
+      }
+
+    clients : Clients ParticipantRecord
+    clients =
+      ...
+
+If we want to pick out just the players and work on them, then we can
+do it like this:
+
+    player : Client ParticipantRecord -> Maybe (Client PlayerRecord)
+    player c =
+      case c.role of
+        Player pType ->
+          Just
+            { id = c.id
+            , playerType = pType
+            }
+
+        Observer ->
+          Nothing
+
+    onlyPlayers : Clients PlayerRecord
+    onlyPlayers =
+      filterMap player clients
+-}
+filterMap : (Client e -> Maybe (Client f)) -> Clients e -> Clients f
+filterMap fn cs =
+  toList cs
+  |> filterMap_ [] fn
+  |> fromList
+
+
+filterMap_ : List (Client f) -> (Client e -> Maybe (Client f)) -> List (Client e) -> List (Client f)
+filterMap_ accum fn cs =
+  case cs of
+    [] ->
+      accum
+
+    head :: rest ->
+      case fn head of
+        Nothing ->
+          filterMap_ accum fn rest
+
+        Just c ->
+          filterMap_ (c :: accum) fn rest
 
 
 {-| Split the client list into two: those who pass a test (first

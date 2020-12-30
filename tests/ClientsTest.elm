@@ -520,6 +520,73 @@ filterTest =
     |> Expect.equal 1
 
 
+-- filterMap test, including types and code for use in documentation
+
+
+type Role =
+  Observer
+  | Player PlayerType
+
+type PlayerType =
+  Attacker
+  | Defender
+
+type alias ParticipantRecord =
+  { role : Role
+  }
+
+type alias PlayerRecord =
+  { playerType : PlayerType
+  }
+
+
+filterMapTest : Test
+filterMapTest =
+  describe "filterMapTest - create a list of those who have scored 100 or more" <|
+  let
+    clients : Clients ParticipantRecord
+    clients =
+      Clients.empty
+      |> Clients.insert { id = "123.456", role = Observer }
+      |> Clients.insert { id = "654.321", role = Player Attacker }
+      |> Clients.insert { id = "999.999", role = Player Defender }
+
+    player : Client ParticipantRecord -> Maybe (Client PlayerRecord)
+    player c =
+      case c.role of
+        Player pType ->
+          Just
+            { id = c.id
+            , playerType = pType
+            }
+
+        Observer ->
+          Nothing
+
+    onlyPlayers : Clients PlayerRecord
+    onlyPlayers =
+      Clients.filterMap player clients
+  in
+  [ test "Should have removed an under-scorer" <|
+    \_ ->
+      Clients.length onlyPlayers
+      |> Expect.equal 2
+
+  , test "Should have the first centurian" <|
+    \_ ->
+      Clients.get "654.321" onlyPlayers
+      |> Expect.equal (Just { id = "654.321", playerType = Attacker })
+
+  , test "Should have the second centurian" <|
+    \_ ->
+      Clients.get "999.999" onlyPlayers
+      |> Expect.equal (Just { id = "999.999", playerType = Defender })
+
+  ]
+
+
+-- partition and beyond
+
 partitionTest : Test
 partitionTest =
   describe "partitionTest - split players from observers" <|
