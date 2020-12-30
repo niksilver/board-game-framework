@@ -132,8 +132,8 @@ isPlayer client =
       False
 
 
-players : Clients Profile -> Clients PlayerProfile
-players clients =
+playerList : Clients Profile -> List (Client PlayerProfile)
+playerList clients =
   let
     toPlayer client =
       case client.role of
@@ -144,6 +144,7 @@ players clients =
           Nothing
   in
   Clients.filterMap toPlayer clients
+  |> Clients.toList
 
 
 hasPlayed : Client Profile -> Bool
@@ -208,9 +209,8 @@ setRole id role clients =
 -- Get the other player, if there is one.
 otherPlayer : Client PlayerProfile -> Clients Profile -> Maybe (Client PlayerProfile)
 otherPlayer me clients =
-  players clients
-  |> Clients.filter (\c -> c.id /= me.id)
-  |> Clients.toList
+  playerList clients
+  |> List.filter (\c -> c.id /= me.id)
   |> List.head
 
 
@@ -238,7 +238,7 @@ closeOtherHandById myId myRole clients =
 -- Increment the score of the one player (if any) who has the winning hand.
 awardPoint : Clients Profile -> Clients Profile
 awardPoint clients =
-  case players clients |> Clients.toList of
+  case playerList clients of
     [player1, player2] ->
       let
         id1 = player1.id
@@ -806,8 +806,8 @@ viewGame clients myId =
   let
     showHands =
       allHavePlayed clients
-    players_ =
-      players clients
+    players =
+      playerList clients
     observers =
       clients
       |> Clients.filter (not << isPlayer)
@@ -815,12 +815,12 @@ viewGame clients myId =
       observers
       |> Clients.mapToList .name
     amPlayer =
-      players_
-      |> Clients.member myId
+      players
+      |> List.any (\p -> p.id == myId)
     amObserver =
       observers
       |> Clients.member myId
-    playerVacancy = Clients.length players_ < 2
+    playerVacancy = List.length players < 2
     canBePlayer = amObserver && playerVacancy
   in
   [ Html.div []
@@ -828,10 +828,10 @@ viewGame clients myId =
       viewUserBar myId clients amPlayer canBePlayer
 
     , Html.div [] <|
-      viewPlayers myId players_
+      viewPlayers myId players
 
     , Html.p []
-      [viewPlayStatus players_
+      [viewPlayStatus players
       ]
 
     , Html.p []
@@ -887,9 +887,9 @@ viewUserBar myId clients amPlayer canBePlayer =
       ]
 
 
-viewPlayers : BGF.ClientId -> Clients PlayerProfile -> List (Html Msg)
-viewPlayers myId players_ =
-  case Clients.toList players_ of
+viewPlayers : BGF.ClientId -> List (Client PlayerProfile) -> List (Html Msg)
+viewPlayers myId players =
+  case players of
     [] ->
       [ Html.p [] [Html.text "Waiting for first player"]
       , Html.p [] [Html.text "Waiting for second player"]
@@ -981,9 +981,9 @@ viewShapeButtons =
     ]
 
 
-viewPlayStatus : Clients PlayerProfile -> Html Msg
-viewPlayStatus players_ =
-  case Clients.toList players_ of
+viewPlayStatus : List (Client PlayerProfile) -> Html Msg
+viewPlayStatus players =
+  case players of
     [] ->
       Html.text "Need two players"
 
