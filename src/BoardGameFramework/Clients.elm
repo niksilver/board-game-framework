@@ -390,6 +390,9 @@ do it like this:
     onlyPlayers : Clients PlayerRecord
     onlyPlayers =
       filterMap player clients
+
+Notice that our new client list, `onlyPlayers`, is of a different type
+from our original `clients`. This lets us make better use of type safety.
 -}
 filterMap : (Client e -> Maybe (Client f)) -> Clients e -> Clients f
 filterMap fn cs =
