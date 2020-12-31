@@ -16,7 +16,11 @@ import Json.Decode as Dec
 import Url
 
 import Element as El
+import Element.Background as Background
+import Element.Font as Font
 import Element.Input as Input
+
+import UI
 
 import BoardGameFramework as BGF
 import BoardGameFramework.Clients as Clients exposing (Clients, Client)
@@ -763,7 +767,7 @@ view model =
   { title = "Paper, scissors, rock"
   , body =
     List.singleton
-    <| El.layout []
+    <| UI.layout
     <| case model.progress of
       InLobby ->
         viewLobby model.lobby
@@ -835,8 +839,7 @@ viewGame clients myId =
   El.column []
   [ viewUserBar myId clients amPlayer canBePlayer
 
-  , El.html <| Html.div [] <|
-    viewPlayers myId players
+  , viewPlayers myId players
 
   , El.html <| Html.div [] <|
     [viewPlayStatus players
@@ -879,45 +882,56 @@ viewUserBar myId clients amPlayer canBePlayer =
             Observer -> "Observer"
             Player _ -> "Player"
       in
-      El.row []
+      UI.paddedRow
       [ El.text <| "You: " ++ me.name ++ " (" ++ roleText ++ ") "
-      , Input.button []
-        { onPress = Just ConfirmedBecomeObserver
-        , label = El.text "Become observer"
-        -- , Attr.disabled (not <| amPlayer)
+      , UI.button
+        { enabled = amPlayer
+        , onPress = Just ConfirmedBecomeObserver
+        , label = "Become observer"
         }
-      , Input.button []
-        { onPress = Just ConfirmedBecomePlayer
-        -- , Attr.disabled (not <| canBePlayer)
-        , label = El.text "Become player"
+      , UI.button
+        { enabled = canBePlayer
+        , onPress = Just ConfirmedBecomePlayer
+        , label = "Become player"
         }
       ]
 
 
-viewPlayers : BGF.ClientId -> List (Client PlayerProfile) -> List (Html Msg)
+viewPlayers : BGF.ClientId -> List (Client PlayerProfile) -> El.Element Msg
 viewPlayers myId players =
   case players of
     [] ->
-      [ Html.p [] [Html.text "Waiting for first player"]
-      , Html.p [] [Html.text "Waiting for second player"]
+      UI.paddedRow
+      [ viewWaitingMessage "Waiting for first player"
+      , viewWaitingMessage "Waiting for second player"
       ]
 
     [player1] ->
-      [ Html.p [] <| viewPlayer myId player1 Nothing
-      , Html.p [] [Html.text "Waiting for second player"]
+      UI.paddedRow
+      [ viewPlayer myId player1 Nothing
+      , viewWaitingMessage "Waiting for second player"
       ]
 
     [player1, player2] ->
-      [ Html.p [] <| viewPlayer myId player1 (Just player2)
-      , Html.p [] <| viewPlayer myId player2 (Just player1)
+      UI.paddedRow
+      [ viewPlayer myId player1 (Just player2)
+      , viewPlayer myId player2 (Just player1)
       ]
 
     _ ->
       -- Should never have three or more players
-      [ Html.p []
-        [ Html.text "Too many players!"
-        ]
+      UI.paddedRow
+      [ viewWaitingMessage "Too many players!"
       ]
+
+
+viewWaitingMessage : String -> El.Element Msg
+viewWaitingMessage message =
+  UI.centredTextWith
+  [ El.width <| El.fillPortion 1
+  , El.centerY
+  ]
+  message
 
 
 -- View one player. We show their name, followed by something...
@@ -926,7 +940,7 @@ viewPlayers myId players =
 --   "played"  - if they've played but the other player hasn't
 --   "to play" - if they've not played, and they're not us, and there's another player
 --   Buttons   - if they've not played, and they are us
-viewPlayer : BGF.ClientId -> Client PlayerProfile -> Maybe (Client PlayerProfile) -> List (Html Msg)
+viewPlayer : BGF.ClientId -> Client PlayerProfile -> Maybe (Client PlayerProfile) -> El.Element Msg
 viewPlayer myId player maybeOtherPlayer =
   let
     playerIsMe =
@@ -934,29 +948,23 @@ viewPlayer myId player maybeOtherPlayer =
     maybeOtherHand =
       maybeOtherPlayer
       |> Maybe.map .hand
+    name = player.name
   in
   case (player.hand, playerIsMe, maybeOtherHand) of
-
     (_, _, Nothing) ->
-      [ Html.text <| player.name ++ " is alone"
-      ]
+      viewNamedPlayerMessage name "is alone"
 
     (Showing shape1, _, Just (Showing _)) ->
-      [ Html.text <| player.name ++ " (" ++ (shapeToText shape1) ++ ")"
-      ]
+      viewNamedPlayerMessage name (shapeToText shape1)
 
     (Showing _, _, Just Closed) ->
-      [ Html.text <| player.name ++ " (played)"
-      ]
+      viewNamedPlayerMessage name "(played)"
 
     (Closed, False, Just _) ->
-      [ Html.text <| player.name ++ " to play"
-      ]
+      viewNamedPlayerMessage name "to play"
 
     (Closed, True, Just otherHand) ->
-      [ Html.text <| player.name ++ " "
-      , viewShapeButtons
-      ]
+      viewNamedPlayerShapeButtons name
 
 
 shapeToText : Shape -> String
@@ -967,25 +975,51 @@ shapeToText shape =
     Rock -> "rock"
 
 
-viewShapeButtons : Html Msg
+-- The player name and a message about them
+viewNamedPlayerMessage : String -> String -> El.Element Msg
+viewNamedPlayerMessage name message =
+  El.column
+  [ El.width <| El.fillPortion 1
+  ]
+  [ UI.centredTextWith [Font.size UI.bigFontSize] name
+  , UI.centredText message
+  ]
+
+
+-- The player name and the shape buttons
+viewNamedPlayerShapeButtons : String -> El.Element Msg
+viewNamedPlayerShapeButtons name =
+  El.column
+  [ El.width <| El.fillPortion 1
+  ]
+  [ UI.centredTextWith [Font.size UI.bigFontSize] name
+  , viewShapeButtons
+  ]
+
+
+viewShapeButtons : El.Element Msg
 viewShapeButtons =
-  Html.span []
-    [ Html.button
-      [ Events.onClick (ConfirmedShow Paper)
-      ]
-      [ Html.label [] [ Html.text "Paper" ]
-      ]
-    , Html.button
-      [ Events.onClick (ConfirmedShow Scissors)
-      ]
-      [ Html.label [] [ Html.text "Scissors" ]
-      ]
-    , Html.button
-      [ Events.onClick (ConfirmedShow Rock)
-      ]
-      [ Html.label [] [ Html.text "Rock" ]
-      ]
-    ]
+  El.column
+  [ El.centerX
+  , El.spacing UI.fontSize
+  , El.padding UI.fontSize
+  ]
+  [ UI.button
+    { enabled = True
+    , onPress = Just (ConfirmedShow Paper)
+    , label = "Paper"
+    }
+  , UI.button
+    { enabled = True
+    , onPress = Just (ConfirmedShow Scissors)
+    , label = "Scissors"
+    }
+  , UI.button
+    { enabled = True
+    , onPress = Just (ConfirmedShow Rock)
+    , label = "Rock"
+    }
+  ]
 
 
 viewPlayStatus : List (Client PlayerProfile) -> Html Msg
