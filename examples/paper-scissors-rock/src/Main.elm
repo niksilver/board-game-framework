@@ -980,9 +980,14 @@ viewNamedPlayerMessage : String -> String -> El.Element Msg
 viewNamedPlayerMessage name message =
   El.column
   [ El.width <| El.fillPortion 1
+  , El.height <| El.px <| UI.scaledInt 8
   ]
-  [ UI.centredTextWith [Font.size UI.bigFontSize] name
-  , UI.centredText message
+  [ UI.centredTextWith [ Font.size UI.bigFontSize ]
+    name
+  , UI.centredTextWith
+    [ El.centerY
+    ]
+    message
   ]
 
 
@@ -991,6 +996,8 @@ viewNamedPlayerShapeButtons : String -> El.Element Msg
 viewNamedPlayerShapeButtons name =
   El.column
   [ El.width <| El.fillPortion 1
+  , El.height <| El.px <| UI.scaledInt 8
+  , El.explain Debug.todo
   ]
   [ UI.centredTextWith [Font.size UI.bigFontSize] name
   , viewShapeButtons
