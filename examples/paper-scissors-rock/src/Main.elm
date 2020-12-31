@@ -978,29 +978,25 @@ shapeToText shape =
 -- The player name and a message about them
 viewNamedPlayerMessage : String -> String -> El.Element Msg
 viewNamedPlayerMessage name message =
-  El.column
-  [ El.width <| El.fillPortion 1
-  , El.height <| El.px <| UI.scaledInt 8
-  ]
-  [ UI.centredTextWith [ Font.size UI.bigFontSize ]
-    name
-  , UI.centredTextWith
-    [ El.centerY
-    ]
-    message
-  ]
+  viewNamedPlayerElement name <|
+    UI.centredTextWith [ El.centerY ] message
 
 
 -- The player name and the shape buttons
 viewNamedPlayerShapeButtons : String -> El.Element Msg
 viewNamedPlayerShapeButtons name =
+  viewNamedPlayerElement name viewShapeButtons
+
+
+-- The player name and some element
+viewNamedPlayerElement : String -> El.Element Msg -> El.Element Msg
+viewNamedPlayerElement name elt =
   El.column
   [ El.width <| El.fillPortion 1
-  , El.height <| El.px <| UI.scaledInt 8
-  , El.explain Debug.todo
+  , El.height <| El.px 250
   ]
   [ UI.centredTextWith [Font.size UI.bigFontSize] name
-  , viewShapeButtons
+  , elt
   ]
 
 
