@@ -6,7 +6,7 @@
 module UI exposing
   ( fontSize, bigFontSize, scaled, scaledInt
   , white, black
-  , layout, paddedRow, paddedRowWith, paddedColumn, centredTextWith
+  , layout, paddedRow, paddedRowWith, paddedSpacedColumn, centredTextWith
   , shortCentredButton, longButton, button, inputText
   , image
   )
@@ -169,11 +169,12 @@ paddedRowWith attrs =
       attrs
 
 
-paddedColumn : List (El.Element msg) -> El.Element msg
-paddedColumn =
+paddedSpacedColumn : List (El.Element msg) -> El.Element msg
+paddedSpacedColumn =
   El.column
   [ El.width El.fill
   , El.padding innerClearance
+  , El.spacing innerClearance
   ]
 
 

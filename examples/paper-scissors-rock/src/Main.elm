@@ -843,7 +843,7 @@ viewGame clients myId =
   [ viewUserBar myId clients amPlayer canBePlayer
   , El.row [ El.width El.fill ]
     [ El.column
-      [ El.width <| El.fillPortion 4
+      [ El.width <| El.fillPortion 3
       , El.alignTop
       ]
       [ viewPlayers myId players
@@ -1110,13 +1110,13 @@ viewObservers names =
 
 viewScores : Clients Profile -> El.Element Msg
 viewScores clients =
-  UI.paddedColumn <|
+  UI.paddedSpacedColumn <|
     Clients.mapToList viewOneScore clients
 
 
 viewOneScore : Client Profile -> El.Element Msg
 viewOneScore client =
-  El.row []
+  El.row [ El.width El.fill ]
   [ El.el [ El.alignLeft ] <|
       El.text client.name
   , El.el [ El.alignRight ] <|
