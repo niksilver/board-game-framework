@@ -8,6 +8,7 @@ module UI exposing
   , white, black
   , layout, paddedRow, centredTextWith
   , button, inputText
+  , smallImage
   )
 
 
@@ -173,7 +174,8 @@ centredTextWith attrs str =
 button :
   { enabled : Bool
   , onPress : Maybe msg
-  , label : String
+  , textLabel : String
+  , imageLabel : El.Element msg
   } -> El.Element msg
 button desc =
   let
@@ -193,6 +195,7 @@ button desc =
           , borderColor = mp.buttonDisabledBorder
           , mouseOver = mp.buttonDisabledMouseOver
           }
+    textLabel = El.el [Font.color attrs.textColor] (El.text desc.textLabel)
   in
   Input.button
   [ Background.color attrs.bgColor
@@ -205,7 +208,11 @@ button desc =
   , El.mouseOver attrs.mouseOver
   ]
   { onPress = if desc.enabled then desc.onPress else Nothing
-  , label = El.el [Font.color attrs.textColor] (El.text desc.label)
+  , label =
+      El.row []
+      [ textLabel
+      , desc.imageLabel
+      ]
   }
 
 
@@ -235,4 +242,16 @@ inputText desc =
       El.text desc.label
       |> El.el [Font.color mp.text]
       |> Input.labelLeft []
+  }
+
+
+-- Images
+
+smallImage : String -> String -> Int -> El.Element msg
+smallImage desc src pxHeight =
+  El.image
+  [ El.height <| El.px pxHeight
+  ]
+  { src = src
+  , description = desc
   }

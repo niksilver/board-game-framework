@@ -892,13 +892,15 @@ viewUserBar myId clients amPlayer canBePlayer =
         UI.button
         { enabled = amPlayer
         , onPress = Just ConfirmedBecomeObserver
-        , label = "Become observer"
+        , textLabel = "Become observer"
+        , imageLabel = El.none
         }
       , El.el [ El.width (El.fillPortion 2) ] <|
         UI.button
         { enabled = canBePlayer
         , onPress = Just ConfirmedBecomePlayer
-        , label = "Become player"
+        , textLabel = "Become player"
+        , imageLabel = El.none
         }
       ]
 
@@ -1025,17 +1027,20 @@ viewShapeButtons =
   [ UI.button
     { enabled = True
     , onPress = Just (ConfirmedShow Paper)
-    , label = "Paper"
+    , textLabel = "Paper"
+    , imageLabel = El.none
     }
   , UI.button
     { enabled = True
     , onPress = Just (ConfirmedShow Scissors)
-    , label = "Scissors"
+    , textLabel = "Scissors"
+    , imageLabel = El.none
     }
   , UI.button
     { enabled = True
     , onPress = Just (ConfirmedShow Rock)
-    , label = "Rock"
+    , textLabel = "Rock"
+    , imageLabel = El.none
     }
   ]
 
