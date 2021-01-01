@@ -930,11 +930,13 @@ viewPlayers myId players =
 
 viewWaitingMessage : String -> El.Element Msg
 viewWaitingMessage message =
-  UI.centredTextWith
-  [ El.width <| El.fillPortion 1
-  , El.centerY
+  viewPlayerElements
+  [ UI.centredTextWith
+    [ El.width <| El.fillPortion 1
+    , El.centerY
+    ]
+    message
   ]
-  message
 
 
 -- View one player. We show their name, followed by something...
@@ -994,13 +996,20 @@ viewNamedPlayerShapeButtons name =
 -- The player name and some element
 viewNamedPlayerElement : String -> El.Element Msg -> El.Element Msg
 viewNamedPlayerElement name elt =
-  El.column
-  [ El.width <| El.fillPortion 1
-  , El.height <| El.px 250
-  ]
+  viewPlayerElements
   [ UI.centredTextWith [Font.size UI.bigFontSize] name
   , elt
   ]
+
+
+-- Some elements showing a player's situation
+viewPlayerElements : List (El.Element Msg) -> El.Element Msg
+viewPlayerElements elts =
+  El.column
+  [ El.width <| El.fillPortion 1
+  , El.height <| El.px 260
+  ]
+  elts
 
 
 viewShapeButtons : El.Element Msg
