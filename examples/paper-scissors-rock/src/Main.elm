@@ -889,14 +889,14 @@ viewUserBar myId clients amPlayer canBePlayer =
       [ El.el [ El.width (El.fillPortion 3) ] <|
         El.text <| "You: " ++ me.name ++ " (" ++ roleText ++ ") "
       , El.el [ El.width (El.fillPortion 2) ] <|
-        UI.shortButton
+        UI.shortCentredButton
         { enabled = amPlayer
         , onPress = Just ConfirmedBecomeObserver
         , textLabel = "Become observer"
         , imageLabel = El.none
         }
       , El.el [ El.width (El.fillPortion 2) ] <|
-        UI.shortButton
+        UI.shortCentredButton
         { enabled = canBePlayer
         , onPress = Just ConfirmedBecomePlayer
         , textLabel = "Become player"
