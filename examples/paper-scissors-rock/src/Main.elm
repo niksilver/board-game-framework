@@ -841,18 +841,9 @@ viewGame clients myId =
   , El.centerX
   ]
   [ viewUserBar myId clients amPlayer canBePlayer
-
   , viewPlayers myId players
-
   , viewPlayStatus players
-
-  , El.html <| Html.div [] <|
-    [ Html.text "Observers: "
-    , if List.length observerNames == 0 then
-        Html.text "None"
-      else
-        Html.text <| String.join ", " observerNames
-    ]
+  , viewObservers observerNames
 
   , El.html <| Html.div [] <|
     viewScores clients
@@ -1089,6 +1080,22 @@ viewPlayStatusMessage : String -> El.Element Msg
 viewPlayStatusMessage message =
   UI.paddedRow
   [ UI.centredTextWith [Font.size UI.bigFontSize] message
+  ]
+
+
+viewObservers : List String -> El.Element Msg
+viewObservers names =
+  let
+    names2 =
+      if List.length names == 0 then
+        "None"
+      else
+        String.join ", " names
+  in
+  UI.paddedRow
+  [ El.paragraph []
+    [ El.text <| "Observers: " ++ names2
+    ]
   ]
 
 
