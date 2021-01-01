@@ -991,15 +991,15 @@ viewNamedPlayerShape name shape =
     case shape of
       Paper ->
         El.el [El.centerX] <|
-          UI.smallImage "Paper" "../img/paper.svg" 250
+          UI.image "Paper" "../img/paper.svg" 250
 
       Scissors ->
         El.el [El.centerX] <|
-          UI.smallImage "Scissors" "../img/scissors.svg" 250
+          UI.image "Scissors" "../img/scissors.svg" 250
 
       Rock ->
         El.el [El.centerX] <|
-          UI.smallImage "Rock" "../img/rock.svg" 250
+          UI.image "Rock" "../img/rock.svg" 250
 
 
 -- The player name and the shape buttons
@@ -1038,19 +1038,19 @@ viewShapeButtons =
     { enabled = True
     , onPress = Just (ConfirmedShow Paper)
     , textLabel = "Paper"
-    , imageLabel = UI.smallImage "Paper" "../img/paper.svg" 28
+    , imageLabel = UI.image "Paper" "../img/paper.svg" 28
     }
   , UI.button
     { enabled = True
     , onPress = Just (ConfirmedShow Scissors)
     , textLabel = "Scissors"
-    , imageLabel = UI.smallImage "Scissors" "../img/scissors.svg" 28
+    , imageLabel = UI.image "Scissors" "../img/scissors.svg" 28
     }
   , UI.button
     { enabled = True
     , onPress = Just (ConfirmedShow Rock)
     , textLabel = "Rock"
-    , imageLabel = UI.smallImage "Rock" "../img/rock.svg" 28
+    , imageLabel = UI.image "Rock" "../img/rock.svg" 28
     }
   ]
 

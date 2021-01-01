@@ -8,7 +8,7 @@ module UI exposing
   , white, black
   , layout, paddedRow, centredTextWith
   , button, inputText
-  , smallImage
+  , image
   )
 
 
@@ -248,8 +248,8 @@ inputText desc =
 -- Images
 
 
-smallImage : String -> String -> Int -> El.Element msg
-smallImage desc src pxHeight =
+image : String -> String -> Int -> El.Element msg
+image desc src pxHeight =
   El.image
   [ El.height <| El.px pxHeight
   ]
