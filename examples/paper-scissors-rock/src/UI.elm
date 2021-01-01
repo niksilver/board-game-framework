@@ -6,7 +6,8 @@
 module UI exposing
   ( fontSize, bigFontSize, scaled, scaledInt
   , white, black
-  , layout, paddedRow, paddedRowWith, paddedSpacedColumn, centredTextWith
+  , layout, paddedRow, paddedRowWith, paddedSpacedColumn
+  , centredTextWith, heading
   , shortCentredButton, longButton, button, inputText
   , image
   )
@@ -193,6 +194,11 @@ centredTextWith attrs str =
   ( Font.center :: attrs )
   [ El.text str
   ]
+
+
+heading : String -> El.Element msg
+heading h =
+  centredTextWith [ Font.size bigFontSize ] h
 
 
 -- Input elements

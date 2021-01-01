@@ -1014,7 +1014,7 @@ viewNamedPlayerShapeButtons name =
 viewNamedPlayerElement : String -> El.Element Msg -> El.Element Msg
 viewNamedPlayerElement name elt =
   viewPlayerElements
-  [ UI.centredTextWith [Font.size UI.bigFontSize] name
+  [ UI.heading name
   , elt
   ]
 
@@ -1111,7 +1111,8 @@ viewObservers names =
 viewScores : Clients Profile -> El.Element Msg
 viewScores clients =
   UI.paddedSpacedColumn <|
-    Clients.mapToList viewOneScore clients
+    UI.heading "Scores"
+    :: Clients.mapToList viewOneScore clients
 
 
 viewOneScore : Client Profile -> El.Element Msg
