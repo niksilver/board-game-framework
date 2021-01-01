@@ -965,7 +965,7 @@ viewPlayer myId player maybeOtherPlayer =
       viewNamedPlayerMessage name "is alone"
 
     (Showing shape1, _, Just (Showing _)) ->
-      viewNamedPlayerMessage name (shapeToText shape1)
+      viewNamedPlayerShape name shape1
 
     (Showing _, _, Just Closed) ->
       viewNamedPlayerMessage name "(played)"
@@ -977,19 +977,29 @@ viewPlayer myId player maybeOtherPlayer =
       viewNamedPlayerShapeButtons name
 
 
-shapeToText : Shape -> String
-shapeToText shape =
-  case shape of
-    Paper -> "paper"
-    Scissors -> "scissors"
-    Rock -> "rock"
-
-
 -- The player name and a message about them
 viewNamedPlayerMessage : String -> String -> El.Element Msg
 viewNamedPlayerMessage name message =
   viewNamedPlayerElement name <|
     UI.centredTextWith [ El.centerY ] message
+
+
+-- The player name and the shape they've played
+viewNamedPlayerShape : String -> Shape -> El.Element Msg
+viewNamedPlayerShape name shape =
+  viewNamedPlayerElement name <|
+    case shape of
+      Paper ->
+        El.el [El.centerX] <|
+          UI.smallImage "Paper" "../img/paper.svg" 250
+
+      Scissors ->
+        El.el [El.centerX] <|
+          UI.smallImage "Scissors" "../img/scissors.svg" 250
+
+      Rock ->
+        El.el [El.centerX] <|
+          UI.smallImage "Rock" "../img/rock.svg" 250
 
 
 -- The player name and the shape buttons

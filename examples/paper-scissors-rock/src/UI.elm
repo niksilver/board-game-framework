@@ -247,6 +247,7 @@ inputText desc =
 
 -- Images
 
+
 smallImage : String -> String -> Int -> El.Element msg
 smallImage desc src pxHeight =
   El.image
