@@ -199,7 +199,7 @@ shortCentredButton :
   } -> El.Element msg
 shortCentredButton desc =
   button
-    { length = El.px 150
+    { length = El.px 120
     , enabled = desc.enabled
     , onPress = desc.onPress
     , textLabel = desc.textLabel

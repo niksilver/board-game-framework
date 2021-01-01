@@ -855,15 +855,6 @@ viewGame clients myId =
     ]
 
   , El.html <| Html.div [] <|
-    [ Html.button
-      [ Events.onClick (ConfirmedAnother)
-      , Attr.disabled (not <| amPlayer)
-      ]
-      [ Html.label [] [ Html.text "Again" ]
-      ]
-    ]
-
-  , El.html <| Html.div [] <|
     viewScores clients
 
   ]
@@ -888,6 +879,7 @@ viewUserBar myId clients amPlayer canBePlayer =
       ]
       [ El.el [ El.width (El.fillPortion 3) ] <|
         El.text <| "You: " ++ me.name ++ " (" ++ roleText ++ ") "
+
       , El.el [ El.width (El.fillPortion 2) ] <|
         UI.shortCentredButton
         { enabled = amPlayer
@@ -895,6 +887,7 @@ viewUserBar myId clients amPlayer canBePlayer =
         , textLabel = "Become observer"
         , imageLabel = El.none
         }
+
       , El.el [ El.width (El.fillPortion 2) ] <|
         UI.shortCentredButton
         { enabled = canBePlayer
@@ -902,6 +895,15 @@ viewUserBar myId clients amPlayer canBePlayer =
         , textLabel = "Become player"
         , imageLabel = El.none
         }
+
+      , El.el [ El.width (El.fillPortion 2) ] <|
+        UI.shortCentredButton
+        { enabled = amPlayer
+        , onPress = Just ConfirmedAnother
+        , textLabel = "Play again"
+        , imageLabel = El.none
+        }
+
       ]
 
 
