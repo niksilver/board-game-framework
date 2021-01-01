@@ -844,9 +844,7 @@ viewGame clients myId =
 
   , viewPlayers myId players
 
-  , El.html <| Html.div [] <|
-    [viewPlayStatus players
-    ]
+  , viewPlayStatus players
 
   , El.html <| Html.div [] <|
     [ Html.text "Observers: "
@@ -1055,32 +1053,39 @@ viewShapeButtons =
   ]
 
 
-viewPlayStatus : List (Client PlayerProfile) -> Html Msg
+viewPlayStatus : List (Client PlayerProfile) -> El.Element Msg
 viewPlayStatus players =
   case players of
     [] ->
-      Html.text "Need two players"
+      viewPlayStatusMessage "Need two players"
 
     [_] ->
-      Html.text "Need one more player"
+      viewPlayStatusMessage "Need one more player"
 
     [player1, player2] ->
       case (player1.hand, player2.hand) of
         (Showing _, Showing _) ->
           case winner player1.hand player2.hand of
             1 ->
-              Html.text <| player1.name ++ " wins!"
+              viewPlayStatusMessage <| player1.name ++ " wins!"
             2 ->
-              Html.text <| player2.name ++ " wins!"
+              viewPlayStatusMessage <| player2.name ++ " wins!"
             _ ->
-              Html.text "It's a draw"
+              viewPlayStatusMessage "It's a draw"
 
         _ ->
           -- Empty status (non-breaking space)
-          Html.text "\u{00a0}"
+          viewPlayStatusMessage "\u{00a0}"
 
     _ ->
-      Html.text "Too many players"
+      viewPlayStatusMessage "Too many players"
+
+
+viewPlayStatusMessage : String -> El.Element Msg
+viewPlayStatusMessage message =
+  UI.paddedRow
+  [ UI.centredTextWith [Font.size UI.bigFontSize] message
+  ]
 
 
 viewScores : Clients Profile -> List (Html Msg)

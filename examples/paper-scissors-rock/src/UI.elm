@@ -156,6 +156,7 @@ paddedRow =
   El.row
   [ El.width El.fill
   , El.padding innerClearance
+  , El.explain Debug.todo
   ]
 
 
