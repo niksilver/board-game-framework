@@ -7,7 +7,7 @@ module UI exposing
   ( fontSize, bigFontSize, scaled, scaledInt
   , white, black
   , layout, paddedRow, centredTextWith
-  , button, inputText
+  , longButton, button, inputText
   , image
   )
 
@@ -156,7 +156,15 @@ paddedRow =
   El.row
   [ El.width El.fill
   , El.padding innerClearance
-  , El.explain Debug.todo
+  ]
+
+
+centredText : String -> El.Element msg
+centredText str =
+  El.paragraph
+  [ Font.center
+  ]
+  [ El.text str
   ]
 
 
@@ -171,8 +179,25 @@ centredTextWith attrs str =
 -- Input elements
 
 
-button :
+longButton :
   { enabled : Bool
+  , onPress : Maybe msg
+  , textLabel : String
+  , imageLabel : El.Element msg
+  } -> El.Element msg
+longButton desc =
+  button
+    { length = El.px 250
+    , enabled = desc.enabled
+    , onPress = desc.onPress
+    , textLabel = desc.textLabel
+    , imageLabel = desc.imageLabel
+    }
+
+
+button :
+  { length : El.Length
+  , enabled : Bool
   , onPress : Maybe msg
   , textLabel : String
   , imageLabel : El.Element msg
@@ -195,7 +220,13 @@ button desc =
           , borderColor = mp.buttonDisabledBorder
           , mouseOver = mp.buttonDisabledMouseOver
           }
-    textLabel = El.el [Font.color attrs.textColor] (El.text desc.textLabel)
+    textLabel =
+      El.paragraph
+      [ Font.color attrs.textColor
+      , Font.center
+      ]
+      [ El.text desc.textLabel
+      ]
   in
   Input.button
   [ Background.color attrs.bgColor
@@ -203,13 +234,17 @@ button desc =
   , Border.color attrs.borderColor
   , Border.width 4
   , Border.rounded 10
-  , El.centerX
+  , El.width desc.length
   , El.padding (scaledInt -1)
   , El.mouseOver attrs.mouseOver
   ]
   { onPress = if desc.enabled then desc.onPress else Nothing
   , label =
-      El.row [ El.spacing (scaledInt -2) ]
+      El.row
+      [ El.spacing (scaledInt -2)
+      , El.centerX
+      , El.width El.fill
+      ]
       [ textLabel
       , desc.imageLabel
       ]

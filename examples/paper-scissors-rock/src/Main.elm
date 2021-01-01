@@ -889,14 +889,14 @@ viewUserBar myId clients amPlayer canBePlayer =
       [ El.el [ El.width (El.fillPortion 3) ] <|
         El.text <| "You: " ++ me.name ++ " (" ++ roleText ++ ") "
       , El.el [ El.width (El.fillPortion 2) ] <|
-        UI.button
+        UI.longButton
         { enabled = amPlayer
         , onPress = Just ConfirmedBecomeObserver
         , textLabel = "Become observer"
         , imageLabel = El.none
         }
       , El.el [ El.width (El.fillPortion 2) ] <|
-        UI.button
+        UI.longButton
         { enabled = canBePlayer
         , onPress = Just ConfirmedBecomePlayer
         , textLabel = "Become player"
@@ -968,7 +968,7 @@ viewPlayer myId player maybeOtherPlayer =
       viewNamedPlayerShape name shape1
 
     (Showing _, _, Just Closed) ->
-      viewNamedPlayerMessage name "(played)"
+      viewNamedPlayerMessage name "has played"
 
     (Closed, False, Just _) ->
       viewNamedPlayerMessage name "to play"
@@ -1034,19 +1034,19 @@ viewShapeButtons =
   , El.spacing UI.fontSize
   , El.padding UI.fontSize
   ]
-  [ UI.button
+  [ UI.longButton
     { enabled = True
     , onPress = Just (ConfirmedShow Paper)
     , textLabel = "Paper"
     , imageLabel = UI.image "Paper" "../img/paper.svg" 28
     }
-  , UI.button
+  , UI.longButton
     { enabled = True
     , onPress = Just (ConfirmedShow Scissors)
     , textLabel = "Scissors"
     , imageLabel = UI.image "Scissors" "../img/scissors.svg" 28
     }
-  , UI.button
+  , UI.longButton
     { enabled = True
     , onPress = Just (ConfirmedShow Rock)
     , textLabel = "Rock"
