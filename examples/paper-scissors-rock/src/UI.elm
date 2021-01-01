@@ -6,7 +6,7 @@
 module UI exposing
   ( fontSize, bigFontSize, scaled, scaledInt
   , white, black
-  , layout, paddedRow, centredText, centredTextWith
+  , layout, paddedRow, centredTextWith
   , button, inputText
   )
 
@@ -155,15 +155,7 @@ paddedRow =
   El.row
   [ El.width El.fill
   , El.padding innerClearance
-  ]
-
-
-centredText : String -> El.Element msg
-centredText str =
-  El.paragraph
-  [ Font.center
-  ]
-  [ El.text str
+  , El.explain Debug.todo
   ]
 
 

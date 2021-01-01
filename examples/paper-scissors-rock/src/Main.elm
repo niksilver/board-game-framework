@@ -836,7 +836,7 @@ viewGame clients myId =
     playerVacancy = List.length players < 2
     canBePlayer = amObserver && playerVacancy
   in
-  El.column []
+  El.column [ El.width (El.px 800) ]
   [ viewUserBar myId clients amPlayer canBePlayer
 
   , viewPlayers myId players
@@ -883,13 +883,16 @@ viewUserBar myId clients amPlayer canBePlayer =
             Player _ -> "Player"
       in
       UI.paddedRow
-      [ El.text <| "You: " ++ me.name ++ " (" ++ roleText ++ ") "
-      , UI.button
+      [ El.el [ El.width (El.fillPortion 3) ] <|
+        El.text <| "You: " ++ me.name ++ " (" ++ roleText ++ ") "
+      , El.el [ El.width (El.fillPortion 2) ] <|
+        UI.button
         { enabled = amPlayer
         , onPress = Just ConfirmedBecomeObserver
         , label = "Become observer"
         }
-      , UI.button
+      , El.el [ El.width (El.fillPortion 2) ] <|
+        UI.button
         { enabled = canBePlayer
         , onPress = Just ConfirmedBecomePlayer
         , label = "Become player"
