@@ -837,17 +837,26 @@ viewGame clients myId =
     canBePlayer = amObserver && playerVacancy
   in
   El.column
-  [ El.width (El.px 800)
+  [ El.width (El.px 1000)
   , El.centerX
   ]
   [ viewUserBar myId clients amPlayer canBePlayer
-  , viewPlayers myId players
-  , viewPlayStatus players
-  , viewObservers observerNames
-
-  , El.html <| Html.div [] <|
-    viewScores clients
-
+  , El.row [ El.width El.fill ]
+    [ El.column
+      [ El.width <| El.fillPortion 4
+      , El.alignTop
+      ]
+      [ viewPlayers myId players
+      , viewPlayStatus players
+      , viewObservers observerNames
+      ]
+    , El.column
+      [ El.width <| El.fillPortion 1
+      , El.alignTop
+      ]
+      [ viewScores clients
+      ]
+    ]
   ]
 
 
@@ -1099,14 +1108,17 @@ viewObservers names =
   ]
 
 
-viewScores : Clients Profile -> List (Html Msg)
+viewScores : Clients Profile -> El.Element Msg
 viewScores clients =
-  let
-    viewScore client =
-      [ Html.text <| client.name ++ ": " ++ (String.fromInt client.score)
-      , Html.br [] []
-      ]
-  in
-  clients
-  |> Clients.mapToList viewScore
-  |> List.concat
+  UI.paddedColumn <|
+    Clients.mapToList viewOneScore clients
+
+
+viewOneScore : Client Profile -> El.Element Msg
+viewOneScore client =
+  El.row []
+  [ El.el [ El.alignLeft ] <|
+      El.text client.name
+  , El.el [ El.alignRight ] <|
+      El.text (String.fromInt client.score)
+  ]
