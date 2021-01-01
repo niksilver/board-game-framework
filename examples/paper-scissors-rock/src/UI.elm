@@ -209,7 +209,7 @@ button desc =
   ]
   { onPress = if desc.enabled then desc.onPress else Nothing
   , label =
-      El.row []
+      El.row [ El.spacing (scaledInt -2) ]
       [ textLabel
       , desc.imageLabel
       ]

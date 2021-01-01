@@ -1028,19 +1028,19 @@ viewShapeButtons =
     { enabled = True
     , onPress = Just (ConfirmedShow Paper)
     , textLabel = "Paper"
-    , imageLabel = El.none
+    , imageLabel = UI.smallImage "Paper" "../img/paper.svg" 28
     }
   , UI.button
     { enabled = True
     , onPress = Just (ConfirmedShow Scissors)
     , textLabel = "Scissors"
-    , imageLabel = El.none
+    , imageLabel = UI.smallImage "Scissors" "../img/scissors.svg" 28
     }
   , UI.button
     { enabled = True
     , onPress = Just (ConfirmedShow Rock)
     , textLabel = "Rock"
-    , imageLabel = El.none
+    , imageLabel = UI.smallImage "Rock" "../img/rock.svg" 28
     }
   ]
 
