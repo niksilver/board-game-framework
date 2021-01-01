@@ -883,7 +883,9 @@ viewUserBar myId clients amPlayer canBePlayer =
             Observer -> "Observer"
             Player _ -> "Player"
       in
-      UI.paddedRow
+      UI.paddedRowWith
+      [ El.spacing 20
+      ]
       [ El.el [ El.width (El.fillPortion 3) ] <|
         El.text <| "You: " ++ me.name ++ " (" ++ roleText ++ ") "
       , El.el [ El.width (El.fillPortion 2) ] <|

@@ -6,7 +6,7 @@
 module UI exposing
   ( fontSize, bigFontSize, scaled, scaledInt
   , white, black
-  , layout, paddedRow, centredTextWith
+  , layout, paddedRow, paddedRowWith, centredTextWith
   , longButton, button, inputText
   , image
   )
@@ -160,6 +160,17 @@ paddedRow =
   ]
 
 
+paddedRowWith : List (El.Attribute msg) -> List (El.Element msg) -> El.Element msg
+paddedRowWith attrs =
+  El.row <|
+    List.append
+      [ El.width El.fill
+      , El.padding innerClearance
+      , El.explain Debug.todo
+      ]
+      attrs
+
+
 centredText : String -> El.Element msg
 centredText str =
   El.paragraph
@@ -188,7 +199,7 @@ longButton :
   } -> El.Element msg
 longButton desc =
   button
-    { length = El.px 250
+    { length = El.px 230
     , enabled = desc.enabled
     , onPress = desc.onPress
     , textLabel = desc.textLabel
