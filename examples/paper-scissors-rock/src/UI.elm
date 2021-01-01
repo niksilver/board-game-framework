@@ -7,7 +7,7 @@ module UI exposing
   ( fontSize, bigFontSize, scaled, scaledInt
   , white, black
   , layout, paddedRow, paddedRowWith, centredTextWith
-  , longButton, button, inputText
+  , shortButton, longButton, button, inputText
   , image
   )
 
@@ -189,6 +189,22 @@ centredTextWith attrs str =
 
 
 -- Input elements
+
+
+shortButton :
+  { enabled : Bool
+  , onPress : Maybe msg
+  , textLabel : String
+  , imageLabel : El.Element msg
+  } -> El.Element msg
+shortButton desc =
+  button
+    { length = El.px 150
+    , enabled = desc.enabled
+    , onPress = desc.onPress
+    , textLabel = desc.textLabel
+    , imageLabel = desc.imageLabel
+    }
 
 
 longButton :
