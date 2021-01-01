@@ -27,3 +27,9 @@ elm make src/Main.elm --output=psr.js
 and then use `elm reactor` to view `psr.html` to see it running.
 You need reactor because it's a `Browser.application`,
 which relies on running from a server, not the local filesystem.
+
+## Credits
+
+* Paper image by [Alexander Skowalsky, HU ](https://thenounproject.com/search/?q=paper&i=979371)
+* Scissors image by [Abid Muhammad, ID](https://www.pngitem.com/middle/hJmhwTi_sheet-of-paper-icon-paper-sheet-icon-hd/)
+* Rock image by [Lemon Liu, NZ](https://thenounproject.com/term/stone/117090/)

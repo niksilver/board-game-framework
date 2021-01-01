@@ -836,7 +836,10 @@ viewGame clients myId =
     playerVacancy = List.length players < 2
     canBePlayer = amObserver && playerVacancy
   in
-  El.column [ El.width (El.px 800) ]
+  El.column
+  [ El.width (El.px 800)
+  , El.centerX
+  ]
   [ viewUserBar myId clients amPlayer canBePlayer
 
   , viewPlayers myId players
