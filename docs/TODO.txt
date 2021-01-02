@@ -2,7 +2,8 @@ TO DO:
 
 - Wrap module: Documentation using the WrapTest code.
 - Create paper scissors rock game (PSR).
-- Nought and crosses: Explain aspects of the design.
+- Noughts and crosses: Use Sync.
+- Noughts and crosses: Explain aspects of the design.
 - Paper scissors rock: Explain aspects of the design.
 
 DONE:

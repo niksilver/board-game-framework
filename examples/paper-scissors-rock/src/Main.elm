@@ -781,6 +781,7 @@ view model =
 
       Playing state ->
         viewGame
+          (Lobby.urlString model.lobby)
           (Sync.value state.clients)
           model.myId
   }
@@ -814,8 +815,8 @@ viewNameForm draftName =
   ]
 
 
-viewGame : Clients Profile -> BGF.ClientId -> El.Element Msg
-viewGame clients myId =
+viewGame : String -> Clients Profile -> BGF.ClientId -> El.Element Msg
+viewGame urlString clients myId =
   let
     showHands =
       allHavePlayed clients
@@ -849,6 +850,7 @@ viewGame clients myId =
       [ viewPlayers myId players
       , viewPlayStatus players
       , viewObservers observerNames
+      , viewInvitation urlString
       ]
     , El.column
       [ El.width <| El.fillPortion 1
@@ -1122,4 +1124,27 @@ viewOneScore client =
       El.text client.name
   , El.el [ El.alignRight ] <|
       El.text (String.fromInt client.score)
+  ]
+
+
+viewInvitation : String -> El.Element Msg
+viewInvitation urlString =
+  let
+    roomString =
+      case String.indexes "#" urlString of
+        i :: _ ->
+          String.dropLeft (i + 1) urlString
+        _ ->
+          "[unknown]"
+  in
+  UI.paddedRow
+  [ El.paragraph []
+    [ El.text <| "Invite your friends with "
+    , El.link
+      [ El.pointer, Font.underline ]
+      { url = urlString
+      , label = El.text urlString
+      }
+    , El.text <| " or room name " ++ roomString
+    ]
   ]
