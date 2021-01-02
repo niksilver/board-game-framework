@@ -849,7 +849,6 @@ viewGame urlString clients myId =
       [ viewUserBar myId clients amPlayer canBePlayer
       , viewPlayers myId players
       , viewPlayStatus players
-      , viewObservers observerNames
       ]
     , El.column [ El.width <| El.fillPortion 1 ] [ El.none ]
     , El.column
@@ -1096,27 +1095,44 @@ viewPlayStatusMessage message =
   ]
 
 
-viewObservers : List String -> El.Element Msg
-viewObservers names =
-  let
-    names2 =
-      if List.length names == 0 then
-        "None"
-      else
-        String.join ", " names
-  in
-  UI.paddedRow
-  [ El.paragraph []
-    [ El.text <| "Observers: " ++ names2
-    ]
-  ]
-
-
 viewScores : Clients Profile -> El.Element Msg
 viewScores clients =
+  let
+    sortList =
+      Clients.toList >> List.sortBy .name
+    (players, observers) =
+      clients
+      |> Clients.partition isPlayer
+      |> Tuple.mapBoth sortList sortList
+    (maybePlayer1, maybePlayer2) =
+      case players of
+        [] ->
+          ( Nothing, Nothing )
+        [ p1 ] ->
+          ( Just p1, Nothing )
+        p1 :: p2 :: _ ->
+          ( Just p1, Just p2 )
+
+  in
   UI.paddedSpacedColumn <|
-    UI.heading "Scores"
-    :: Clients.mapToList viewOneScore clients
+    List.concat
+    [ [ UI.heading "Players" ]
+    , [ viewMaybeOneScore maybePlayer1 ]
+    , [ viewMaybeOneScore maybePlayer2 ]
+    , [ viewEmptyScore ]
+    , [ UI.heading "Observers" ]
+    , List.map viewOneScore observers
+    ]
+
+
+viewMaybeOneScore : Maybe (Client Profile) -> El.Element Msg
+viewMaybeOneScore maybeClient =
+  case maybeClient of
+    Nothing ->
+      viewEmptyScore
+
+    Just client ->
+      viewOneScore client
 
 
 viewOneScore : Client Profile -> El.Element Msg
@@ -1126,6 +1142,13 @@ viewOneScore client =
       El.text client.name
   , El.el [ El.alignRight ] <|
       El.text (String.fromInt client.score)
+  ]
+
+
+viewEmptyScore :  El.Element Msg
+viewEmptyScore =
+  El.row [ El.width El.fill ]
+  [ El.text " "
   ]
 
 
@@ -1141,12 +1164,12 @@ viewInvitation urlString =
   in
   UI.paddedRow
   [ El.paragraph []
-    [ El.text <| "Invite your friends with "
+    [ El.text <| "Invite your friends to "
     , El.link
       [ El.pointer, Font.underline ]
       { url = urlString
       , label = El.text urlString
       }
-    , El.text <| " or room name " ++ roomString
+    , El.text <| " or use room name " ++ roomString
     ]
   ]
