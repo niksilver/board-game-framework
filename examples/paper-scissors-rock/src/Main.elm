@@ -843,7 +843,7 @@ viewGame urlString clients myId =
   ]
   [ El.row [ El.width El.fill ]
     [ El.column
-      [ El.width <| El.fillPortion 3
+      [ El.width <| El.fillPortion 10
       , El.alignTop
       ]
       [ viewUserBar myId clients amPlayer canBePlayer
@@ -851,8 +851,9 @@ viewGame urlString clients myId =
       , viewPlayStatus players
       , viewObservers observerNames
       ]
+    , El.column [ El.width <| El.fillPortion 1 ] [ El.none ]
     , El.column
-      [ El.width <| El.fillPortion 1
+      [ El.width <| El.fillPortion 3
       , El.alignTop
       ]
       [ viewScores clients
@@ -879,8 +880,9 @@ viewUserBar myId clients amPlayer canBePlayer =
       UI.paddedRowWith
       [ El.spacing 20
       ]
-      [ El.el [ El.width (El.fillPortion 3) ] <|
-        El.text <| "You: " ++ me.name ++ " (" ++ roleText ++ ") "
+      [ El.paragraph [ El.width (El.fillPortion 3) ] <|
+        [ El.text <| "You: " ++ me.name ++ " (" ++ roleText ++ ") "
+        ]
 
       , El.el [ El.width (El.fillPortion 2) ] <|
         UI.shortCentredButton
