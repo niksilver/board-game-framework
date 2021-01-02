@@ -841,16 +841,15 @@ viewGame urlString clients myId =
   [ El.width (El.px 1000)
   , El.centerX
   ]
-  [ viewUserBar myId clients amPlayer canBePlayer
-  , El.row [ El.width El.fill ]
+  [ El.row [ El.width El.fill ]
     [ El.column
       [ El.width <| El.fillPortion 3
       , El.alignTop
       ]
-      [ viewPlayers myId players
+      [ viewUserBar myId clients amPlayer canBePlayer
+      , viewPlayers myId players
       , viewPlayStatus players
       , viewObservers observerNames
-      , viewInvitation urlString
       ]
     , El.column
       [ El.width <| El.fillPortion 1
@@ -859,6 +858,7 @@ viewGame urlString clients myId =
       [ viewScores clients
       ]
     ]
+  , viewInvitation urlString
   ]
 
 
