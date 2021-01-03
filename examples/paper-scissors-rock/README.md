@@ -101,6 +101,29 @@ has a hand.
 
 ### Message types
 
+The `Msg` that's sent into the top level `update` function has the following variants:
+* `ToLobby` is a wrapper for any message that needs to pass into the `lobby`.
+* `NewDraftName` and `ConfirmedName` are for when we're typing our name into the text
+  box and clicking the button to confirm it.
+* `Received` carries any envelope received from the outside world. This might be
+  a game message or something about our connectivity status. We'll discuss it a bit more
+  below.
+* The other `Confirmed...` variants indicate buttons pressed in the game:
+  becoming an observer, becoming a player, choosing a hand shape, and clicking for
+  another game.
+
+The `Body` type describes a game-specific message sent between clients.
+In this game there are only two kinds. `MyNameMsg` tells clients that we have a name
+for a client. `ClientListMsg` is an update of the entire playing state, which is
+simply `Clients Profile`. But since this state needs to be synchronised between all
+the clients this is a `ClientListMsg (Sync (Clients Profile))`. See the `Sync`
+module for more there.
+
+As mentioned above, the `Received` type tells us about a received an envelope.
+The envelope itself can carry a `Body`, so it's of type `Envelope Body`. But since
+it's been decoded from JSON it might have a JSON decoding `Error` instead. So in fact
+the `Received` message gives us a `Result Error (Envelope Body)`.
+
 ### Client functions
 
 ### Initialisation
