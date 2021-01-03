@@ -785,52 +785,62 @@ view model =
 
 viewLobby : Lobby Msg Progress -> El.Element Msg
 viewLobby lobby =
-  UI.mainColumn
-  [ UI.heading "Paper, Scissors, Rock"
-  , UI.paddedRowWith
-    [ El.width El.shrink
-    , El.spacing 20
-    ]
-    [ UI.inputText
+  entryScreen
+    ( UI.inputText
       { onChange = Lobby.newDraft ToLobby
       , text = Lobby.draft lobby
       , placeholderText = "Room name"
       , label = "Choose a room name"
       , fontScale = 12
       }
-    , UI.shortButton
+    )
+    ( UI.shortButton
       { enabled = Lobby.okDraft lobby
       , onPress = Just (Lobby.confirm ToLobby)
       , textLabel = "Next"
       , imageLabel = El.none
       }
+    )
+
+
+entryScreen : El.Element Msg -> El.Element Msg -> El.Element Msg
+entryScreen textInput button =
+  UI.mainColumn
+  [ UI.heading "Paper, Scissors, Rock"
+  , UI.paddedRowWith
+    [ El.spacing 20
+    ]
+    [ El.el
+      [ El.width (El.fillPortion 2)
+      ]
+      (El.el [El.alignRight] textInput)
+    , El.el
+      [ El.width (El.fillPortion 1)
+      , El.alignLeft
+      ]
+      button
     ]
   ]
 
 
 viewNameForm : String -> El.Element Msg
 viewNameForm draftName =
-  UI.mainColumn
-  [ UI.heading "Paper, Scissors, Rock"
-  , UI.paddedRowWith
-    [ El.width El.shrink
-    , El.spacing 20
-    ]
-    [ UI.inputText
-      { onChange = NewDraftName
-      , text = draftName
-      , placeholderText = "Name"
-      , label = "Your name"
-      , fontScale = 12
-      }
-    , UI.shortButton
-      { enabled = okName draftName
-      , onPress = Just ConfirmedName
-      , textLabel = "Go"
-      , imageLabel = El.none
-      }
-    ]
-  ]
+  entryScreen
+  ( UI.inputText
+    { onChange = NewDraftName
+    , text = draftName
+    , placeholderText = "Name"
+    , label = "Your name"
+    , fontScale = 12
+    }
+  )
+  ( UI.shortButton
+    { enabled = okName draftName
+    , onPress = Just ConfirmedName
+    , textLabel = "Go"
+    , imageLabel = El.none
+    }
+  )
 
 
 viewGame : String -> Clients Profile -> BGF.ClientId -> El.Element Msg

@@ -344,7 +344,7 @@ inputText desc =
       El.text desc.label
       |> El.el
         [ Font.color mp.text
-        , El.paddingXY 4 0
+        , El.paddingXY 10 0
         ]
       |> Input.labelLeft []
   }
