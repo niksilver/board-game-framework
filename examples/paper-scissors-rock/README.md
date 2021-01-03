@@ -126,6 +126,22 @@ the `Received` message gives us a `Result Error (Envelope Body)`.
 
 ### Client functions
 
+The framework's `Clients` module allows us to handle a collection of clients specific
+to our application. In our case we have `Client Profile`, which describes
+a single client with a name, a role and a score (as well as its ID, which is implicit
+in any `Client e`). `Clients Profile` describes a collection of these. We also
+have `Client PlayerProfile` which describes a client we know to be a player;
+this has a name, a hand and a score. Likewise a collection of these is a
+`Client PlayerProfile`.
+
+Our client functions allow game-specific capabilities. There is some logic that
+tries to ensure there are never more than two players in any `Clients Profile`,
+which might happen when an observer becomes a player, or when a new client joins
+(because they might have a player role). This logic could have been avoided
+if we'd been rigid about "making impossible states impossible" and used something
+with more structure than just a collection of `Clients`, but I judged that extra
+structure as too much.
+
 ### Initialisation
 
 ### Game connectivity
