@@ -36,6 +36,8 @@ This section describes the general design of the application. Read it in conjunc
 with the
 [general board game framework
 documentation](https://github.com/niksilver/board-game-framework/tree/master/docs).
+Apart from the game concepts the sections below correspond to sections in
+the `Main.elm` code.
 
 ### Game concepts
 
@@ -60,7 +62,7 @@ If either player has chosen a shape they can choose to "play again".
 A player gets one points for a win. All clients have a score, even observers, because
 anyone can switch roles
 
-### The model and types
+### The model and main types
 
 First we'll look at the types for playing the main game, then step back and look
 at the whole `Model`, which also deals with the steps leading up to that.
@@ -96,6 +98,8 @@ we want to communicate to other clients the name we've chosen. `Clients PlayerPr
 useful when we want to deal with not just a client which might be an observer or a
 player, but when we want to deal with a client that we know is a player, and therefore
 has a hand.
+
+### Message types
 
 ### Client functions
 
