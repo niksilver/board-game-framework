@@ -774,8 +774,6 @@ view model =
 
       ChoosingName state ->
         viewNameForm state.draftName
-        |> Html.div []
-        |> El.html
 
       Playing state ->
         viewGame
@@ -798,31 +796,39 @@ viewLobby lobby =
       , text = Lobby.draft lobby
       , placeholderText = "Room name"
       , label = "Choose a room name"
-      , fontScale = UI.fontSize
+      , fontScale = 12
       }
     , UI.shortButton
       { enabled = Lobby.okDraft lobby
       , onPress = Just (Lobby.confirm ToLobby)
-      , textLabel = "Go"
+      , textLabel = "Next"
       , imageLabel = El.none
       }
     ]
   ]
 
 
-viewNameForm : String -> List (Html Msg)
+viewNameForm : String -> El.Element Msg
 viewNameForm draftName =
-  [ Html.label [] [ Html.text "Your name" ]
-  , Html.input
-    [ Events.onInput NewDraftName
-    , Attr.value draftName
+  UI.mainColumn
+  [ UI.heading "Paper, Scissors, Rock"
+  , UI.paddedRowWith
+    [ El.width El.shrink
+    , El.spacing 20
     ]
-    []
-  , Html.button
-    [ Events.onClick ConfirmedName
-    , Attr.disabled (not <| okName draftName)
-    ]
-    [ Html.label [] [ Html.text "Go" ]
+    [ UI.inputText
+      { onChange = NewDraftName
+      , text = draftName
+      , placeholderText = "Name"
+      , label = "Your name"
+      , fontScale = 12
+      }
+    , UI.shortButton
+      { enabled = okName draftName
+      , onPress = Just ConfirmedName
+      , textLabel = "Go"
+      , imageLabel = El.none
+      }
     ]
   ]
 
