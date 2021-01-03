@@ -706,9 +706,6 @@ updateAnotherRound model =
       (model, Cmd.none)
 
 
--- Set values for progress in the model
-
-
 setDraftName : String -> Model -> Model
 setDraftName draft model =
   case model.progress of
