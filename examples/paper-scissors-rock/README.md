@@ -1,5 +1,7 @@
 # Paper, scissors, rock
 
+[Play this game online.](https://niksilver.github.io/games/psr.html)
+
 This game demonstrates two things:
 * Each player having a hidden state - their hand is revealed only when both
   players have made their choice.
@@ -7,7 +9,7 @@ This game demonstrates two things:
   others are observers until one player leaves, at which point an observer
   can opt to play.
 
-## Files and compilation
+## Main files and compilation
 
 * *src/Main.elm*. The main Elm app.
 * *psr.html*. The shell page that the Elm app drops
@@ -15,8 +17,6 @@ This game demonstrates two things:
   the initialisation values.
 * *lib/board-game-framework.js*. A copy of the JavaScript framework library
   used by the shell page.
-
-## Compiling and running
 
 Compile the Elm app using
 

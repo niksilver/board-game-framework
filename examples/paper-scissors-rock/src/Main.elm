@@ -164,12 +164,11 @@ hasPlayed client =
       False
 
 
--- True if all players have played their hand
-allHavePlayed : Clients Profile -> Bool
-allHavePlayed clients =
+-- The number of clients that have played their hand
+countOfPlayed : Clients Profile -> Int
+countOfPlayed clients =
   clients
   |> Clients.filterLength hasPlayed
-  |> (==) 2
 
 
 playerCount : Clients Profile -> Int
@@ -847,7 +846,7 @@ viewGame : String -> Clients Profile -> BGF.ClientId -> El.Element Msg
 viewGame urlString clients myId =
   let
     showHands =
-      allHavePlayed clients
+      (countOfPlayed clients) == 2
     players =
       playerList clients
     observers =
@@ -926,7 +925,7 @@ viewUserBar myId clients amPlayer canBePlayer =
 
       , El.el [ El.width (El.fillPortion 2) ] <|
         UI.shortCentredButton
-        { enabled = amPlayer
+        { enabled = (countOfPlayed clients >= 1)
         , onPress = Just ConfirmedAnother
         , textLabel = "Play again"
         , imageLabel = El.none
