@@ -1179,21 +1179,33 @@ viewEmptyScore =
 viewInvitation : String -> El.Element Msg
 viewInvitation urlString =
   let
-    roomString =
+    hashIndexes = String.indexes "#" urlString
+    (restartLink, roomString) =
       case String.indexes "#" urlString of
         i :: _ ->
-          String.dropLeft (i + 1) urlString
+          ( String.left i urlString
+          , String.dropLeft (i + 1) urlString
+          )
         _ ->
-          "[unknown]"
+          ( "[unknown]"
+          , "[unknown]"
+          )
   in
   UI.paddedRow
   [ El.paragraph []
-    [ El.text <| "Invite your friends to "
+    [ El.text "Invite your friends to "
     , El.link
       [ El.pointer, Font.underline ]
       { url = urlString
       , label = El.text urlString
       }
-    , El.text <| " or use room name " ++ roomString
+    , El.text <| " or give them room name " ++ roomString ++ ". "
+    , El.text "You can also "
+    , El.link
+      [ El.pointer, Font.underline ]
+      { url = restartLink
+      , label = El.text "find another room"
+      }
+      , El.text "."
     ]
   ]
