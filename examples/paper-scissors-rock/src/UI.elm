@@ -6,9 +6,9 @@
 module UI exposing
   ( fontSize, bigFontSize, scaled, scaledInt
   , white, black
-  , layout, paddedRow, paddedRowWith, paddedSpacedColumn
+  , layout, paddedRow, paddedRowWith, mainColumn, paddedSpacedColumn
   , centredTextWith, heading
-  , shortCentredButton, longButton, button, inputText
+  , shortButton, shortCentredButton, longButton, button, inputText
   , image
   )
 
@@ -170,6 +170,15 @@ paddedRowWith attrs =
       attrs
 
 
+mainColumn : List (El.Element msg) -> El.Element msg
+mainColumn elts =
+  El.column
+  [ El.width (El.px 1000)
+  , El.centerX
+  ]
+  elts
+
+
 paddedSpacedColumn : List (El.Element msg) -> El.Element msg
 paddedSpacedColumn =
   El.column
@@ -202,6 +211,22 @@ heading h =
 
 
 -- Input elements
+
+
+shortButton :
+  { enabled : Bool
+  , onPress : Maybe msg
+  , textLabel : String
+  , imageLabel : El.Element msg
+  } -> El.Element msg
+shortButton desc =
+  button
+    { length = El.px 120
+    , enabled = desc.enabled
+    , onPress = desc.onPress
+    , textLabel = desc.textLabel
+    , imageLabel = desc.imageLabel
+    }
 
 
 shortCentredButton :

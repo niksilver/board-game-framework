@@ -771,8 +771,6 @@ view model =
     <| case model.progress of
       InLobby ->
         viewLobby model.lobby
-        |> Html.div []
-        |> El.html
 
       ChoosingName state ->
         viewNameForm state.draftName
@@ -787,14 +785,28 @@ view model =
   }
 
 
-viewLobby : Lobby Msg Progress -> List (Html Msg)
+viewLobby : Lobby Msg Progress -> El.Element Msg
 viewLobby lobby =
-  [ Lobby.view
-    { label = "Room:"
-    , placeholder = "Room"
-    , button = "Next"
-    }
-    lobby
+  UI.mainColumn
+  [ UI.heading "Paper, Scissors, Rock"
+  , UI.paddedRowWith
+    [ El.width El.shrink
+    , El.spacing 20
+    ]
+    [ UI.inputText
+      { onChange = Lobby.newDraft ToLobby
+      , text = Lobby.draft lobby
+      , placeholderText = "Room name"
+      , label = "Choose a room name"
+      , fontScale = UI.fontSize
+      }
+    , UI.shortButton
+      { enabled = Lobby.okDraft lobby
+      , onPress = Just (Lobby.confirm ToLobby)
+      , textLabel = "Go"
+      , imageLabel = El.none
+      }
+    ]
   ]
 
 
@@ -837,10 +849,7 @@ viewGame urlString clients myId =
     playerVacancy = List.length players < 2
     canBePlayer = amObserver && playerVacancy
   in
-  El.column
-  [ El.width (El.px 1000)
-  , El.centerX
-  ]
+  UI.mainColumn
   [ El.row [ El.width El.fill ]
     [ El.column
       [ El.width <| El.fillPortion 10
