@@ -4,7 +4,6 @@ TO DO:
 - Noughts and crosses: Use Sync.
 - Noughts and crosses: Explain aspects of the design.
 - Paper scissors rock: Explain aspects of the design.
-- Paper scissors rock: Get rid of room field in ChoosingName and Progress?
 
 DONE:
 

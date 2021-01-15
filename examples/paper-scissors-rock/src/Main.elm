@@ -58,13 +58,11 @@ type alias Model =
 type Progress =
   InLobby
   | ChoosingName
-    { room : BGF.Room
-    , draftName : String
+    { draftName : String
     , clients : Sync (Clients Profile)
     }
   | Playing
-    { room : BGF.Room
-    , myName : String
+    { myName : String
     , clients : Sync (Clients Profile)
     }
 
@@ -323,10 +321,9 @@ lobbyConfig =
 
 
 lobbyProgress : BGF.Room -> Progress
-lobbyProgress room =
+lobbyProgress _ =
   ChoosingName
-  { room = room
-  , draftName = ""
+  { draftName = ""
   , clients = initClients
   }
 
@@ -339,15 +336,13 @@ changeRoom room progress =
 
     ChoosingName rec ->
       ChoosingName
-      { room = room
-      , draftName = rec.draftName
+      { draftName = rec.draftName
       , clients = initClients
       }
 
     Playing rec ->
       Playing
-      { room = room
-      , myName = rec.myName
+      { myName = rec.myName
       , clients = initClients
       }
 
@@ -521,8 +516,7 @@ update msg model =
                 |> Sync.mapToNext (addClient me)
               progress =
                 Playing
-                { room = state.room
-                , myName = me.name
+                { myName = me.name
                 , clients = clients
                 }
             in
