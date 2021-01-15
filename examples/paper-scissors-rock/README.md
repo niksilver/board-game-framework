@@ -87,10 +87,13 @@ our `Progress` type.
 
 Our client's progress is always in one of three states: `InLobby` is where we are
 choosing a room; `ChoosingName` is after that; and finally we are `Playing`.
-For both the last two we need to track both our room name and the state
-of all the clients. We want the list of clients for `ChoosingName` because at this
-point we have joined the room and we will receive the list of clients; then when we
-show the playing screen all the clients will be up to date. Also when `ChoosingName`
+For `ChoosingName` we keep track of the name we've typed so far.
+We also want the list of clients because at this
+point we have joined the room and we have them ready for when we show the playing screen.
+For `Playing` we also keep the list of all clients, and also our name. This is so
+that if we change room we can take our name with us.
+
+Also when `ChoosingName`
 we need to keep the name we have typed so far, which is in the `draftName` field.
 
 Finally it's worth mentioning two more types. `NamedClient` is used simply when

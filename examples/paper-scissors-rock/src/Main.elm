@@ -64,6 +64,7 @@ type Progress =
     }
   | Playing
     { room : BGF.Room
+    , myName : String
     , clients : Sync (Clients Profile)
     }
 
@@ -346,6 +347,7 @@ changeRoom room progress =
     Playing rec ->
       Playing
       { room = room
+      , myName = rec.myName
       , clients = initClients
       }
 
@@ -520,6 +522,7 @@ update msg model =
               progress =
                 Playing
                 { room = state.room
+                , myName = me.name
                 , clients = clients
                 }
             in
@@ -569,10 +572,24 @@ updateWithEnvelope : BGF.Envelope Body -> Model -> (Model, Cmd Msg)
 updateWithEnvelope env model =
   case env of
     BGF.Welcome rec ->
-      -- We've joined the game, but no action required.
-      ( model
-      , Cmd.none
-      )
+      case model.progress of
+        InLobby ->
+          -- We've joined a room, but still in the lobby? Doesn't make sense; ignore
+          ( model
+          , Cmd.none
+          )
+
+        ChoosingName _ ->
+          -- We've joined a room, but don't do anything until we've chosen our name
+          ( model
+          , Cmd.none
+          )
+
+        Playing state ->
+          -- We've joined a room from the middle of a game; announce ourselves
+          ( model
+          , sendMyNameCmd { id = model.myId, name = state.myName }
+          )
 
     BGF.Peer rec ->
       updateWithBody env rec.body model
