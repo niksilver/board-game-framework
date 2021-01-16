@@ -93,9 +93,6 @@ point we have joined the room and we have them ready for when we show the playin
 For `Playing` we also keep the list of all clients, and also our name. This is so
 that if we change room we can take our name with us.
 
-Also when `ChoosingName`
-we need to keep the name we have typed so far, which is in the `draftName` field.
-
 Finally it's worth mentioning two more types. `NamedClient` is used simply when
 we want to communicate to other clients the name we've chosen. `Clients PlayerProfile` is
 useful when we want to deal with not just a client which might be an observer or a
@@ -135,7 +132,7 @@ a single client with a name, a role and a score (as well as its ID, which is imp
 in any `Client e`). `Clients Profile` describes a collection of these. We also
 have `Client PlayerProfile` which describes a client we know to be a player;
 this has a name, a hand and a score. Likewise a collection of these is a
-`Client PlayerProfile`.
+`Clients PlayerProfile`.
 
 Our client functions allow game-specific capabilities. There is some logic that
 tries to ensure there are never more than two players in any `Clients Profile`,
