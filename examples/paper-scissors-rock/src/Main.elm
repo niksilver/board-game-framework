@@ -504,8 +504,7 @@ update msg model =
       case model.progress of
         ChoosingName state ->
           if okName state.draftName then
-            -- With a good name we can send our name to any other clients
-            -- and our player list
+            -- With an acceptable name we can send our name to any other clients
             let
               me =
                 { id = model.myId
@@ -523,10 +522,7 @@ update msg model =
             ( { model
               | progress = progress
               }
-            , Cmd.batch
-              [ sendMyNameCmd (NamedClient me.id me.name)
-              , sendClientListCmd clients
-              ]
+            , sendMyNameCmd (NamedClient me.id me.name)
             )
           else
             (model, Cmd.none)
