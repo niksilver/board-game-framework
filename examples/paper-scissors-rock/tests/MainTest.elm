@@ -248,3 +248,24 @@ encodeRoleTest =
       |> Expect.equal expected
 
   ]
+
+
+encodeHandForClientTest : Test
+encodeHandForClientTest =
+  describe "encodeHandForClient test"
+
+  [ test "Should encode Client 987, showing Scissors" <|
+    \_ ->
+      let
+        expected =
+          Enc.object
+            [ ("id", Enc.string "987")
+            , ("hand", Enc.string "ShowingScissors")
+            ]
+          |> Enc.encode 0
+      in
+      encodeHandForClient { id = "987", hand = Showing Scissors }
+      |> Enc.encode 0
+      |> Expect.equal expected
+
+  ]
