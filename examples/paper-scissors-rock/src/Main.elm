@@ -393,23 +393,30 @@ receive =
 -- JSON encoders and decoders
 
 
+handToString : Hand -> String
+handToString hand =
+  case hand of
+    Closed ->
+      "Closed"
+
+    Showing Paper ->
+      "ShowingPaper"
+
+    Showing Scissors ->
+      "ShowingScissors"
+
+    Showing Rock ->
+      "ShowingRock"
+
+
 encodeRole : Role -> Enc.Value
 encodeRole role =
   case role of
-    Player Closed ->
-      Enc.string "PlayerClosed"
-
-    Player (Showing Paper) ->
-      Enc.string "PlayerShowingPaper"
-
-    Player (Showing Scissors) ->
-      Enc.string "PlayerShowingScissors"
-
-    Player (Showing Rock) ->
-      Enc.string "PlayerShowingRock"
+    Player hand ->
+      Enc.list Enc.string ["Player", handToString hand]
 
     Observer ->
-      Enc.string "Observer"
+      Enc.list Enc.string ["Observer"]
 
 
 encodeNamedClient : NamedClient -> Enc.Value
@@ -441,20 +448,61 @@ namedClientDecoder =
     (Dec.field "name" Dec.string)
 
 
+stringToHandDecoder : String -> Dec.Decoder Hand
+stringToHandDecoder str =
+  case str of
+    "Closed" ->
+      Dec.succeed Closed
+
+    "ShowingPaper" ->
+      Dec.succeed (Showing Paper)
+
+    "ShowingScissors" ->
+      Dec.succeed (Showing Scissors)
+
+    "ShowingRock" ->
+      Dec.succeed (Showing Rock)
+
+    hand ->
+      Dec.fail ("Unrecognised hand '" ++ hand ++ "' from player")
+
+
+secondElementDecoder : List String -> Dec.Decoder String
+secondElementDecoder list =
+  case list of
+    _ :: second :: _ ->
+      Dec.succeed second
+
+    _ ->
+      Dec.fail "No second element in list"
+
+
+listToRoleDecoder : List String -> Dec.Decoder Role
+listToRoleDecoder list =
+  case list of
+    "Player" :: _ ->
+      Dec.list Dec.string
+      |> Dec.andThen secondElementDecoder
+      |> Dec.andThen stringToHandDecoder
+      |> Dec.map Player
+
+    ["Observer"] ->
+      Dec.succeed Observer
+
+    "Observer" :: _ ->
+      Dec.fail ("Extra data with observer")
+
+    head :: _ ->
+      Dec.fail ("Unrecognised list head '" ++ head ++ "'")
+
+    [] ->
+      Dec.fail ("Empty list")
+
+
 roleDecoder : Dec.Decoder Role
 roleDecoder =
-  let
-    toSymbol str =
-      case str of
-        "PlayerClosed" -> Dec.succeed (Player Closed)
-        "PlayerShowingPaper" -> Dec.succeed (Player (Showing Paper))
-        "PlayerShowingScissors" -> Dec.succeed (Player (Showing Scissors))
-        "PlayerShowingRock" -> Dec.succeed (Player (Showing Rock))
-        "Observer" -> Dec.succeed Observer
-        _ -> Dec.fail ("Unrecognised role '" ++ str ++ "'")
-  in
-  Dec.string
-  |> Dec.andThen toSymbol
+  Dec.list Dec.string
+  |> Dec.andThen listToRoleDecoder
 
 
 clientDecoder : Dec.Decoder (Client Profile)
