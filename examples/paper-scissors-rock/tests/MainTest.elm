@@ -137,3 +137,58 @@ handDecoderTest =
       |> Expect.err
 
   ]
+
+
+roleDecoderTest : Test
+roleDecoderTest =
+  describe "roleDecoder test"
+
+  [ test "Should decode Player Showing Scissors" <|
+    \_ ->
+      Enc.list Enc.string ["Player", "ShowingScissors"]
+      |> Dec.decodeValue roleDecoder
+      |> Expect.equal (Ok (Player (Showing Scissors)))
+
+  , test "Should reject player without any hand" <|
+    \_ ->
+      Enc.list Enc.string ["Player"]
+      |> Dec.decodeValue roleDecoder
+      |> Expect.err
+
+  , test "Should reject player with nonsense hand" <|
+    \_ ->
+      Enc.list Enc.string ["Player", "Scooby Doo"]
+      |> Dec.decodeValue roleDecoder
+      |> Expect.err
+
+  , test "Should decode Observer" <|
+    \_ ->
+      Enc.list Enc.string ["Observer"]
+      |> Dec.decodeValue roleDecoder
+      |> Expect.equal (Ok Observer)
+
+  , test "Should reject Observer with extra bits" <|
+    \_ ->
+      Enc.list Enc.string ["Observer", "ShowingScissors"]
+      |> Dec.decodeValue roleDecoder
+      |> Expect.err
+
+  , test "Should reject nonsense role" <|
+    \_ ->
+      Enc.list Enc.string ["Troublemaker"]
+      |> Dec.decodeValue roleDecoder
+      |> Expect.err
+
+  , test "Should reject empty list" <|
+    \_ ->
+      Enc.list Enc.string []
+      |> Dec.decodeValue roleDecoder
+      |> Expect.err
+
+  , test "Should reject non-string-list" <|
+    \_ ->
+      Enc.int 999
+      |> Dec.decodeValue roleDecoder
+      |> Expect.err
+
+  ]
