@@ -67,7 +67,7 @@ type Progress =
     }
 
 
-type alias NamedClient =
+type alias NameForClient =
   { id : BGF.ClientId
   , name : String
   }
@@ -121,7 +121,7 @@ type Msg =
 
 
 type Body =
-  MyNameMsg NamedClient
+  MyNameMsg NameForClient
   | ClientListMsg (Sync (Clients Profile))
 
 
@@ -176,7 +176,7 @@ playerCount cs =
   |> Clients.filterLength isPlayer
 
 
-addClient : NamedClient -> Clients Profile -> Clients Profile
+addClient : NameForClient -> Clients Profile -> Clients Profile
 addClient namedClient cs =
   let
     clientIsPlayer =
@@ -371,9 +371,9 @@ sendClientListCmd =
   Wrap.send outgoing "clients" encodeSyncClientList
 
 
-sendMyNameCmd : NamedClient -> Cmd Msg
+sendMyNameCmd : NameForClient -> Cmd Msg
 sendMyNameCmd =
-  Wrap.send outgoing "myName" encodeNamedClient
+  Wrap.send outgoing "myName" encodeNameForClient
 
 
 subscriptions : Model -> Sub Msg
@@ -419,8 +419,8 @@ encodeRole role =
       Enc.list Enc.string ["Observer"]
 
 
-encodeNamedClient : NamedClient -> Enc.Value
-encodeNamedClient namedClient =
+encodeNameForClient : NameForClient -> Enc.Value
+encodeNameForClient namedClient =
   Enc.object
     [ ( "id", Enc.string namedClient.id )
     , ( "name", Enc.string namedClient.name )
@@ -441,9 +441,9 @@ encodeSyncClientList scl =
   Sync.encode encodeClientList scl
 
 
-namedClientDecoder : Dec.Decoder NamedClient
+namedClientDecoder : Dec.Decoder NameForClient
 namedClientDecoder =
-  Dec.map2 NamedClient
+  Dec.map2 NameForClient
     (Dec.field "id" Dec.string)
     (Dec.field "name" Dec.string)
 
@@ -570,7 +570,7 @@ update msg model =
             ( { model
               | progress = progress
               }
-            , sendMyNameCmd (NamedClient me.id me.name)
+            , sendMyNameCmd (NameForClient me.id me.name)
             )
           else
             (model, Cmd.none)
