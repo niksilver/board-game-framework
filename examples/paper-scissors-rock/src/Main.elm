@@ -73,9 +73,9 @@ type alias NameForClient =
   }
 
 
-type alias HandForClient =
+type alias RoleForClient =
   { id : BGF.ClientId
-  , hand : Hand
+  , role : Role
   }
 
 
@@ -382,9 +382,9 @@ sendMyNameCmd =
   Wrap.send outgoing "myName" encodeNameForClient
 
 
-sendMyHandCmd : HandForClient -> Cmd Msg
-sendMyHandCmd =
-  Wrap.send outgoing "myHand" encodeHandForClient
+sendMyRoleCmd : RoleForClient -> Cmd Msg
+sendMyRoleCmd =
+  Wrap.send outgoing "myRole" encodeRoleForClient
 
 
 subscriptions : Model -> Sub Msg
@@ -444,11 +444,11 @@ encodeNameForClient nameForClient =
     ]
 
 
-encodeHandForClient : HandForClient -> Enc.Value
-encodeHandForClient handForClient =
+encodeRoleForClient : RoleForClient -> Enc.Value
+encodeRoleForClient roleForClient =
   Enc.object
-    [ ( "id", Enc.string handForClient.id )
-    , ( "hand", encodeHand handForClient.hand )
+    [ ( "id", Enc.string roleForClient.id )
+    , ( "role", encodeRole roleForClient.role )
     ]
 
 
@@ -473,11 +473,11 @@ nameForClientDecoder =
     (Dec.field "name" Dec.string)
 
 
-handForClientDecoder : Dec.Decoder HandForClient
-handForClientDecoder =
-  Dec.map2 HandForClient
+roleForClientDecoder : Dec.Decoder RoleForClient
+roleForClientDecoder =
+  Dec.map2 RoleForClient
     (Dec.field "id" Dec.string)
-    (Dec.field "hand" handDecoder)
+    (Dec.field "role" roleDecoder)
 
 
 handDecoder : Dec.Decoder Hand
@@ -626,13 +626,13 @@ update msg model =
           (model, Cmd.none)
 
     ConfirmedBecomeObserver ->
-      updateMyRole Observer model
+      updateRole model.myId Observer model
 
     ConfirmedBecomePlayer ->
-      updateMyRole (Player Closed) model
+      updateRole model.myId (Player Closed) model
 
     ConfirmedShow shape ->
-      updateMyRole (Player (Showing shape)) model
+      updateRole model.myId (Player (Showing shape)) model
 
     ConfirmedAnother ->
       updateAnotherRound model
@@ -691,7 +691,7 @@ updateWithEnvelope env model =
     BGF.Leaver rec ->
       -- Remove a leaver from the clients list and send the new list
       model
-      |> mapClientsToNextAndSend (Clients.remove rec.leaver)
+      |> updateWithNewClients (Clients.remove rec.leaver)
 
     BGF.Connection conn ->
       -- Ignore a connection change
@@ -713,7 +713,11 @@ updateWithBody env body model =
   case body of
     MyNameMsg nameForClient ->
       model
-      |> mapClientsToNextAndSend (addClient nameForClient)
+      |> updateWithNewClients (addClient nameForClient)
+
+    {--    MyRoleMsg roleForClient ->
+      model
+      |> updateWithNewClients (setRole roleForClient.id roleForClient.role)--}
 
     ClientListMsg clients ->
       case model.progress of
@@ -745,13 +749,13 @@ updateWithBody env body model =
           (model, Cmd.none)
 
 
-updateMyRole : Role -> Model -> (Model, Cmd Msg)
-updateMyRole role model =
+updateRole : BGF.ClientId -> Role -> Model -> (Model, Cmd Msg)
+updateRole id role model =
   case model.progress of
     Playing state ->
       let
-        setMyRole = setRole model.myId role
-        closeOtherHand = closeOtherHandById model.myId role
+        setMyRole = setRole id role
+        closeOtherHand = closeOtherHandById id role
         changeClients =
           setMyRole >> closeOtherHand >> awardPoint
         clients2 =
@@ -815,8 +819,8 @@ setDraftName draft model =
       model
 
 
-mapClientsToNextAndSend : (Clients Profile -> Clients Profile) -> Model -> (Model, Cmd Msg)
-mapClientsToNextAndSend mapping model =
+updateWithNewClients : (Clients Profile -> Clients Profile) -> Model -> (Model, Cmd Msg)
+updateWithNewClients mapping model =
   case model.progress of
     InLobby ->
       (model, Cmd.none)
