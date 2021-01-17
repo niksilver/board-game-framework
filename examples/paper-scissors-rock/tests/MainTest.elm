@@ -112,7 +112,7 @@ addClientTest =
   ]
 
 
--- JSON tests
+-- JSON decode tests
 
 handDecoderTest : Test
 handDecoderTest =
@@ -190,5 +190,61 @@ roleDecoderTest =
       Enc.int 999
       |> Dec.decodeValue roleDecoder
       |> Expect.err
+
+  ]
+
+
+-- JSON encoding tests
+
+
+encodeHandTest : Test
+encodeHandTest =
+  describe "encodeHand test"
+
+  [ test "Should encode Closed" <|
+    \_ ->
+      encodeHand Closed
+      |> Enc.encode 0
+      |> Expect.equal "\"Closed\""
+
+  ]
+
+
+encodeRoleTest : Test
+encodeRoleTest =
+  describe "encodeRole test"
+
+  [ test "Should encode Player Closed" <|
+    \_ ->
+      let
+        expected =
+          Enc.list Enc.string ["Player", "Closed"]
+          |> Enc.encode 0
+      in
+      encodeRole (Player Closed)
+      |> Enc.encode 0
+      |> Expect.equal expected
+
+  , test "Should encode Player showing scissors" <|
+    \_ ->
+      let
+        expected =
+          Enc.list Enc.string ["Player", "ShowingScissors"]
+          |> Enc.encode 0
+      in
+      encodeRole (Player (Showing Scissors))
+      |> Enc.encode 0
+      |> Expect.equal expected
+
+  , test "Should encode Observer" <|
+    \_ ->
+      let
+        expected =
+          Enc.list Enc.string ["Observer"]
+          |> Enc.encode 0
+      in
+      encodeRole Observer
+      |> Enc.encode 0
+      |> Expect.equal expected
 
   ]
