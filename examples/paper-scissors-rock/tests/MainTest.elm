@@ -14,6 +14,9 @@ import BoardGameFramework.Clients as Clients exposing (Client, Clients)
 import Main exposing (..)
 
 
+-- Client tests
+
+
 playerCountTest : Test
 playerCountTest =
   describe "playerCountTest"
@@ -105,5 +108,32 @@ addClientTest =
         |> Expect.equal (Just { id = "222", name = "Bob", role = Player Closed, score = 0 })
 
     ]
+
+  ]
+
+
+-- JSON tests
+
+handDecoderTest : Test
+handDecoderTest =
+  describe "handDecoder test"
+
+  [ test "Should decode Closed" <|
+    \_ ->
+      Enc.string "Closed"
+      |> Dec.decodeValue handDecoder
+      |> Expect.equal (Ok Closed)
+
+  , test "Should reject bad string" <|
+    \_ ->
+      Enc.string "bAD stRiNG"
+      |> Dec.decodeValue handDecoder
+      |> Expect.err
+
+  , test "Should reject non-string" <|
+    \_ ->
+      Enc.int 999
+      |> Dec.decodeValue handDecoder
+      |> Expect.err
 
   ]
