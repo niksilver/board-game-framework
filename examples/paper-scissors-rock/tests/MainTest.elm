@@ -193,6 +193,21 @@ roleDecoderTest =
 
   ]
 
+handForClientDecoderTest : Test
+handForClientDecoderTest =
+  describe "handForClientDecoder test"
+
+  [ test "Should decode client 67.89 showing Rock" <|
+    \_ ->
+      Enc.object
+        [ ("id", Enc.string "67.89")
+        , ("hand", Enc.string "ShowingRock")
+        ]
+      |> Dec.decodeValue handForClientDecoder
+      |> Expect.equal (Ok { id = "67.89", hand = Showing Rock })
+
+  ]
+
 
 -- JSON encoding tests
 
