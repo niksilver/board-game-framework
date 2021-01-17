@@ -73,6 +73,12 @@ type alias NameForClient =
   }
 
 
+type alias HandForClient =
+  { id : BGF.ClientId
+  , hand : Hand
+  }
+
+
 -- A profile is a client description without their ID.
 -- Their ID is added when we talk about a Client Profile.
 type alias Profile =
@@ -177,17 +183,17 @@ playerCount cs =
 
 
 addClient : NameForClient -> Clients Profile -> Clients Profile
-addClient namedClient cs =
+addClient nameForClient cs =
   let
     clientIsPlayer =
-      Clients.get namedClient.id cs
+      Clients.get nameForClient.id cs
       |> Maybe.map isPlayer
       |> Maybe.withDefault False
     playerNeeded =
       playerCount cs < 2
     client =
-      { id = namedClient.id
-      , name = namedClient.name
+      { id = nameForClient.id
+      , name = nameForClient.name
       , role =
           if clientIsPlayer || playerNeeded then
             Player Closed
@@ -376,6 +382,11 @@ sendMyNameCmd =
   Wrap.send outgoing "myName" encodeNameForClient
 
 
+sendMyHandCmd : HandForClient -> Cmd Msg
+sendMyHandCmd =
+  Wrap.send outgoing "myHand" encodeHandForClient
+
+
 subscriptions : Model -> Sub Msg
 subscriptions _ =
   incoming receive
@@ -386,7 +397,7 @@ receive =
   Wrap.receive
   Received
   [ ("clients", Dec.map ClientListMsg syncClientListDecoder)
-  , ("myName", Dec.map MyNameMsg namedClientDecoder)
+  , ("myName", Dec.map MyNameMsg nameForClientDecoder)
   ]
 
 
@@ -409,6 +420,12 @@ handToString hand =
       "ShowingRock"
 
 
+encodeHand : Hand -> Enc.Value
+encodeHand hand =
+  handToString hand
+  |> Enc.string
+
+
 encodeRole : Role -> Enc.Value
 encodeRole role =
   case role of
@@ -420,10 +437,18 @@ encodeRole role =
 
 
 encodeNameForClient : NameForClient -> Enc.Value
-encodeNameForClient namedClient =
+encodeNameForClient nameForClient =
   Enc.object
-    [ ( "id", Enc.string namedClient.id )
-    , ( "name", Enc.string namedClient.name )
+    [ ( "id", Enc.string nameForClient.id )
+    , ( "name", Enc.string nameForClient.name )
+    ]
+
+
+encodeHandForClient : HandForClient -> Enc.Value
+encodeHandForClient handForClient =
+  Enc.object
+    [ ( "id", Enc.string handForClient.id )
+    , ( "hand", encodeHand handForClient.hand )
     ]
 
 
@@ -441,11 +466,24 @@ encodeSyncClientList scl =
   Sync.encode encodeClientList scl
 
 
-namedClientDecoder : Dec.Decoder NameForClient
-namedClientDecoder =
+nameForClientDecoder : Dec.Decoder NameForClient
+nameForClientDecoder =
   Dec.map2 NameForClient
     (Dec.field "id" Dec.string)
     (Dec.field "name" Dec.string)
+
+
+handForClientDecoder : Dec.Decoder HandForClient
+handForClientDecoder =
+  Dec.map2 HandForClient
+    (Dec.field "id" Dec.string)
+    (Dec.field "hand" handDecoder)
+
+
+handDecoder : Dec.Decoder Hand
+handDecoder =
+  Dec.string
+  |> Dec.andThen stringToHandDecoder
 
 
 stringToHandDecoder : String -> Dec.Decoder Hand
@@ -467,8 +505,8 @@ stringToHandDecoder str =
       Dec.fail ("Unrecognised hand '" ++ hand ++ "' from player")
 
 
-secondElementDecoder : List String -> Dec.Decoder String
-secondElementDecoder list =
+listToSecondElementDecoder : List String -> Dec.Decoder String
+listToSecondElementDecoder list =
   case list of
     _ :: second :: _ ->
       Dec.succeed second
@@ -482,7 +520,7 @@ listToRoleDecoder list =
   case list of
     "Player" :: _ ->
       Dec.list Dec.string
-      |> Dec.andThen secondElementDecoder
+      |> Dec.andThen listToSecondElementDecoder
       |> Dec.andThen stringToHandDecoder
       |> Dec.map Player
 
@@ -673,9 +711,9 @@ updateWithBody : BGF.Envelope Body -> Body -> Model -> (Model, Cmd Msg)
 updateWithBody env body model =
   -- A message from another peer
   case body of
-    MyNameMsg namedClient ->
+    MyNameMsg nameForClient ->
       model
-      |> mapClientsToNextAndSend (addClient namedClient)
+      |> mapClientsToNextAndSend (addClient nameForClient)
 
     ClientListMsg clients ->
       case model.progress of

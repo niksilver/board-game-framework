@@ -19,7 +19,7 @@ playerCountTest =
   describe "playerCountTest"
   [ test "If only client is only player, should be one player" <|
     \_ ->
-      Clients.singleton { id = "dummy", name = "Bob", player = True }
+      Clients.singleton { id = "dummy", name = "Bob", role = Player Closed, score = 0 }
       |> playerCount
       |> Expect.equal 1
   ]
@@ -33,7 +33,7 @@ addClientTest =
       Clients.empty
       |> addClient { id = "111", name = "Alice" }
       |> Clients.get "111"
-      |> Expect.equal (Just { id = "111", name = "Alice", player = True })
+      |> Expect.equal (Just { id = "111", name = "Alice", role = Player Closed, score = 0 })
 
   , describe "Adding two clients should make them both players" <|
     let
@@ -46,13 +46,13 @@ addClientTest =
       \_ ->
         clients
         |> Clients.get "111"
-        |> Expect.equal (Just { id = "111", name = "Alice", player = True })
+        |> Expect.equal (Just { id = "111", name = "Alice", role = Player Closed, score = 0 })
 
     , test "Second should be a player" <|
       \_ ->
         clients
         |> Clients.get "222"
-        |> Expect.equal (Just { id = "222", name = "Bob", player = True })
+        |> Expect.equal (Just { id = "222", name = "Bob", role = Player Closed, score = 0 })
 
     ]
 
@@ -68,19 +68,19 @@ addClientTest =
       \_ ->
         clients
         |> Clients.get "111"
-        |> Expect.equal (Just { id = "111", name = "Alice", player = True })
+        |> Expect.equal (Just { id = "111", name = "Alice", role = Player Closed, score = 0 })
 
     , test "Second should be a player" <|
       \_ ->
         clients
         |> Clients.get "222"
-        |> Expect.equal (Just { id = "222", name = "Bob", player = True })
+        |> Expect.equal (Just { id = "222", name = "Bob", role = Player Closed, score = 0 })
 
     , test "Third should not be a player" <|
       \_ ->
         clients
         |> Clients.get "333"
-        |> Expect.equal (Just { id = "333", name = "Chik", player = False })
+        |> Expect.equal (Just { id = "333", name = "Chik", role = Observer, score = 0 })
 
     ]
 
@@ -96,13 +96,13 @@ addClientTest =
       \_ ->
         clients
         |> Clients.get "111"
-        |> Expect.equal (Just { id = "111", name = "Alice", player = True })
+        |> Expect.equal (Just { id = "111", name = "Alice", role = Player Closed, score = 0 })
 
     , test "Second should be a player" <|
       \_ ->
         clients
         |> Clients.get "222"
-        |> Expect.equal (Just { id = "222", name = "Bob", player = True })
+        |> Expect.equal (Just { id = "222", name = "Bob", role = Player Closed, score = 0 })
 
     ]
 
