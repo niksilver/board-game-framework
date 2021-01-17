@@ -128,6 +128,7 @@ type Msg =
 
 type Body =
   MyNameMsg NameForClient
+  | MyRoleMsg RoleForClient
   | ClientListMsg (Sync (Clients Profile))
 
 
@@ -626,13 +627,13 @@ update msg model =
           (model, Cmd.none)
 
     ConfirmedBecomeObserver ->
-      updateRole model.myId Observer model
+      updateMyRole Observer model
 
     ConfirmedBecomePlayer ->
-      updateRole model.myId (Player Closed) model
+      updateMyRole (Player Closed) model
 
     ConfirmedShow shape ->
-      updateRole model.myId (Player (Showing shape)) model
+      updateMyRole (Player (Showing shape)) model
 
     ConfirmedAnother ->
       updateAnotherRound model
@@ -715,9 +716,9 @@ updateWithBody env body model =
       model
       |> updateWithNewClients (addClient nameForClient)
 
-    {--    MyRoleMsg roleForClient ->
+    MyRoleMsg roleForClient ->
       model
-      |> updateWithNewClients (setRole roleForClient.id roleForClient.role)--}
+      |> updateRole roleForClient.id roleForClient.role
 
     ClientListMsg clients ->
       case model.progress of
@@ -749,24 +750,54 @@ updateWithBody env body model =
           (model, Cmd.none)
 
 
+clientsWithNewRole : BGF.ClientId -> Role -> Sync (Clients Profile) -> Sync (Clients Profile)
+clientsWithNewRole id role clients =
+  let
+    setMyRole = setRole id role
+    closeOtherHand = closeOtherHandById id role
+    changeClients =
+      setMyRole >> closeOtherHand >> awardPoint
+  in
+  clients
+  |> Sync.mapToNext changeClients
+
+
+-- If we're updating a role change that's come in from the server we
+-- want to send the newly-calculated client list.
 updateRole : BGF.ClientId -> Role -> Model -> (Model, Cmd Msg)
 updateRole id role model =
   case model.progress of
     Playing state ->
       let
-        setMyRole = setRole id role
-        closeOtherHand = closeOtherHandById id role
-        changeClients =
-          setMyRole >> closeOtherHand >> awardPoint
-        clients2 =
-          state.clients
-          |> Sync.mapToNext changeClients
+        clients2 = clientsWithNewRole id role state.clients
+        model2 =
+          { model
+          | progress = Playing { state | clients = clients2 }
+          }
       in
-      ( { model
-        | progress =
-            Playing { state | clients = clients2 }
-        }
+      ( model2
       , sendClientListCmd clients2
+      )
+
+    _ ->
+      (model, Cmd.none)
+
+
+-- If we're updating our own change we want to send
+-- just that change information.
+updateMyRole : Role -> Model -> (Model, Cmd Msg)
+updateMyRole role model =
+  case model.progress of
+    Playing state ->
+      let
+        clients2 = clientsWithNewRole model.myId role state.clients
+        model2 =
+          { model
+          | progress = Playing { state | clients = clients2 }
+          }
+      in
+      ( model2
+      , sendMyRoleCmd { id = model.myId, role = role }
       )
 
     _ ->
