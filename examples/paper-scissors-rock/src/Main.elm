@@ -399,6 +399,7 @@ receive =
   Received
   [ ("clients", Dec.map ClientListMsg syncClientListDecoder)
   , ("myName", Dec.map MyNameMsg nameForClientDecoder)
+  , ("myRole", Dec.map MyRoleMsg roleForClientDecoder)
   ]
 
 
