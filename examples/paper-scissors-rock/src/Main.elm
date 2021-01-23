@@ -219,26 +219,22 @@ setRole id role clients =
 
 
 -- Get the (or a) player that isn't this one.
-otherPlayer : Client PlayerProfile -> Clients Profile -> Maybe (Client PlayerProfile)
-otherPlayer me clients =
-  playerList clients
-  |> List.filter (\c -> c.id /= me.id)
+otherPlayer : BGF.ClientId -> Clients Profile -> Maybe (Client PlayerProfile)
+otherPlayer id clients =
+  clients
+  |> playerList
+  |> List.filter (\c -> c.id /= id)
   |> List.head
 
 
 -- When one player has just become an observer we want to make sure the other
 -- player's hand reverts to a closed state. This function does this for us.
 closeOtherHandById : BGF.ClientId -> Role -> Clients Profile -> Clients Profile
-closeOtherHandById myId myRole clients =
+closeOtherHandById id role clients =
   let
-    maybeOther =
-      clients
-      |> Clients.filter (\c -> isPlayer c && c.id /= myId)
-      |> Clients.toList
-      |> List.head
-    maybeMe = Clients.get myId clients
+    maybeOther = otherPlayer id clients
   in
-  case (myRole, maybeOther) of
+  case (role, maybeOther) of
     (Observer, Just other) ->
       clients
       |> Clients.mapOne other.id (\c -> { c | role = Player Closed })
@@ -293,6 +289,26 @@ winner hand1 hand2 =
     -- We don't have both hands showing
     _ ->
       0
+
+
+-- Update the clients list, given that one has a new role (which includes a new hand).
+-- This includes:
+--   - Updating the given client;
+--   - Maybe closing the other player's hand;
+--   - Maybe awarding a point (which we'll do only if this is from a received envelope).
+clientsWithNewRole : Bool -> BGF.ClientId -> Role -> Sync (Clients Profile) -> Sync (Clients Profile)
+clientsWithNewRole adjustPoints id role clients =
+  let
+    setMyRole = setRole id role
+    closeOtherHand = closeOtherHandById id role
+    changeClients =
+      if adjustPoints then
+        setMyRole >> closeOtherHand >> awardPoint
+      else
+        setMyRole >> closeOtherHand
+  in
+  clients
+  |> Sync.mapToNext changeClients
 
 
 -- Initialisation functions
@@ -719,7 +735,7 @@ updateWithBody env body model =
 
     MyRoleMsg roleForClient ->
       model
-      |> updateRole roleForClient.id roleForClient.role
+      |> updateRoleFromServer roleForClient.id roleForClient.role
 
     ClientListMsg clients ->
       case model.progress of
@@ -751,30 +767,11 @@ updateWithBody env body model =
           (model, Cmd.none)
 
 
--- Update the clients list, given that one has a new role (which includes a new hand).
--- This includes:
---   - Updating the given client;
---   - Maybe closing the other player's hand;
---   - Maybe awarding a point (which we'll do only if this is from a received envelope).
-clientsWithNewRole : Bool -> BGF.ClientId -> Role -> Sync (Clients Profile) -> Sync (Clients Profile)
-clientsWithNewRole adjustPoints id role clients =
-  let
-    setMyRole = setRole id role
-    closeOtherHand = closeOtherHandById id role
-    changeClients =
-      if adjustPoints then
-        setMyRole >> closeOtherHand >> awardPoint
-      else
-        setMyRole >> closeOtherHand
-  in
-  clients
-  |> Sync.mapToNext changeClients
-
-
--- If we're updating a role change that's come in from the server we
--- want to send the newly-calculated client list.
-updateRole : BGF.ClientId -> Role -> Model -> (Model, Cmd Msg)
-updateRole id role model =
+-- If we're updating a role change that's come in from the server (which might
+-- be a receipt of our own role change) we want to update the client list,
+-- including the score, and send the newly-calculated client list.
+updateRoleFromServer : BGF.ClientId -> Role -> Model -> (Model, Cmd Msg)
+updateRoleFromServer id role model =
   case model.progress of
     Playing state ->
       let
@@ -793,6 +790,7 @@ updateRole id role model =
 
 
 -- If we're updating our own change we want to send just that change information.
+-- We won't adjust the score just yet.
 updateMyRole : Role -> Model -> (Model, Cmd Msg)
 updateMyRole role model =
   case model.progress of
