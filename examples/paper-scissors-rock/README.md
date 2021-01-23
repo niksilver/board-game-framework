@@ -65,9 +65,10 @@ anyone can switch roles
 ### The model and main types
 
 First we'll look at the types for playing the main game, then step back and look
-at the whole `Model`, which also deals with the steps leading up to that.
+at the whole `Model`.
 
-The playing state itself is just a list of clients, represented by the framework's
+The playing state itself is just a collection of clients,
+represented by the framework's
 `Clients e` type. In this case we use `Clients Profile`, where `Profile` simply
 maintains the `name`, `role` and `score` of each client. A client's role is
 represented by the `Role` type, which is either `Observer` or `Player`.
@@ -75,7 +76,8 @@ If they're a player then they must have a `Hand` which is either `Closed` or `Sh
 some `Shape`.
 
 (Note that `Clients Profile`, plural, is a collection of clients, while
-`Client Profile`, singular, is one client.)
+`Client Profile`, singular, is one client. Sometimes we'll call the collection of
+clients a "list", but it's not ordered.)
 
 Now let's step back and look at the model from the top.
 
@@ -89,12 +91,14 @@ Our client's progress is always in one of three states: `InLobby` is where we ar
 choosing a room; `ChoosingName` is after that; and finally we are `Playing`.
 For `ChoosingName` we keep track of the name we've typed so far.
 We also want the list of clients because at this
-point we have joined the room and we have them ready for when we show the playing screen.
-For `Playing` we also keep the list of all clients, and also our name. This is so
-that if we change room we can take our name with us.
+point we have joined the room and we have the client list
+ready for when we show the playing screen.
+For `Playing` we also keep the list of all clients, and also our name.
+Keeping our name is useful because if we change room we can take our name with us.
 
 Finally it's worth mentioning two more types. `NamedClient` is used simply when
-we want to communicate to other clients the name we've chosen. `Clients PlayerProfile` is
+we want to communicate to other clients the name we've chosen.
+`Client PlayerProfile` is
 useful when we want to deal with not just a client which might be an observer or a
 player, but when we want to deal with a client that we know is a player, and therefore
 has a hand.
@@ -106,18 +110,22 @@ The `Msg` that's sent into the top level `update` function has the following var
 * `NewDraftName` and `ConfirmedName` are for when we're typing our name into the text
   box and clicking the button to confirm it.
 * `Received` carries any envelope received from the outside world. This might be
-  a game message or something about our connectivity status. We'll discuss it a bit more
-  below.
+  a game message or something about our connectivity status.
+  We'll discuss it a bit more below.
 * The other `Confirmed...` variants indicate buttons pressed in the game:
   becoming an observer, becoming a player, choosing a hand shape, and clicking for
   another game.
 
 The `Body` type describes a game-specific message sent between clients.
-In this game there are only two kinds. `MyNameMsg` tells clients that we have a name
-for a client. `ClientListMsg` is an update of the entire playing state, which is
+In this game there are three kinds. `MyNameMsg` tells clients that we have a name
+for a client. A client is only added to the client list when it's got a name.
+`MyRoleMsg` is to announce that a client has changed their role. This is includes
+when a player has played their hand, because they might go from `Player Closed` to
+`Player (Showing Scissors)` for example.
+`ClientListMsg` is an update of the entire playing state, which is
 simply `Clients Profile`. But since this state needs to be synchronised between all
-the clients this is a `ClientListMsg (Sync (Clients Profile))`. See the `Sync`
-module for more there.
+the clients this is a `Sync (Clients Profile)`.
+See the `Sync` module for more there.
 
 As mentioned above, the `Received` type tells us about a received an envelope.
 The envelope itself can carry a `Body`, so it's of type `Envelope Body`. But since

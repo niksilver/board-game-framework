@@ -44,7 +44,7 @@ main =
   }
 
 
--- Main types
+-- Model and main types
 
 
 type alias Model =
