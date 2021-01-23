@@ -218,7 +218,7 @@ setRole id role clients =
   |> Clients.mapOne id changeRole
 
 
--- Get the other player, if there is one.
+-- Get the (or a) player that isn't this one.
 otherPlayer : Client PlayerProfile -> Clients Profile -> Maybe (Client PlayerProfile)
 otherPlayer me clients =
   playerList clients
@@ -670,7 +670,7 @@ updateWithEnvelope env model =
           )
 
     BGF.Peer rec ->
-      updateWithBody env rec.body model
+      updateWithBody env rec.receipt rec.body model
 
     BGF.Joiner rec ->
       -- We've got a joiner, so let's tell them who the named clients are so far, if we can
@@ -709,8 +709,8 @@ updateWithEnvelope env model =
 
 
 -- Respond to a Peer envelope
-updateWithBody : BGF.Envelope Body -> Body -> Model -> (Model, Cmd Msg)
-updateWithBody env body model =
+updateWithBody : BGF.Envelope Body -> Bool -> Body -> Model -> (Model, Cmd Msg)
+updateWithBody env receipt body model =
   -- A message from another peer
   case body of
     MyNameMsg nameForClient ->
@@ -751,13 +751,21 @@ updateWithBody env body model =
           (model, Cmd.none)
 
 
-clientsWithNewRole : BGF.ClientId -> Role -> Sync (Clients Profile) -> Sync (Clients Profile)
-clientsWithNewRole id role clients =
+-- Update the clients list, given that one has a new role (which includes a new hand).
+-- This includes:
+--   - Updating the given client;
+--   - Maybe closing the other player's hand;
+--   - Maybe awarding a point (which we'll do only if this is from a received envelope).
+clientsWithNewRole : Bool -> BGF.ClientId -> Role -> Sync (Clients Profile) -> Sync (Clients Profile)
+clientsWithNewRole adjustPoints id role clients =
   let
     setMyRole = setRole id role
     closeOtherHand = closeOtherHandById id role
     changeClients =
-      setMyRole >> closeOtherHand >> awardPoint
+      if adjustPoints then
+        setMyRole >> closeOtherHand >> awardPoint
+      else
+        setMyRole >> closeOtherHand
   in
   clients
   |> Sync.mapToNext changeClients
@@ -770,7 +778,7 @@ updateRole id role model =
   case model.progress of
     Playing state ->
       let
-        clients2 = clientsWithNewRole id role state.clients
+        clients2 = clientsWithNewRole True id role state.clients
         model2 =
           { model
           | progress = Playing { state | clients = clients2 }
@@ -784,14 +792,13 @@ updateRole id role model =
       (model, Cmd.none)
 
 
--- If we're updating our own change we want to send
--- just that change information.
+-- If we're updating our own change we want to send just that change information.
 updateMyRole : Role -> Model -> (Model, Cmd Msg)
 updateMyRole role model =
   case model.progress of
     Playing state ->
       let
-        clients2 = clientsWithNewRole model.myId role state.clients
+        clients2 = clientsWithNewRole False model.myId role state.clients
         model2 =
           { model
           | progress = Playing { state | clients = clients2 }
