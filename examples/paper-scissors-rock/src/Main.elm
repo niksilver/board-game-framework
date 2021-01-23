@@ -670,7 +670,7 @@ updateWithEnvelope env model =
           )
 
     BGF.Peer rec ->
-      updateWithBody env rec.receipt rec.body model
+      updateWithBody env rec.body model
 
     BGF.Joiner rec ->
       -- We've got a joiner, so let's tell them who the named clients are so far, if we can
@@ -709,8 +709,8 @@ updateWithEnvelope env model =
 
 
 -- Respond to a Peer envelope
-updateWithBody : BGF.Envelope Body -> Bool -> Body -> Model -> (Model, Cmd Msg)
-updateWithBody env receipt body model =
+updateWithBody : BGF.Envelope Body -> Body -> Model -> (Model, Cmd Msg)
+updateWithBody env body model =
   -- A message from another peer
   case body of
     MyNameMsg nameForClient ->
