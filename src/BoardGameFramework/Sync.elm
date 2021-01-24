@@ -18,10 +18,10 @@ module BoardGameFramework.Sync exposing
 {-| Sometimes we don't just want to send values between peers, but
 we also want to synchronise them.
 
-The problem: Suppose we send the state of the board as a value
-between peers, and our game allows any client to make a move
-to update the board. What happens when two clients make different
-moves simultaneously?
+The problem: Suppose we want to send the updated state of the board as a value
+between peers, and our game allows any client to do this.
+What happens when two clients send different updates simultaneously?
+How do we know which value is the "correct" one?
 
 The solution:
 When we set our initial value (e.g. the initial state of the game)
@@ -31,12 +31,12 @@ not yet verified. We must also send it to our peers via the server.
 They will be doing the same thing. Whenever we receive a value
 (as a Peer envelope sent by any other client or by us) we must
 resolve it against what we currently hold. Whichever value came
-through first from the server is the accepted value for that step.
+through first from the server is verified as the accepted value for that step.
 
 So the general procedure is:
 create an initial value as our [`zero`](#zero) step,
 calculate each subsequent step as the game progresses,
-and always send any value we've calculated to our peers.
+and always send to our peers any value we've calculated.
 At the same time we receive values,
 and [`resolve`](#resolve) any received value with our current value.
 
@@ -69,8 +69,8 @@ type Timing =
 
 
 {-| Some value which can be synchronised, and resolved against other
-values. The data structure carries not only the value itself, but
-also where it originated, so it can be resolved against other values.
+values. This data structure carries not only the value itself, but
+also extra information so it can be resolved against other values.
 -}
 type Sync a =
   Sync
@@ -81,7 +81,7 @@ type Sync a =
 
 
 {-| Set an initial value with step `0`, which is known not to have come
-via the server.
+via the server (i.e. not verified).
 
 In a game of hangman, where we're trying to find a seven letter word,
 we might set the initial value like this:
@@ -108,8 +108,8 @@ value (Sync rec) =
 -- Modifying
 
 
-{-| Set a new value as the next step, but recognise that it's
-not yet verified.
+{-| Set a new value as the next step.
+The new value is not yet verified.
 -}
 set : a -> Sync a -> Sync a
 set val (Sync rec) =
@@ -120,7 +120,7 @@ set val (Sync rec) =
     }
 
 
-{-| Set the next value as the next step, using a mapping function.
+{-| Set a new value as the next step, using a mapping function.
 The new value is not yet verified.
 
 In a hangman game, if the state is a string, and the next
@@ -152,6 +152,9 @@ and the current value.
 The result is whichever value is the later step; if they represent the
 same step then the one from the earlier envelope is preferred; if that
 is still the same then the original value is returned.
+This way will always, get the latest step in the game, and if two clients
+provided different values for the same step then we get whichever of
+those was received first.
 -}
 resolve : BGF.Envelope b -> Sync a -> Sync a -> Sync a
 resolve env (Sync recNew) (Sync recOrig) =

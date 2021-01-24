@@ -640,7 +640,7 @@ update msg model =
           updateWithEnvelope env model
 
         Err _ ->
-          -- Ignore an error for now
+          -- Ignore a JSON decoding error
           (model, Cmd.none)
 
     ConfirmedBecomeObserver ->
@@ -654,12 +654,6 @@ update msg model =
 
     ConfirmedAnother ->
       updateAnotherRound model
-
-
-okName : String -> Bool
-okName draft =
-  (String.length draft >= 3)
-  && (String.length draft <= 20)
 
 
 updateWithEnvelope : BGF.Envelope Body -> Model -> (Model, Cmd Msg)
@@ -756,9 +750,14 @@ updateWithBody env body model =
 
         ChoosingName state ->
           -- We're still choosing our name, but we've got a list of named clients
+          let
+            clients2 =
+              state.clients
+              |> Sync.resolve env clients
+          in
           ( { model
             | progress =
-                ChoosingName { state | clients = clients }
+                ChoosingName { state | clients = clients2 }
             }
           , Cmd.none
           )
@@ -816,12 +815,10 @@ updateAnotherRound model =
     Playing state ->
       let
         resetHand client =
-          case client.role of
-            Player _ ->
-              { client | role = Player Closed }
-
-            Observer ->
-              client
+          if isPlayer client then
+            { client | role = Player Closed }
+          else
+            client
         clients2 =
           state.clients
           |> Sync.mapToNext (Clients.map resetHand)
@@ -838,6 +835,12 @@ updateAnotherRound model =
 
     _ ->
       (model, Cmd.none)
+
+
+okName : String -> Bool
+okName draft =
+  (String.length draft >= 3)
+  && (String.length draft <= 20)
 
 
 setDraftName : String -> Model -> Model

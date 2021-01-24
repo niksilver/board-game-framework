@@ -168,13 +168,95 @@ recognise its own messages that have been wrapped at this application level.
 
 ### Game connectivity
 
+The code here simply defines how to open a connection to the server for a
+particular room.
+
 ### Peer-to-peer messages
+
+This section deals with receiving JSON values from an incoming port
+and turning them into `Msg`s,
+and sending application values to an outgoing port.
+
+Since we have three types of data to send (a client with a name, a client whose
+role has changed, and the latest playing state) we box up each type with
+a label.
+The `BoardGameFramework.Box` module does all the heavy lifting here, so take a look
+at the documentation there for details.
 
 ### JSON encoders and decoders
 
+Functions here primarily encode and decode the three data types we send to the
+server: `NameForClient`, `RoleForClient` and `Sync (Clients Profile)`.
+Therefore we have an `encode...` function and a `...Decoder` for each.
+
+The standard Elm JSON modules are used, but we also rely on the
+`encode` and `decoder` functions in both `BoardGameFramework.Clients`
+`BoardGameFramework.Sync`.
+
 ### Updating the model
 
+The section on updating the model is our standard Elm architecture `update` function
+plus its supporting functions.
+`update` itself passes off more complex decision-making into lower-level
+`update...` functions, each of which returns the desired `(Model, Cmd Msg)` type.
+
+`update` deals with these `Msg` cases:
+* `ToLobby` is a message for our `Lobby`, so we unwrap it, ask the lobby to do
+  its work, and update ourselves accordingly.
+* `NewDraftName` is telling us a user has typed another character as their name
+  during the `ChoosingName` stage.
+* `ConfirmedName` is when they've confirmed it.
+  If they confirm a name we're okay with then we'll send it to the other clients.
+* `Received` carries an envelope from the server. We expect it to have been been JSON-decoded
+  okay.
+* The remaining `Confirmed...` messages are when a client clicks a button
+  during the main game.
+
+Then there are the lower-level functions.
+
+`updateWithEnvelope` processes an envelope received from the server.
+* We generally ignore a Welcome envelope, because we need a name before we allow
+  ourselves into the client list of the main game. But if we switch from one
+  room to another during the main game (when we have a name) then we'll get a
+  welcome for that new room. So in that case we announce ourselves.
+* We process a Peer envelope (with a `Body`) separately.
+* A Joiner envelope is received any client when another one joins. We want to tell
+  them the latest playing state. (We shouldn't get this message if we're `InLobby`, but
+  we have to deal with that case anyway.)
+* If we get a Leaver envelope we'll remove that client and send an updated playing
+  state to everyone.
+* We ignore connection information and other low-level errors.
+
+`updateWithBody` processes one of the three kinds of data types sent between clients.
+* For a client announcing themselves with a name we add them to our client list and
+  send out that latest one.
+* For a client with a role (or hand) change we pass that to a lower-level function.
+* For an updated playing state, we simply resolve that with what we have already
+  and retain whatever is correct.
+
+`updateRoleFromServer` is for when an envelope from the server
+has told us about a client's role changing.
+By contrast `updateMyRole` is for when we have clicked a button
+changing our role (or hand), in which case we'll want to send a message to the
+server announcing this.
+
+(A note on scoring: When a player changes their hand either player might win
+that round and score a point. But we'll only award the point when we receive the
+role change from the server. Otherwise there's a chance of awarding it twice -
+when we click a button and when we get the envelope back from the server.)
+
+`updateAnotherRound` is when some clicks "Play again". Within the function
+`resetHand` will do this by making each `Player`'s hand closed.
+Then we run that over all the clients within its `Sync` enclosure.
+And now that we've calculated the new playing state we can send it to all the
+other clients.
+
+
 ### The view
+
+The view functions should be fairly standard. We use
+[`elm-ui`](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/) to
+help us with the layout.
 
 ## Credits
 
