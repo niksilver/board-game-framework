@@ -2,7 +2,6 @@ TO DO:
 
 - Noughts and crosses: Use Sync.
 - Noughts and crosses: Explain aspects of the design.
-- Paper scissors rock: Fix bug where "find another room" doesn't change the URL.
 
 DONE:
 
@@ -112,3 +111,4 @@ DONE:
 - Create paper scissors rock game (PSR).
 - Wrap module: Documentation using the WrapTest code.
 - Paper scissors rock: Explain aspects of the design.
+- Lobby: Fix bug where "find another room" doesn't change the URL.

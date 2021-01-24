@@ -376,8 +376,20 @@ update msg state (Lobby lob) =
             , Cmd.none
             )
           else
-            Lobby { lob | url = url_ }
-            |> forNewUrlInGame state
+            -- If a new URL is requested we need to process that, but also
+            -- make sure it appears in the browser's location bar.
+            let
+              (Lobby lob2, state2, cmd) =
+                Lobby { lob | url = url_ }
+                |> forNewUrlInGame state
+            in
+            ( Lobby lob2
+            , state2
+            , Cmd.batch
+              [ cmd
+              , pushUrl lob.key (Url.toString lob2.url)
+              ]
+            )
 
         Browser.External str ->
           ( Lobby lob
