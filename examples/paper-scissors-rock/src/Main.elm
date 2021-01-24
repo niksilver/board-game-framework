@@ -26,7 +26,7 @@ import BoardGameFramework as BGF
 import BoardGameFramework.Clients as Clients exposing (Clients, Client)
 import BoardGameFramework.Lobby as Lobby exposing (Lobby)
 import BoardGameFramework.Sync as Sync exposing (Sync)
-import BoardGameFramework.Wrap as Wrap
+import BoardGameFramework.Box as Box
 
 
 -- Basic setup
@@ -391,17 +391,17 @@ port incoming : (Enc.Value -> msg) -> Sub msg
 
 sendClientListCmd : Sync (Clients Profile) -> Cmd Msg
 sendClientListCmd =
-  Wrap.send outgoing "clients" encodeSyncClientList
+  Box.send outgoing "clients" encodeSyncClientList
 
 
 sendMyNameCmd : NameForClient -> Cmd Msg
 sendMyNameCmd =
-  Wrap.send outgoing "myName" encodeNameForClient
+  Box.send outgoing "myName" encodeNameForClient
 
 
 sendMyRoleCmd : RoleForClient -> Cmd Msg
 sendMyRoleCmd =
-  Wrap.send outgoing "myRole" encodeRoleForClient
+  Box.send outgoing "myRole" encodeRoleForClient
 
 
 subscriptions : Model -> Sub Msg
@@ -411,7 +411,7 @@ subscriptions _ =
 
 receive : Enc.Value -> Msg
 receive =
-  Wrap.receive
+  Box.receive
   Received
   [ ("clients", Dec.map ClientListMsg syncClientListDecoder)
   , ("myName", Dec.map MyNameMsg nameForClientDecoder)
