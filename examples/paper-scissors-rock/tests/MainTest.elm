@@ -193,18 +193,27 @@ roleDecoderTest =
 
   ]
 
-handForClientDecoderTest : Test
-handForClientDecoderTest =
-  describe "handForClientDecoder test"
+roleForClientDecoderTest : Test
+roleForClientDecoderTest =
+  describe "roleForClientDecoder test"
 
-  [ test "Should decode client 67.89 showing Rock" <|
+  [ test "Should decode client 67.89, a player showing Rock" <|
     \_ ->
       Enc.object
         [ ("id", Enc.string "67.89")
-        , ("hand", Enc.string "ShowingRock")
+        , ("role", Enc.list Enc.string ["Player", "ShowingRock"])
         ]
-      |> Dec.decodeValue handForClientDecoder
-      |> Expect.equal (Ok { id = "67.89", hand = Showing Rock })
+      |> Dec.decodeValue roleForClientDecoder
+      |> Expect.equal (Ok { id = "67.89", role = Player (Showing Rock) })
+
+  , test "Should decode client 444.333, an observer" <|
+    \_ ->
+      Enc.object
+        [ ("id", Enc.string "444.333")
+        , ("role", Enc.list Enc.string ["Observer"])
+        ]
+      |> Dec.decodeValue roleForClientDecoder
+      |> Expect.equal (Ok { id = "444.333", role = Observer })
 
   ]
 
@@ -265,21 +274,35 @@ encodeRoleTest =
   ]
 
 
-encodeHandForClientTest : Test
-encodeHandForClientTest =
-  describe "encodeHandForClient test"
+encodeRoleForClientTest : Test
+encodeRoleForClientTest =
+  describe "encodeRoleForClient test"
 
-  [ test "Should encode Client 987, showing Scissors" <|
+  [ test "Should encode Client 987, now showing Scissors" <|
     \_ ->
       let
         expected =
           Enc.object
             [ ("id", Enc.string "987")
-            , ("hand", Enc.string "ShowingScissors")
+            , ("role", Enc.list Enc.string ["Player", "ShowingScissors"])
             ]
           |> Enc.encode 0
       in
-      encodeHandForClient { id = "987", hand = Showing Scissors }
+      encodeRoleForClient { id = "987", role = Player (Showing Scissors) }
+      |> Enc.encode 0
+      |> Expect.equal expected
+
+  , test "Should encode Client 777, who has become an observer" <|
+    \_ ->
+      let
+        expected =
+          Enc.object
+            [ ("id", Enc.string "777")
+            , ("role", Enc.list Enc.string ["Observer"])
+            ]
+          |> Enc.encode 0
+      in
+      encodeRoleForClient { id = "777", role = Observer }
       |> Enc.encode 0
       |> Expect.equal expected
 
