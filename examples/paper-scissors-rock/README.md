@@ -116,21 +116,23 @@ The `Msg` that's sent into the top level `update` function has the following var
   becoming an observer, becoming a player, choosing a hand shape, and clicking for
   another game.
 
-The `Body` type describes a game-specific message sent between clients.
-In this game there are three kinds. `MyNameMsg` tells clients that we have a name
-for a client. A client is only added to the client list when it's got a name.
-`MyRoleMsg` is to announce that a client has changed their role. This is includes
-when a player has played their hand, because they might go from `Player Closed` to
-`Player (Showing Scissors)` for example.
-`ClientListMsg` is an update of the entire playing state, which is
-simply `Clients Profile`. But since this state needs to be synchronised between all
-the clients this is a `Sync (Clients Profile)`.
-See the `Sync` module for more there.
+The `Body` type describes a game-specific data sent between clients.
+In this game we send changes to the playing state, and then (after calculating the
+effect of a change) the playing state itself.
+* `MyNameMsg` tells clients that we have a name
+  for a client. A client is only added to the client list when it's got a name.
+* `MyRoleMsg` is to announce that a client has changed their role. This includes
+  when a player has played their hand - they might go from `Player Closed` to
+  `Player (Showing Scissors)` for example.
+* `ClientListMsg` is an update of the entire playing state, which is
+  simply `Clients Profile`. But since this state needs to be synchronised between all
+  the clients this is a `Sync (Clients Profile)`.
+  See the `Sync` module for more there.
 
 As mentioned above, the `Received` type tells us about a received an envelope.
 The envelope itself can carry a `Body`, so it's of type `Envelope Body`. But since
-it's been decoded from JSON it might have a JSON decoding `Error` instead. So in fact
-the `Received` message gives us a `Result Error (Envelope Body)`.
+it's been decoded from JSON it might also be a JSON decoding `Error`. So in fact
+the `Received` message carries a `Result Error (Envelope Body)`.
 
 ### Client functions
 
@@ -151,6 +153,18 @@ with more structure than just a collection of `Clients`, but I judged that extra
 structure as too much.
 
 ### Initialisation
+
+Our application initialises with our client ID, but it also defines how our lobby
+works, so most of the initialisation functions deal with that.
+
+Our lobby copes with three situations as follows:
+* `initBase`. With no other information our game progress puts us in the lobby.
+* `initGame`. If we have a room name then we need to choose our name.
+* `change`. If we change room then we'll take our name with us (or continue entering
+  it if we're not yet playing).
+
+The lobby also needs to be told how to open a server connection and how to
+recognise its own messages that have been wrapped at this application level.
 
 ### Game connectivity
 
