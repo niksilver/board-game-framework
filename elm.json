@@ -6,10 +6,10 @@
     "version": "1.0.0",
     "exposed-modules": [
         "BoardGameFramework",
+        "BoardGameFramework.Box",
         "BoardGameFramework.Clients",
         "BoardGameFramework.Lobby",
-        "BoardGameFramework.Sync",
-        "BoardGameFramework.Wrap"
+        "BoardGameFramework.Sync"
     ],
     "elm-version": "0.19.0 <= v < 0.20.0",
     "dependencies": {

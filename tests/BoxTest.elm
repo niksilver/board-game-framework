@@ -1,4 +1,4 @@
-module WrapTest exposing (..)
+module BoxTest exposing (..)
 
 
 import Expect exposing (Expectation)
@@ -8,7 +8,7 @@ import Json.Encode as Enc
 import Json.Decode as Dec
 
 import BoardGameFramework as BGF
-import BoardGameFramework.Wrap as Wrap
+import BoardGameFramework.Box as Box
 
 
 type Body =
@@ -19,13 +19,13 @@ type Body =
 encodeCard : String -> Enc.Value
 encodeCard text =
   Enc.string text
-  |> Wrap.encode "card"
+  |> Box.encode "card"
 
 
 encodeChips : List Int -> Enc.Value
 encodeChips chips =
   Enc.list Enc.int chips
-  |> Wrap.encode "chips"
+  |> Box.encode "chips"
 
 
 cardDecoder : Dec.Decoder String
@@ -40,7 +40,7 @@ chipsDecoder =
 
 bodyDecoder : Dec.Decoder Body
 bodyDecoder =
-  Wrap.decoder
+  Box.decoder
   [ ("card", Dec.map Card cardDecoder)
   , ("chips", Dec.map Chips chipsDecoder)
   ]
@@ -48,7 +48,7 @@ bodyDecoder =
 
 jsonTest : Test
 jsonTest =
-  describe "Wrapping Body"
+  describe "Boxping Body"
   [ test "Encode-decode a card should yield the card" <|
     \_ ->
       "Tell us a secret"
@@ -116,18 +116,18 @@ subscriptions _ =
 -- Dummy send examples (just to make sure they compile)
 sendCardCmd : String -> Cmd Msg
 sendCardCmd =
-  Wrap.send outgoing "card" encodeCard
+  Box.send outgoing "card" encodeCard
 
 
 sendChipsCmd : List Int -> Cmd Msg
 sendChipsCmd =
-  Wrap.send outgoing "chips" encodeChips
+  Box.send outgoing "chips" encodeChips
 
 
 
 myReceive : Enc.Value -> Msg
 myReceive =
-  Wrap.receive
+  Box.receive
   Received
   [ ("card", Dec.map Card cardDecoder)
   , ("chips", Dec.map Chips chipsDecoder)

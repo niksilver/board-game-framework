@@ -3,14 +3,14 @@
 -- Licensed under the GPL v3.0. See file LICENCE.txt for details.
 
 
-module BoardGameFramework.Wrap exposing
+module BoardGameFramework.Box exposing
   ( encode, decoder
   , send, receive
   )
 
 
 {-| Sometimes we don't want to send just one kind of value to
-our peers, but several. If so, then we need to wrap and label each
+our peers, but several. If so, then we need to box and label each
 type of value so that it can be correctly identified at the other end.
 This module helps with that.
 
@@ -23,7 +23,7 @@ through ports, and will be decoded as `Envelope`s.
     import Json.Encode as Enc
     import Json.Decode as Dec
     import BoardGameFramework as BGF
-    import BoardGameFramework.Wrap as Wrap
+    import BoardGameFramework.Box as Box
 
     type Body =
       Card String
@@ -52,17 +52,17 @@ import BoardGameFramework as BGF
 
 -- JSON
 
-{-| Wrap a value with a label.
+{-| Box a value with a label.
 
     encodeCard : String -> Enc.Value
     encodeCard text =
       Enc.string text
-      |> Wrap.encode "card"
+      |> Box.encode "card"
 
     encodeChips : List Int -> Enc.Value
     encodeChips chips =
       Enc.list Enc.int chips
-      |> Wrap.encode "chips"
+      |> Box.encode "chips"
 -}
 encode : String -> Enc.Value -> Enc.Value
 encode name enc =
@@ -71,7 +71,7 @@ encode name enc =
   ]
 
 
-{-| Create a decoder for values which are wrapped with labels.
+{-| Create a decoder for values which are boxed with labels.
 We don't need to use this if we're using the [`receive`](#receive)
 function.
 
@@ -88,7 +88,7 @@ a `Decoder Body`:
 
     bodyDecoder : Dec.Decoder Body
     bodyDecoder =
-      Wrap.decoder
+      Box.decoder
       [ ("card", Dec.map Card cardDecoder)
       , ("chips", Dec.map Chips chipsDecoder)
       ]
@@ -106,7 +106,7 @@ decoder pairs =
 -- Sending and receiving
 
 
-{-| Send one type of value by wrapping it up with a label, and thus
+{-| Send one type of value by boxing it up with a label, and thus
 making it an acceptable envelope body. Parameters are
 
 * The outbound port;
@@ -119,12 +119,12 @@ Here's how we can send a card value and some chips data through the
 
     sendCardCmd : String -> Cmd Msg
     sendCardCmd =
-      Wrap.send outgoing "card" encodeCard
+      Box.send outgoing "card" encodeCard
 
 
     sendChipsCmd : List Int -> Cmd Msg
     sendChipsCmd =
-      Wrap.send outgoing "chips" encodeChips
+      Box.send outgoing "chips" encodeChips
 
     -- Use the functions to send some data
 
@@ -137,7 +137,7 @@ send outPort name enc =
   |> BGF.send outPort
 
 
-{-| Take a JSON-encoded value (which has been wrapped up with a label)
+{-| Take a JSON-encoded value (which has been boxed up with a label)
 and turn it into a `msg`. By supplying the first two parameters
 we get a function (JSON `Value` to `msg`) which can be given
 to the inbound port. Using this function means we don't have to use
@@ -153,7 +153,7 @@ Using our running example, we can subscribe to a `Msg` like this:
 
     myReceive : Enc.Value -> Msg
     myReceive =
-      Wrap.receive
+      Box.receive
       Received
       [ ("card", Dec.map Card cardDecoder)
       , ("chips", Dec.map Chips chipsDecoder)
@@ -167,7 +167,7 @@ we're happy to create our own `Body` decoder:
 
     bodyDecoder : Dec.Decoder Body
     bodyDecoder =
-      Wrap.decoder
+      Box.decoder
       [ ("card", Dec.map Card cardDecoder)
       , ("chips", Dec.map Chips chipsDecoder)
       ]
