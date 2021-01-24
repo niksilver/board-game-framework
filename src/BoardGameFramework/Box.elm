@@ -17,7 +17,7 @@ This module helps with that.
 All the examples in this module follow on from the basic setup below,
 in which we will
 send two kinds of value: a card with a message (a `String`) and the size
-of various piles of chips (a `List Int`). This will be JSON-encoded
+of various piles of chips (a `List Int`). These will be JSON-encoded
 through ports, and will be decoded as `Envelope`s.
 
     import Json.Encode as Enc
@@ -52,7 +52,7 @@ import BoardGameFramework as BGF
 
 -- JSON
 
-{-| Box a value with a label.
+{-| Box up a value with a label.
 
     encodeCard : String -> Enc.Value
     encodeCard text =
@@ -111,7 +111,7 @@ making it an acceptable envelope body. Parameters are
 
 * The outbound port;
 * The label;
-* A function to encode the value;
+* A function to JSON-encode the value;
 * The value itself.
 
 Here's how we can send a card value and some chips data through the
@@ -121,15 +121,14 @@ Here's how we can send a card value and some chips data through the
     sendCardCmd =
       Box.send outgoing "card" encodeCard
 
-
     sendChipsCmd : List Int -> Cmd Msg
     sendChipsCmd =
       Box.send outgoing "chips" encodeChips
 
     -- Use the functions to send some data
 
-    sendCardCmd "Tell us a secret"  -- Sends the card value to our peers
-    sendChipsCmd [150, 0, 100]      -- Sends the chips data to our peers
+    sendCardCmd "Tell us a secret"  -- A Cmd to send the card value to our peers
+    sendChipsCmd [150, 0, 100]      -- A Cmd to send the chips data to our peers
 -}
 send : (Enc.Value -> Cmd msg) -> String -> (body -> Enc.Value) -> body -> Cmd msg
 send outPort name enc =
